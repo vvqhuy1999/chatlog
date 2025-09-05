@@ -1,0 +1,48 @@
+
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: chatlog-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: chatlog
+      MYSQL_USER: chatlog_user
+      MYSQL_PASSWORD: chatlog_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - chatlog-network
+
+  # Spring Boot Application
+  app:
+    build: .
+    container_name: chatlog-app
+    ports:
+      - "8080:8080"
+    environment:
+      # Database configuration
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/chatlog
+      SPRING_DATASOURCE_USERNAME: chatlog_user
+      SPRING_DATASOURCE_PASSWORD: chatlog_password
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+
+      # JPA configuration
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: true
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
+    depends_on:
+      - mysql
+    networks:
+      - chatlog-network
+
+volumes:
+  mysql_data:
+
+networks:
+  chatlog-network:
+    driver: bridge

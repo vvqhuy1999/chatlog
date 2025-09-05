@@ -1,0 +1,25 @@
+
+# Ignore files và folders không cần thiết khi build Docker image
+target/
+.git/
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Maven local repository
+.m2/
