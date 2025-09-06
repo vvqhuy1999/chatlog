@@ -17,11 +17,13 @@ public class ChatMessagesController {
     @Autowired
     private ChatMessagesService chatMessagesService;
 
+
     // Lấy tất cả messages
     @GetMapping
     public ResponseEntity<List<ChatMessages>> getAllChatMessages() {
         try {
             List<ChatMessages> chatMessages = chatMessagesService.findAll();
+            
             return ResponseEntity.ok(chatMessages);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
