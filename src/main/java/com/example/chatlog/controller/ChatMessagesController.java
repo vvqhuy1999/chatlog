@@ -17,11 +17,13 @@ public class ChatMessagesController {
     @Autowired
     private ChatMessagesService chatMessagesService;
 
+
     // Lấy tất cả messages
     @GetMapping
-    public ResponseEntity<List<ChatMessages>> getAllChatMessages() {
+    public ResponseEntity<List<ChatMessages>> getAllChatMessagesBySession(@PathVariable Long sessionId) {
         try {
-            List<ChatMessages> chatMessages = chatMessagesService.findAll();
+            List<ChatMessages> chatMessages = chatMessagesService.findAllBySessionId(sessionId);
+            
             return ResponseEntity.ok(chatMessages);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -43,10 +45,10 @@ public class ChatMessagesController {
     }
 
     // Tạo message mới
-    @PostMapping
-    public ResponseEntity<ChatMessages> createChatMessage(@RequestBody ChatMessages chatMessage) {
+    @PostMapping("/{sessionId}")
+    public ResponseEntity<ChatMessages> createChatMessage(@PathVariable Long sessionId,@RequestBody ChatMessages chatMessage) {
         try {
-            ChatMessages savedChatMessage = chatMessagesService.save(chatMessage);
+            ChatMessages savedChatMessage = chatMessagesService.save(sessionId,chatMessage);
             return ResponseEntity.status(HttpStatus.CREATED).body(savedChatMessage);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();

@@ -1,6 +1,6 @@
 package com.example.chatlog.entity;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.io.Serializable;
@@ -9,10 +9,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
 @Entity
 @Table(name = "chat_messages")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data
+
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatMessages implements Serializable {
@@ -26,16 +28,15 @@ public class ChatMessages implements Serializable {
     @Column(name = "sender", nullable = false)
     private SenderType sender;
 
-    @Lob
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Column(name = "timestamp", updatable = false, insertable = false,
+    @Column(name = "\"timestamp\"", updatable = false, insertable = false,
         columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime timestamp;
 
     // Foreign key relationship với ChatSessions entity
-    @JsonBackReference
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id", referencedColumnName = "session_id",
         foreignKey = @ForeignKey(name = "fk_message_session"))

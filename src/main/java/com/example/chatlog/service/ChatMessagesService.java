@@ -1,14 +1,16 @@
 package com.example.chatlog.service;
 
-import com.example.chatlog.entity.ChatDates;
 import com.example.chatlog.entity.ChatMessages;
-import java.util.List;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 
+
+@Service
 public interface ChatMessagesService {
-  List<ChatMessages> findAll();
+  List<ChatMessages> findAllBySessionId(Long sessionId);
   ChatMessages findById(Long id);
+  ChatMessages save(Long sessionId,ChatMessages chatMessages);
   ChatMessages save(ChatMessages chatMessages);
   void deleteById(Long id);
 }
