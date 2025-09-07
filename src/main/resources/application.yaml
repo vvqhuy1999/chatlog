@@ -7,10 +7,12 @@ spring:
   jpa:
     show-sql: true
     open-in-view: false
+    open-in-view: false
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
     defer-datasource-initialization: true

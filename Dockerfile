@@ -20,20 +20,18 @@ COPY src ./src
 # Build ứng dụng
 RUN mvn clean package -DskipTests
 
-# Tạo stage mới cho runtime (multi-stage build để giảm kích thước image)
-FROM eclipse-temurin:21-jre-alpine
-
-# Thiết lập working directory
-WORKDIR /app
-
-# Copy WAR file từ build stage
-COPY --from=builder /app/target/chatlog-0.0.1-SNAPSHOT.war app.war
-
-# Expose port (Spring Boot mặc định là 8080)
-EXPOSE 8080
+# Tạo stage mới cho runtime (Tomcat để chạy WAR)
+FROM tomcat:10.1-jdk21-temurin
 
 # Thiết lập JVM options (tuỳ chỉnh theo nhu cầu)
 ENV JAVA_OPTS="-Xmx512m -Xms256m"
 
-# Chạy ứng dụng
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.war"]
+# Dọn mặc định và copy WAR làm ROOT.war
+RUN rm -rf /usr/local/tomcat/webapps/*
+COPY --from=builder /app/target/chatlog-0.0.1-SNAPSHOT.war /usr/local/tomcat/webapps/ROOT.war
+
+# Expose port (Tomcat mặc định là 8080)
+EXPOSE 8080
+
+# Chạy Tomcat
+CMD ["catalina.sh", "run"]
