@@ -6,7 +6,10 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.content.Media;
 import org.springframework.stereotype.Service;
+import org.springframework.util.MimeTypeUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class AiServiceImpl implements AiService {
@@ -33,4 +36,21 @@ public class AiServiceImpl implements AiService {
                 .call()
                 .content();
     }
+
+    @Override
+    public String getAiResponse(MultipartFile file, ChatRequest request) {
+        Media media = Media.builder()
+                .mimeType(MimeTypeUtils.parseMimeType(file.getContentType()))
+                .data(file.getResource())
+                .build();
+
+        return chatClient.prompt()
+                .system("")
+                .user(promptUserSpec ->promptUserSpec.media()
+                        .text(request.message()))
+                .call()
+                .content();
+    }
+
+
 }
