@@ -98,6 +98,41 @@ sudo docker images
 sudo docker volume ls
 sudo docker network ls
 
+remove container
+sudo docker rm -f $(sudo docker ps -aq) || true
+remove image
+sudo docker rmi -f $(sudo docker images -q) || true
 
+sudo docker volume rm $(sudo docker volume ls -q) || true
+sudo docker network prune -f
+
+create image cho docker
+docker build -t chatlog:latest .
+docker build -t log-chatbot-frontend:latest .
+
+
+push image dockerhub
+docker tag chatlog:latest vvqhuy1999/chatlog:latest
+docker tag log-chatbot-frontend:latest vvqhuy1999/log-chatbot-frontend:latest
+
+docker push vvqhuy1999/chatlog:latest
+docker push vvqhuy1999/log-chatbot-frontend:latest
+
+pull về server run file docker-compose.yml
+thêm file .env vào 
+# trong thư mục chứa docker-compose.yml và .env
+sudo docker compose --env-file .env up -d
+# nếu đã chạy trước đó và thay đổi biến:
+sudo docker compose --env-file .env up -d --force-recreate
+
+kiem tra container và tên 
+sudo docker ps --format '{{.Names}}\t{{.Image}}'
+log-chatbot-frontend    vvqhuy1999/log-chatbot-frontend:latest
+chatlog-app     vvqhuy1999/chatlog:latest
+chatlog-postgres        postgres:16-alpine
+
+
+sudo docker exec -e PGPASSWORD=postgres -it chatlog-postgres \
+  psql -U postgres -d postgres -c "CREATE DATABASE chatlog OWNER postgres;"
 
 -->
