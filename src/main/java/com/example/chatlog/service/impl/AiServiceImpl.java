@@ -1,11 +1,9 @@
 package com.example.chatlog.service.impl;
 
 import com.example.chatlog.dto.ChatRequest;
-import com.example.chatlog.dto.IntentType;
-import com.example.chatlog.dto.RangeDate;
+import com.example.chatlog.dto.AiResponseBody;
 import com.example.chatlog.service.AiService;
 import com.example.chatlog.service.LogApiService;
-import com.example.chatlog.util.IntentDetector;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -47,38 +45,25 @@ public class AiServiceImpl implements AiService {
 
     @Override
     public String handleRequest(Long sessionId, ChatRequest chatRequest) {
-        IntentType intent = IntentDetector.detectIntent(chatRequest.message());
+
         String content = "";
-        switch (intent) {
-            case QUERY_STRING:
-            {
-                break;
-            }
-            case SEARCH_BY_DATE:
-            {
-                RangeDate rangeDate = new RangeDate();
-                SystemMessage systemMessage = new SystemMessage("""
-                Read the message and generate two values : gte, lte as format 2025-09-06T23:59:59+07:00
+        AiResponseBody rangeDate = new AiResponseBody();
+        SystemMessage systemMessage = new SystemMessage("""
+                Read the message and generate the body values to request
+                the data in elasticsearch. if have date values: gte, lte as format 2025-09-06T23:59:59+07:00.
                 """);
 
-                UserMessage userMessage = new UserMessage(chatRequest.message());
+        UserMessage userMessage = new UserMessage(chatRequest.message());
 
-                Prompt prompt = new Prompt(systemMessage, userMessage);
+        Prompt prompt = new Prompt(systemMessage, userMessage);
 
-                rangeDate =  chatClient
-                        .prompt(prompt)
-                        .call()
-                        .entity(new ParameterizedTypeReference<RangeDate>() {
-                        });
-                content =  logApiService.searchByDate(".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001",
-                        rangeDate.getGte(),
-                        rangeDate.getLte());
-                break;
-            }
-            // TODO: viết thêm case cho các intent khác
-            default:
-                content = "Xin lỗi, tôi chưa hiểu yêu cầu của bạn.";
-        }
+        rangeDate =  chatClient
+                .prompt(prompt)
+                .call()
+                .entity(new ParameterizedTypeReference<AiResponseBody>() {
+                });
+        content =  logApiService.searchByDate(".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001",
+                rangeDate.getBody());
         return getAiResponse(sessionId,chatRequest,content);
     }
 
@@ -116,7 +101,7 @@ public class AiServiceImpl implements AiService {
 
         return chatClient.prompt()
                 .system("")
-                .user(promptUserSpec ->promptUserSpec.media()
+                .user(promptUserSpec ->promptUserSpec.media(media)
                         .text(request.message()))
                 .advisors(advisorSpec -> advisorSpec.param(
                         ChatMemory.CONVERSATION_ID, conversationId

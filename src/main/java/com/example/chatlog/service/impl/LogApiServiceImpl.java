@@ -9,9 +9,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 
-import java.io.Console;
-import java.util.logging.Logger;
-
 @Service
 public class LogApiServiceImpl implements LogApiService {
 
@@ -42,15 +39,9 @@ public class LogApiServiceImpl implements LogApiService {
                 .defaultHeader("kbn-xsrf", "true")
                 .build();
     }
+
     @Override
-    public String searchByDate(String index, String gte, String lte) {
-        String body = """
-        {
-          "query": { "range": { "@timestamp": { "gte": "%s", "lte": "%s" } } },
-          "size" : 10,
-          "sort": [{ "@timestamp": { "order": "desc" } }]
-        }
-        """.formatted(gte, lte);
+    public String searchByDate(String index,String body) {
         System.out.println(body);
         return webClient.post()
                 .uri("/" + index + "/_search")

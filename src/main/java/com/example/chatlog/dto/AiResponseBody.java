@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RangeDate {
-    String gte;
-    String lte;
+public class AiResponseBody {
+    String body;
 }
