@@ -3,6 +3,7 @@ package com.example.chatlog.service.impl;
 import com.example.chatlog.service.LogApiService;
 import io.netty.handler.ssl.SslContextBuilder;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -41,9 +42,10 @@ public class LogApiServiceImpl implements LogApiService {
     }
 
     @Override
-    public String searchByDate(String index,String body) {
+    public String search(String index,String body) {
         System.out.println(body);
-        return webClient.post()
+        return webClient
+                .method(HttpMethod.GET)
                 .uri("/" + index + "/_search")
                 .bodyValue(body)
                 .retrieve()

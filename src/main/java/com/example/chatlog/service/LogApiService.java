@@ -5,5 +5,5 @@ import org.springframework.stereotype.Service;
 
 @Service
 public interface LogApiService {
-    String searchByDate(String index,String body);
+    String search(String index,String body);
 }

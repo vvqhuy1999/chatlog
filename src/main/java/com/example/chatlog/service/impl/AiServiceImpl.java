@@ -62,7 +62,7 @@ public class AiServiceImpl implements AiService {
                 .call()
                 .entity(new ParameterizedTypeReference<RequestBody>() {
                 });
-        content =  logApiService.searchByDate(".ds-logs-fortinet_fortigate.log-default*",
+        content =  logApiService.search("logs-fortinet_fortigate.log-default*",
                 requestBody.getBody());
         return getAiResponse(sessionId,chatRequest,content);
     }
