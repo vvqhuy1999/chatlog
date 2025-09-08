@@ -1,7 +1,7 @@
 package com.example.chatlog.service.impl;
 
 import com.example.chatlog.dto.ChatRequest;
-import com.example.chatlog.dto.AiResponseBody;
+import com.example.chatlog.dto.RequestBody;
 import com.example.chatlog.service.AiService;
 import com.example.chatlog.service.LogApiService;
 import org.springframework.ai.chat.client.ChatClient;
@@ -47,7 +47,7 @@ public class AiServiceImpl implements AiService {
     public String handleRequest(Long sessionId, ChatRequest chatRequest) {
 
         String content = "";
-        AiResponseBody rangeDate = new AiResponseBody();
+        RequestBody requestBody = new RequestBody();
         SystemMessage systemMessage = new SystemMessage("""
                 Read the message and generate the body values to request
                 the data in elasticsearch. if have date values: gte, lte as format 2025-09-06T23:59:59+07:00.
@@ -57,13 +57,13 @@ public class AiServiceImpl implements AiService {
 
         Prompt prompt = new Prompt(systemMessage, userMessage);
 
-        rangeDate =  chatClient
+        requestBody =  chatClient
                 .prompt(prompt)
                 .call()
-                .entity(new ParameterizedTypeReference<AiResponseBody>() {
+                .entity(new ParameterizedTypeReference<RequestBody>() {
                 });
-        content =  logApiService.searchByDate(".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001",
-                rangeDate.getBody());
+        content =  logApiService.searchByDate(".ds-logs-fortinet_fortigate.log-default*",
+                requestBody.getBody());
         return getAiResponse(sessionId,chatRequest,content);
     }
 
