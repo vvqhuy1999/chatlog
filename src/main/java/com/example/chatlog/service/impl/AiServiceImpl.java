@@ -2,9 +2,9 @@ package com.example.chatlog.service.impl;
 
 import com.example.chatlog.dto.ChatRequest;
 import com.example.chatlog.dto.IntentType;
+import com.example.chatlog.dto.RangeDate;
 import com.example.chatlog.service.AiService;
 import com.example.chatlog.service.LogApiService;
-import com.example.chatlog.util.DateParser;
 import com.example.chatlog.util.IntentDetector;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
@@ -16,6 +16,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -50,13 +51,29 @@ public class AiServiceImpl implements AiService {
         String content = "";
         switch (intent) {
             case QUERY_STRING:
+            {
+                break;
+            }
             case SEARCH_BY_DATE:
             {
-                String[] rangeDate = DateParser.extractDateRange(chatRequest.message());
+                RangeDate rangeDate = new RangeDate();
+                SystemMessage systemMessage = new SystemMessage("""
+                Read the message and generate two values : gte, lte as format 2025-09-06T23:59:59+07:00
+                """);
+
+                UserMessage userMessage = new UserMessage(chatRequest.message());
+
+                Prompt prompt = new Prompt(systemMessage, userMessage);
+
+                rangeDate =  chatClient
+                        .prompt(prompt)
+                        .call()
+                        .entity(new ParameterizedTypeReference<RangeDate>() {
+                        });
                 content =  logApiService.searchByDate(".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001",
-                        rangeDate[0],
-                        rangeDate[1]);
-                return getAiResponse(sessionId,chatRequest,content);
+                        rangeDate.getGte(),
+                        rangeDate.getLte());
+                break;
             }
             // TODO: viết thêm case cho các intent khác
             default:
