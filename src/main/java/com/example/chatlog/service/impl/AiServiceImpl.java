@@ -1,7 +1,11 @@
 package com.example.chatlog.service.impl;
 
 import com.example.chatlog.dto.ChatRequest;
+import com.example.chatlog.dto.IntentType;
 import com.example.chatlog.service.AiService;
+import com.example.chatlog.service.LogApiService;
+import com.example.chatlog.util.DateParser;
+import com.example.chatlog.util.IntentDetector;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -11,6 +15,7 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,6 +24,10 @@ import org.springframework.web.multipart.MultipartFile;
 public class AiServiceImpl implements AiService {
     private final JdbcChatMemoryRepository jdbcChatMemoryRepository;
     private final ChatClient chatClient;
+
+    @Autowired
+    private LogApiService logApiService;
+
 
     public AiServiceImpl(ChatClient.Builder builder,  JdbcChatMemoryRepository jdbcChatMemoryRepository) {
         this.jdbcChatMemoryRepository = jdbcChatMemoryRepository;
@@ -36,13 +45,35 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
-    public String getAiResponse(Long sessionId,ChatRequest chatRequest) {
+    public String handleRequest(Long sessionId, ChatRequest chatRequest) {
+        IntentType intent = IntentDetector.detectIntent(chatRequest.message());
+        String content = "";
+        switch (intent) {
+            case QUERY_STRING:
+            case SEARCH_BY_DATE:
+            {
+                String[] rangeDate = DateParser.extractDateRange(chatRequest.message());
+                content =  logApiService.searchByDate(".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001",
+                        rangeDate[0],
+                        rangeDate[1]);
+                return getAiResponse(sessionId,chatRequest,content);
+            }
+            // TODO: viết thêm case cho các intent khác
+            default:
+                content = "Xin lỗi, tôi chưa hiểu yêu cầu của bạn.";
+        }
+        return getAiResponse(sessionId,chatRequest,content);
+    }
+
+    @Override
+    public String getAiResponse(Long sessionId,ChatRequest chatRequest, String content) {
         String conversationId = sessionId.toString();
 
         SystemMessage systemMessage = new SystemMessage("""
                 You are HPT.AI
                 You should respond in a formal voice.
-                """);
+                logData : 
+                """ + content);
 
         UserMessage userMessage = new UserMessage(chatRequest.message());
 
@@ -58,7 +89,7 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
-    public String getAiResponse(Long sessionId, MultipartFile file, ChatRequest request) {
+    public String getAiResponse(Long sessionId, MultipartFile file, ChatRequest request, String content) {
         String conversationId = sessionId.toString();
 
         Media media = Media.builder()

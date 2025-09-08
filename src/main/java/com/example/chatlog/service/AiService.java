@@ -9,7 +9,9 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public interface AiService {
 
-    String getAiResponse(Long sessionId,ChatRequest request);
+    String handleRequest(Long sessionId, ChatRequest chatRequest);
 
-    String getAiResponse(Long sessionId,MultipartFile file, ChatRequest request);
+    String getAiResponse(Long sessionId,ChatRequest request, String content);
+
+    String getAiResponse(Long sessionId,MultipartFile file, ChatRequest request, String content);
 }
