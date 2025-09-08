@@ -47,7 +47,7 @@ public class ChatMessagesServiceImpl implements ChatMessagesService {
       aiMessage.setChatSessions(chatSessions);
       aiMessage.setSender(ChatMessages.SenderType.AI);
       try{
-          String response = aiService.getAiResponse(chatRequest);
+          String response = aiService.getAiResponse(sessionId,chatRequest);
           aiMessage.setContent(response);
           return chatMessagesRepository.save(aiMessage);
       }
