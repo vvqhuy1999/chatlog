@@ -35,4 +35,4 @@ spring:
 elastic:
   api:
     key: ${ELASTIC_API_KEY}
-    url: https://10.0.18.23:9200
+    url: ${ELASTIC_URL}
