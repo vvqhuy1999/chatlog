@@ -11,6 +11,7 @@ import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.memory.repository.jdbc.JdbcChatMemoryRepository;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +47,7 @@ public class AiServiceImpl implements AiService {
     @Override
     public String handleRequest(Long sessionId, ChatRequest chatRequest) {
 
-//        String fieldLog = logApiService.getFieldLog("logs-fortinet_fortigate.log-default*");
+        String fieldLog = logApiService.getFieldLog("logs-fortinet_fortigate.log-default*");
 
 
         String content = "";
@@ -54,15 +55,22 @@ public class AiServiceImpl implements AiService {
         SystemMessage systemMessage = new SystemMessage("""
                 Read the message and generate the request body for Elasticsearch.
                 If the message contains date values, include gte and lte in the format 2025-09-06T23:59:59+07:00. 
-                
-                """ );
-//Only include the fields relevant to the question in the response using _source filtering.
+                metadata_field:
+                """ + fieldLog);
+
+
+        ChatOptions chatOptions = ChatOptions.builder()
+                .temperature(0D)
+                .build();
+
+
         UserMessage userMessage = new UserMessage(chatRequest.message());
 
         Prompt prompt = new Prompt(systemMessage, userMessage);
 
         requestBody =  chatClient
                 .prompt(prompt)
+                .options(chatOptions)
                 .call()
                 .entity(new ParameterizedTypeReference<RequestBody>() {
                 });
