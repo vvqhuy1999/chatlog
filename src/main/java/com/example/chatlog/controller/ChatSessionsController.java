@@ -4,6 +4,7 @@ import com.example.chatlog.entity.ChatSessions;
 import com.example.chatlog.service.ChatSessionsService;
 import com.example.chatlog.repository.ChatMessagesRepository;
 import com.example.chatlog.entity.ChatMessages;
+import com.example.chatlog.dto.StartSessionRequest;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -69,6 +70,17 @@ public class ChatSessionsController {
         try {
             ChatSessions savedChatSession = chatSessionsService.save(chatSession);
             return ResponseEntity.status(HttpStatus.CREATED).body(savedChatSession);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
+
+    // Tạo session mới kèm message đầu tiên
+    @PostMapping("/start")
+    public ResponseEntity<ChatSessions> startChatSession(@RequestBody StartSessionRequest request) {
+        try {
+            ChatSessions saved = chatSessionsService.createWithFirstMessage(request.content());
+            return ResponseEntity.status(HttpStatus.CREATED).body(saved);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
