@@ -52,4 +52,15 @@ public class LogApiServiceImpl implements LogApiService {
                 .bodyToMono(String.class)
                 .block();
     }
+
+    @Override
+    public String getFieldLog(String index) {
+        return webClient
+                .method(HttpMethod.GET)
+                .uri("/"+index+"/_mapping")
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+
+    }
 }

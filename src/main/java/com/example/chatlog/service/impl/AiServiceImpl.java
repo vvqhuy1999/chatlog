@@ -33,7 +33,7 @@ public class AiServiceImpl implements AiService {
 
         ChatMemory chatMemory = MessageWindowChatMemory.builder()
                 .chatMemoryRepository(jdbcChatMemoryRepository)
-                .maxMessages(30)
+                .maxMessages(50)
                 .build();
 
 
@@ -46,13 +46,17 @@ public class AiServiceImpl implements AiService {
     @Override
     public String handleRequest(Long sessionId, ChatRequest chatRequest) {
 
+//        String fieldLog = logApiService.getFieldLog("logs-fortinet_fortigate.log-default*");
+
+
         String content = "";
         RequestBody requestBody = new RequestBody();
         SystemMessage systemMessage = new SystemMessage("""
-                Read the message and generate the body values to request
-                the data in elasticsearch. if have date values: gte, lte as format 2025-09-06T23:59:59+07:00.
-                """);
-
+                Read the message and generate the request body for Elasticsearch.
+                If the message contains date values, include gte and lte in the format 2025-09-06T23:59:59+07:00. 
+                
+                """ );
+//Only include the fields relevant to the question in the response using _source filtering.
         UserMessage userMessage = new UserMessage(chatRequest.message());
 
         Prompt prompt = new Prompt(systemMessage, userMessage);
@@ -109,6 +113,4 @@ public class AiServiceImpl implements AiService {
                 .call()
                 .content();
     }
-
-
 }
