@@ -1,4 +1,4 @@
-"# chatlog" 
+"# chatlog"
 
 ## Cấu trúc dự án (Spring Boot)
 
@@ -216,3 +216,146 @@ sudo docker exec -e PGPASSWORD=postgres -it chatlog-postgres \
   psql -U postgres -d postgres -c "CREATE DATABASE chatlog OWNER postgres;"
 
 -->
+<--
+sudo apt install openjdk-21-jdk
+java -version
+javac -version
+
+
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+echo 'export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64' >> ~/.bashrc
+
+
+sudo apt install maven
+mvn -version
+
+`
+Apache Maven 3.8.7
+Maven home: /usr/share/maven
+Java version: 21.0.8, vendor: Ubuntu, runtime: /usr/lib/jvm/java-21-openjdk-amd64
+Default locale: en_US, platform encoding: UTF-8
+OS name: "linux", version: "6.8.0-41-generic", arch: "amd64", family: "unix"`
+
+sudo apt install postgresql postgresql-contrib
+
+
+# Kiểm tra version
+sudo -u postgres psql -c "SELECT version();"
+`PostgreSQL 16.9 (Ubuntu 16.9-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc
+(Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0, 64-bit`
+
+# Switch sang postgres user và vào psql
+sudo -u postgres psql
+
+-- Tạo database chatlog
+CREATE DATABASE chatlog;
+
+-- Kiểm tra user postgres đã tồn tại (mặc định có sẵn)
+\du
+
+-- Set password cho user postgres
+ALTER USER postgres PASSWORD 'postgres';
+
+-- Grant quyền cho user postgres trên database chatlog
+GRANT ALL PRIVILEGES ON DATABASE chatlog TO postgres;
+
+-- Connect vào database chatlog để test
+\c chatlog
+
+-- Kiểm tra connection
+SELECT current_database(), current_user;
+
+-- Thoát psql
+\q
+
+
+sudo -u postgres psql -d chatlog
+
+# Copy file vào thư mục /tmp
+cp /home/httt/chatlog/chatlog.sql /tmp/
+
+# Set quyền cho file
+chmod 644 /tmp/chatlog.sql
+
+# Vào lại psql
+sudo -u postgres psql -d chatlog
+
+# Import file
+\i /tmp/chatlog.sql
+# thoat khoi
+\q
+
+# kiem tra postgres
+sudo ss -tlnp | grep postgres
+
+
+# vao thu muc du an
+cd chatlog
+
+
+# Chạy dự án
+mvn clean install
+mvn spring-boot:run
+
+
+
+# New tab chạy cho fontend
+
+# Download và chạy script setup cho Node.js 22.x
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+
+# Cài đặt Node.js và npm
+sudo apt-get install -y nodejs
+
+# Kiểm tra version
+node -v    # Should show v22.19.0
+npm -v     # Should show 10.9.3
+
+# cài đặt nginx
+sudo apt install nginx
+
+# Tạo file cấu hình trong sites-available
+sudo nano /etc/nginx/sites-available/log-chatbot
+
+Ctrl + o , enter, Ctrl + Enter
+
+# Tạo lại symbolic link
+sudo ln -s /etc/nginx/sites-available/log-chatbot /etc/nginx/sites-enabled/
+
+# Thay đổi quyền sở hữu thư mục dist cho www-data (user mà Nginx chạy)
+sudo chown -R www-data:www-data /home/httt/log-chatbot/dist
+
+# Đảm bảo tất cả các file trong thư mục dist có quyền đọc
+sudo chmod -R 755 /home/httt/log-chatbot/dist
+
+# restart nginx
+sudo systemctl restart nginx
+
+
+httt@hpt-botlog-srv:~/log-chatbot$ ls -ld /home/httt/log-chatbot/dist
+drwxr-xr-x 3 www-data www-data 4096 Sep  9 07:40 /home/httt/log-chatbot/dist
+httt@hpt-botlog-srv:~/log-chatbot$ ls -la /home/httt/log-chatbot/dist/index.html
+-rwxr-xr-x 1 www-data www-data 440 Sep  9 07:40 /home/httt/log-chatbot/dist/index.html
+httt@hpt-botlog-srv:~/log-chatbot$ ls -ld /home/httt/log-chatbot
+drwxrwxr-x 8 httt httt 4096 Sep  9 07:18 /home/httt/log-chatbot
+httt@hpt-botlog-srv:~/log-chatbot$ ^C
+httt@hpt-botlog-srv:~/log-chatbot$ ps aux | grep nginx
+root      465580  0.0  0.0  11288  3904 ?        Ss   07:51   0:00 nginx: master process /usr/sbin/nginx -g daemon on; master_process on;
+www-data  467145  0.0  0.0  12824  5200 ?        S    07:55   0:00 nginx: worker process
+www-data  467146  0.0  0.0  12824  5328 ?        S    07:55   0:00 nginx: worker process
+www-data  467147  0.0  0.0  12824  5200 ?        S    07:55   0:00 nginx: worker process
+www-data  467148  0.0  0.0  12824  4560 ?        S    07:55   0:00 nginx: worker process
+httt      475831  0.0  0.0   6544  2304 pts/3    S+   08:19   0:00 grep --color=auto nginx
+httt@hpt-botlog-srv:~/log-chatbot$ ^C
+httt@hpt-botlog-srv:~/log-chatbot$ ls -ld /home/httt
+drwxr-x--- 9 httt httt 4096 Sep  9 07:07 /home/httt
+httt@hpt-botlog-srv:~/log-chatbot$ chmod 755 /home/httt
+httt@hpt-botlog-srv:~/log-chatbot$ ls -ld /home/httt
+drwxr-xr-x 9 httt httt 4096 Sep  9 07:07 /home/httt
+httt@hpt-botlog-srv:~/log-chatbot$ sudo -u www-data test -r /home/httt/log-chatbot/dist/index.html && echo "✅ Có thể đọc index.html" || echo "❌ Vẫn không thể đọc index.html"
+✅ Có thể đọc index.html
+httt@hpt-botlog-srv:~/log-chatbot$ sudo systemctl restart nginx
+
+
+-->
+
