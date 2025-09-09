@@ -11,7 +11,4 @@ public interface AiService {
 
     String handleRequest(Long sessionId, ChatRequest chatRequest);
 
-    String getAiResponse(Long sessionId,ChatRequest request, String content);
-
-    String getAiResponse(Long sessionId,MultipartFile file, ChatRequest request, String content);
 }

@@ -86,22 +86,27 @@ public class AiServiceImpl implements AiService {
         System.out.println("THong tin quey: "+requestBody.getQuery());
 
         if (requestBody.getQuery() != 0)
+        {
             content =  logApiService.search("logs-fortinet_fortigate.log-default*",
                     requestBody.getBody());
+        }
+
         else
             content = requestBody.getBody();
-        return getAiResponse(sessionId,chatRequest,content);
+
+        return getAiResponse(sessionId,chatRequest,content, requestBody.getBody());
     }
 
-    @Override
-    public String getAiResponse(Long sessionId,ChatRequest chatRequest, String content) {
+
+    public String getAiResponse(Long sessionId,ChatRequest chatRequest, String content,String query) {
         String conversationId = sessionId.toString();
 
         SystemMessage systemMessage = new SystemMessage("""
                 You are HPT.AI
                 You should respond in a formal voice.
+                If the query is executed but no results are found, return the Elasticsearch query body itself.
                 logData :
-                """ + content);
+                """ + content+" query: " + query);
 
         UserMessage userMessage = new UserMessage(chatRequest.message());
 
@@ -116,7 +121,6 @@ public class AiServiceImpl implements AiService {
                 .content();
     }
 
-    @Override
     public String getAiResponse(Long sessionId, MultipartFile file, ChatRequest request, String content) {
         String conversationId = sessionId.toString();
 
