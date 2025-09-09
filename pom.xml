@@ -108,14 +108,18 @@
             <artifactId>netty-handler</artifactId>
         </dependency>
 
-
-
-
-
     </dependencies>
 
 	<build>
-    <plugins>
+            <extensions>
+                <extension>
+                    <groupId>kr.motd.maven</groupId>
+                    <artifactId>os-maven-plugin</artifactId>
+                    <version>1.7.0</version>
+                </extension>
+            </extensions>
+
+        <plugins>
         <plugin>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-maven-plugin</artifactId>
@@ -125,6 +129,8 @@
         </plugin>
     </plugins>
 </build>
+
+
 
 
 </project>
