@@ -22,15 +22,24 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class AiServiceImpl implements AiService {
-    private final JdbcChatMemoryRepository jdbcChatMemoryRepository;
+    private static String fieldLog;
+
     private final ChatClient chatClient;
 
     @Autowired
     private LogApiService logApiService;
 
+    public String getFieldLog()
+    {
+        if (fieldLog == null)
+        {
+            fieldLog = logApiService.getFieldLog("logs-fortinet_fortigate.log-default*");
+        }
+        return fieldLog;
+    }
 
     public AiServiceImpl(ChatClient.Builder builder,  JdbcChatMemoryRepository jdbcChatMemoryRepository) {
-        this.jdbcChatMemoryRepository = jdbcChatMemoryRepository;
+
 
         ChatMemory chatMemory = MessageWindowChatMemory.builder()
                 .chatMemoryRepository(jdbcChatMemoryRepository)
@@ -47,16 +56,15 @@ public class AiServiceImpl implements AiService {
     @Override
     public String handleRequest(Long sessionId, ChatRequest chatRequest) {
 
-        String fieldLog = logApiService.getFieldLog("logs-fortinet_fortigate.log-default*");
-
-
-        String content = "";
-        RequestBody requestBody = new RequestBody();
+                String content;
+        RequestBody requestBody;
         SystemMessage systemMessage = new SystemMessage("""
                 Read the message and generate the request body for Elasticsearch.
-                If the message contains date values, include gte and lte in the format 2025-09-06T23:59:59+07:00. 
+                If the message contains date values, include gte and lte in the format 2025-09-06T23:59:59+07:00.
+                Only include the fields relevant to the question in the response using _source filtering.
+                If the message does not require log data, return query = 0.
                 metadata_field:
-                """ + fieldLog);
+                """ + getFieldLog());
 
 
         ChatOptions chatOptions = ChatOptions.builder()
@@ -72,10 +80,13 @@ public class AiServiceImpl implements AiService {
                 .prompt(prompt)
                 .options(chatOptions)
                 .call()
-                .entity(new ParameterizedTypeReference<RequestBody>() {
+                .entity(new ParameterizedTypeReference<>() {
                 });
-        content =  logApiService.search("logs-fortinet_fortigate.log-default*",
-                requestBody.getBody());
+        if (requestBody.getQuery() == 1)
+            content =  logApiService.search("logs-fortinet_fortigate.log-default*",
+                    requestBody.getBody());
+        else
+            content = requestBody.getBody();
         return getAiResponse(sessionId,chatRequest,content);
     }
 
@@ -86,7 +97,7 @@ public class AiServiceImpl implements AiService {
         SystemMessage systemMessage = new SystemMessage("""
                 You are HPT.AI
                 You should respond in a formal voice.
-                logData : 
+                logData :
                 """ + content);
 
         UserMessage userMessage = new UserMessage(chatRequest.message());

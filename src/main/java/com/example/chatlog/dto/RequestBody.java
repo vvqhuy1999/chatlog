@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RequestBody {
     String body;
+    int query;
 }
