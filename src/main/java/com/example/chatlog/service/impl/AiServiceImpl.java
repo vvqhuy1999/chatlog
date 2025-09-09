@@ -62,7 +62,7 @@ public class AiServiceImpl implements AiService {
                 Read the message and generate the request body for Elasticsearch.
                 If the message contains date values, include gte and lte in the format 2025-09-06T23:59:59+07:00.
                 Only include the fields relevant to the question in the response using _source filtering.
-                If the message does not require log data, return query = 0.
+                If the message does not require log data, return query = 0 else 1.
                 metadata_field:
                 """ + getFieldLog());
 
@@ -82,7 +82,10 @@ public class AiServiceImpl implements AiService {
                 .call()
                 .entity(new ParameterizedTypeReference<>() {
                 });
-        if (requestBody.getQuery() == 1)
+
+        System.out.println("THong tin quey: "+requestBody.getQuery());
+
+        if (requestBody.getQuery() != 0)
             content =  logApiService.search("logs-fortinet_fortigate.log-default*",
                     requestBody.getBody());
         else
