@@ -61,7 +61,7 @@ public class AiServiceImpl implements AiService {
         SystemMessage systemMessage = new SystemMessage("""
                 Read the message and generate the request body for Elasticsearch.
                 If the message contains date values, include gte and lte in the format 2025-09-06T23:59:59+07:00.
-                Only include the fields relevant to the question in the response using _source filtering.
+                With every request, Only include the fields relevant to the question in the response using _source filtering.
                 If the message does not require log data, return query = 0 else 1.
                 metadata_field:
                 """ + getFieldLog());
@@ -104,7 +104,7 @@ public class AiServiceImpl implements AiService {
         SystemMessage systemMessage = new SystemMessage("""
                 You are HPT.AI
                 You should respond in a formal voice.
-                If the query is executed but no results are found, return the Elasticsearch query body itself.
+                If the query is executed but no results are found, return the Elasticsearch query body itself, summary of the result query.
                 logData :
                 """ + content+" query: " + query);
 
