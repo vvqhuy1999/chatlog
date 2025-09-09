@@ -1,5 +1,85 @@
 "# chatlog" 
 
+## Cấu trúc dự án (Spring Boot)
+
+Lưu ý: Bỏ qua thư mục build như `target/`.
+
+```text
+chatlog/
+├─ pom.xml
+├─ Dockerfile
+├─ docker-compose.yml
+├─ .dockerignore
+├─ .gitattributes
+├─ .gitignore
+├─ chatlog.sql
+├─ README.md
+├─ src/
+│  ├─ main/
+│  │  ├─ java/
+│  │  │  └─ com/example/chatlog/
+│  │  │     ├─ ChatlogApplication.java
+│  │  │     ├─ controller/
+│  │  │     │  ├─ AuthController.java
+│  │  │     │  ├─ ChatMessagesController.java
+│  │  │     │  └─ ChatSessionsController.java
+│  │  │     ├─ dto/
+│  │  │     │  ├─ ChatRequest.java
+│  │  │     │  └─ StartSessionRequest.java
+│  │  │     ├─ entity/
+│  │  │     │  ├─ ChatMessages.java
+│  │  │     │  └─ ChatSessions.java
+│  │  │     ├─ repository/
+│  │  │     │  ├─ ChatMessagesRepository.java
+│  │  │     │  └─ ChatSessionsRepository.java
+│  │  │     ├─ service/
+│  │  │     │  ├─ AiService.java
+│  │  │     │  ├─ ChatMessagesService.java
+│  │  │     │  ├─ ChatSessionsService.java
+│  │  │     │  └─ impl/
+│  │  │     │     ├─ AiServiceImpl.java
+│  │  │     │     ├─ ChatMessagesServiceImpl.java
+│  │  │     │     └─ ChatSessionsServiceImpl.java
+│  │  └─ resources/
+│  │     └─ application.yaml
+│  └─ test/
+│     └─ java/
+│        └─ com/example/chatlog/
+│           └─ ChatlogApplicationTests.java
+```
+
+## Mô tả tệp và thư mục
+
+- pom.xml: Khai báo dependency, plugin, version JDK cho dự án Spring Boot.
+- Dockerfile: Build multi-stage để tạo image chạy ứng dụng Spring Boot (JAR).
+- docker-compose.yml: Orchestrate 3 services: postgres, app (Spring Boot), frontend.
+- .dockerignore: Loại trừ file/thư mục không cần khi build Docker context.
+- .gitattributes: Thiết lập thuộc tính Git (ví dụ normalize EOL).
+- .gitignore: Bỏ qua file không commit, đã có rule cho .env.
+- chatlog.sql: Schema và seed dữ liệu cho PostgreSQL (bảng chat_sessions, chat_messages, index...).
+- README.md: Hướng dẫn cài đặt, deploy (giữ nguyên các ghi chú của bạn).
+- src/main/java/com/example/chatlog/ChatlogApplication.java: Điểm khởi động Spring Boot.
+- controller/:
+  - AuthController.java: Login/check/logout giả lập bằng biến tĩnh.
+  - ChatMessagesController.java: REST API CRUD message và tạo message mới cho session.
+  - ChatSessionsController.java: REST API cho session, bao gồm endpoint /start tạo session + message đầu.
+- dto/:
+  - ChatRequest.java: DTO gửi nội dung chat đến AI service.
+  - StartSessionRequest.java: DTO nhận content khi tạo session mới.
+- entity/:
+  - ChatMessages.java: Entity message (sender USER/AI, content, timestamp, liên kết session).
+  - ChatSessions.java: Entity session (title, createdAt, lastActiveAt, one-to-many messages).
+- repository/:
+  - ChatMessagesRepository.java: Truy vấn message theo session, theo thời gian.
+  - ChatSessionsRepository.java: CRUD session.
+- service/:
+  - AiService.java, impl/AiServiceImpl.java: Gọi AI tạo phản hồi.
+  - ChatMessagesService.java, impl/ChatMessagesServiceImpl.java: Lưu và sinh response AI cho message.
+  - ChatSessionsService.java, impl/ChatSessionsServiceImpl.java: CRUD session và tạo session kèm message đầu.
+- src/main/resources/application.yaml: Cấu hình Spring (datasource mặc định, JPA, model AI qua env OPENAI_API_KEY).
+- src/test/java/.../ChatlogApplicationTests.java: Test khởi động context cơ bản.
+
+
 <!-- 
 
 docker tag chatlog:latest vvqhuy1999/chatlog:latest
@@ -125,7 +205,7 @@ sudo docker compose --env-file .env up -d
 # nếu đã chạy trước đó và thay đổi biến:
 sudo docker compose --env-file .env up -d --force-recreate
 
-kiem tra container và tên 
+# Kiem tra container và tên 
 sudo docker ps --format '{{.Names}}\t{{.Image}}'
 log-chatbot-frontend    vvqhuy1999/log-chatbot-frontend:latest
 chatlog-app     vvqhuy1999/chatlog:latest
