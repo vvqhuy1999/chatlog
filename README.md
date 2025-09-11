@@ -216,7 +216,7 @@ sudo docker exec -e PGPASSWORD=postgres -it chatlog-postgres \
   psql -U postgres -d postgres -c "CREATE DATABASE chatlog OWNER postgres;"
 
 -->
-<--
+<!--
 sudo apt install openjdk-21-jdk
 java -version
 javac -version
