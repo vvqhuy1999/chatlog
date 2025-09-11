@@ -245,15 +245,31 @@ public class AiServiceImpl implements AiService {
                 
                 EXAMPLE CORRECT RESPONSES:
                 Question: "Show connections from IP 10.0.30.199 in last 3 days"
-                Response: {"query":1,"body":"{\\"query\\":{\\"bool\\":{\\"must\\":[{\\"term\\":{\\"source.ip\\":\\"10.0.30.199\\"}},{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-07T00:00:00+07:00\\",\\"lte\\":\\"2025-09-10T23:59:59+07:00\\"}}}]}},\\"size\\":100,\\"_source\\":[\\"@timestamp\\",\\"source.ip\\",\\"destination.ip\\",\\"event.action\\"]}"}
+                Response: {"query":1,"body":"{\\"query\\":{\\"bool\\":{\\"must\\":[{\\"term\\":{\\"source.ip\\":\\"10.0.30.199\\"}},{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-08T00:00:00\\",\\"lte\\":\\"2025-09-11T23:59:59\\"}}}]}},\\"size\\":100,\\"_source\\":[\\"@timestamp\\",\\"source.ip\\",\\"destination.ip\\",\\"source.user.name\\",\\"event.action\\"]}"}
                 
-                Question: "Count failed logins today"  
-                Response: {"query":1,"body":"{"query":{"bool":{"must":[{"term":{"event.action":"login"}},{"term":{"event.outcome":"failure"}},{"range":{"@timestamp":{"gte":"2025-09-10T00:00:00+07:00","lte":"2025-09-10T23:59:59+07:00"}}}]}},"aggs":{"login_count":{"value_count":{"field":"event.action"}}},"size":0}"}
+                Question: "Count total logs today using aggregation"  
+                Response: {"query":1,"body":"{\\"query\\":{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-11T00:00:00\\",\\"lte\\":\\"2025-09-11T23:59:59\\"}}},\\"aggs\\":{\\"log_count\\":{\\"value_count\\":{\\"field\\":\\"@timestamp\\"}}},\\"size\\":0}"}
+                
+                Question: "Count successful and failed logins for user TrangNT today"  
+                Response: {"query":1,"body":"{\\"query\\":{\\"bool\\":{\\"must\\":[{\\"term\\":{\\"source.user.name\\":\\"TrangNT\\"}},{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-11T00:00:00\\",\\"lte\\":\\"2025-09-11T23:59:59\\"}}}]}},\\"aggs\\":{\\"outcome_count\\":{\\"terms\\":{\\"field\\":\\"event.outcome\\"}}},\\"size\\":0,\\"_source\\":[\\"@timestamp\\",\\"source.user.name\\",\\"event.action\\",\\"event.outcome\\"]}"}
+                
+                Question: "Show logs in last 5 minutes"
+                Response: {"query":1,"body":"{\\"query\\":{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-11T13:32:45\\",\\"lte\\":\\"2025-09-11T13:37:45\\"}}},\\"size\\":50,\\"sort\\":[{\\"@timestamp\\":{\\"order\\":\\"desc\\"}}],\\"_source\\":[\\"@timestamp\\",\\"source.ip\\",\\"destination.ip\\",\\"source.user.name\\",\\"event.action\\",\\"event.outcome\\",\\"message\\"]}"}
+                
+                CRITICAL STRUCTURE RULES:
+                - ALL time range filters MUST be inside the "query" block
+                - For aggregations, use "aggs" at the same level as "query"
+                - NEVER put "range" outside the "query" block
+                - Use "value_count" aggregation for counting total logs
+                - Use "terms" aggregation for grouping by field values
                 
                 WRONG EXAMPLES (NEVER DO THIS):
                 ❌ "Trong 5 ngày qua, có 50 kết nối được mở bởi IP 10.0.30.199"
                 ❌ "Based on the logs, there were 30 connections..."
                 ❌ Any text that is not the JSON format above
+                ❌ Using "+07:00" in timestamps: "2025-09-11T14:30:45+07:00" (causes JSON parsing error)
+                ❌ Putting "range" outside "query": {"query":{"match_all":{}},"range":{"@timestamp":{...}}} (WRONG STRUCTURE)
+                ❌ Missing "source.user.name" in _source when searching for users
                 
                 Available Elasticsearch fields:
                 %s
