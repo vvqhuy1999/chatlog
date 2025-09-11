@@ -56,7 +56,7 @@ public class AiServiceImpl implements AiService {
     @Override
     public String handleRequest(Long sessionId, ChatRequest chatRequest) {
 
-                String content;
+        String content;
         RequestBody requestBody;
         SystemMessage systemMessage = new SystemMessage("""
                 Read the message and generate the request body for Elasticsearch.
