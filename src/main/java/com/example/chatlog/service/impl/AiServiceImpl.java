@@ -42,7 +42,7 @@ public class AiServiceImpl implements AiService {
     {
         if (fieldLog == null)
         {
-            fieldLog = logApiService.getFieldLog("logs-fortinet_fortigate.log-default*");
+            fieldLog = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
         }
         return fieldLog;
     }
