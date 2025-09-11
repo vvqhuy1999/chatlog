@@ -120,7 +120,7 @@ public class LogApiServiceImpl implements LogApiService {
             }
 
             System.out.println("Danh sách field:");
-            fieldNames.forEach(System.out::println);
+            // fieldNames.forEach(System.out::println);
             return fieldNames.toString();
         } catch (Exception e) {
             e.printStackTrace();
