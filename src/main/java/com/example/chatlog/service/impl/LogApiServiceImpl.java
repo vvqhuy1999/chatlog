@@ -1,6 +1,8 @@
 package com.example.chatlog.service.impl;
 
 import com.example.chatlog.service.LogApiService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.handler.ssl.SslContextBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
@@ -9,6 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 @Service
 public class LogApiServiceImpl implements LogApiService {
@@ -90,5 +96,35 @@ public class LogApiServiceImpl implements LogApiService {
             .retrieve() // Thực hiện request
             .bodyToMono(String.class) // Chuyển đổi response thành String
             .block(); // Chờ kết quả (blocking call)
+    }
+    @Override
+    public String getAllField(String index){
+        String json = webClient
+                .method(HttpMethod.GET)
+                .uri("/"+index+"/_field_caps?fields=*")
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(json);
+            JsonNode fieldsNode = root.get("fields");
+
+            List<String> fieldNames = new ArrayList<>();
+            if (fieldsNode != null) {
+                Iterator<String> it = fieldsNode.fieldNames();
+                while (it.hasNext()) {
+                    fieldNames.add(it.next());
+                }
+            }
+
+            System.out.println("Danh sách field:");
+            fieldNames.forEach(System.out::println);
+            return fieldNames.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 }
