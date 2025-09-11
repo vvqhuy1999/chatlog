@@ -4,6 +4,8 @@ import com.example.chatlog.dto.ChatRequest;
 import com.example.chatlog.dto.RequestBody;
 import com.example.chatlog.service.AiService;
 import com.example.chatlog.service.LogApiService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -33,6 +35,8 @@ public class AiServiceImpl implements AiService {
     @Autowired
     private LogApiService logApiService;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     /**
      * Lấy thông tin mapping (cấu trúc field) của Elasticsearch index
      * Chỉ gọi API một lần và cache kết quả để tối ưu hiệu suất
@@ -42,7 +46,7 @@ public class AiServiceImpl implements AiService {
     {
         if (fieldLog == null)
         {
-            fieldLog = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
+            fieldLog = logApiService.getFieldLog("logs-fortinet_fortigate.log-default*");
         }
         return fieldLog;
     }
@@ -211,7 +215,7 @@ public class AiServiceImpl implements AiService {
     @Override
     public String handleRequest(Long sessionId, ChatRequest chatRequest) {
 
-        String content;
+        String content = "";
         RequestBody requestBody;
         
         // Bước 1: Tạo system message hướng dẫn AI phân tích yêu cầu
@@ -228,8 +232,9 @@ public class AiServiceImpl implements AiService {
                 CRITICAL RULES - FOLLOW EXACTLY:
                 1. NEVER give direct answers or summaries
                 2. NEVER say things like "Trong 5 ngày qua, có 50 kết nối..."
-                3. ALWAYS generate an Elasticsearch query JSON
+                3. ALWAYS generate an Elasticsearch query JSON.
                 4. ALWAYS return the exact JSON format below
+                5. If size is not define, Default size = 10.
                 
                 MANDATORY OUTPUT FORMAT (copy this structure exactly):
                 {
@@ -253,6 +258,7 @@ public class AiServiceImpl implements AiService {
                 %s
                 
                 Generate ONLY the JSON response. No explanations, no summaries, just the JSON.
+                DateContext, Field list
                 """, 
                 dateContext,
                 getFieldLog()));
@@ -280,9 +286,9 @@ public class AiServiceImpl implements AiService {
         System.out.println("THong tin quey: "+requestBody.getQuery());
         System.out.println("[AiServiceImpl] Generated query body: " + requestBody.getBody());
         System.out.println("[AiServiceImpl] Using current date context: " + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-        
         // Validation: Kiểm tra xem body có phải là JSON query hay không
         if (requestBody.getBody() != null) {
+
             String body = requestBody.getBody().trim();
             
             // Kiểm tra format JSON hợp lệ
@@ -300,12 +306,48 @@ public class AiServiceImpl implements AiService {
                 System.out.println("[AiServiceImpl] Body content: " + body);
                 return "❌ AI model đã trả lời trực tiếp thay vì tạo Elasticsearch query. Đang thử lại...";
             }
+
+
+            // Bước 2: Luôn thực hiện tìm kiếm Elasticsearch (vì đã bắt buộc query = 1)
+            // Cần tìm kiếm: gọi Elasticsearch và lấy dữ liệu log
+            content =  logApiService.search("logs-fortinet_fortigate.log-default*",
+                    requestBody.getBody());
+
+            try {
+                JsonNode jsonNode = objectMapper.readTree(content);
+                int totalHits = jsonNode.path("hits").path("total").path("value").asInt();
+
+                if (totalHits == 0) {
+                    String allFields = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
+                    String prevQuery = requestBody.getBody();
+                    String userMess = chatRequest.message();
+
+                    String systemMsg = """
+                    The user request may not be fully accurate, or the previous query may not be correct.
+                    Please rely on the correct fields to generate a new, valid ElasticSearch query 
+                    that best matches the user request.
+                    Correct fields: %s
+                    """.formatted(allFields);
+
+                    Prompt comparePrompt = new Prompt(
+                            new SystemMessage(systemMsg),
+                            new UserMessage("User request: " + userMess + " | Previous query: " + prevQuery)
+                    );
+
+                    requestBody = chatClient.prompt(comparePrompt)
+                            .options(chatOptions)
+                            .call()
+                            .entity(new ParameterizedTypeReference<>() {});
+                    content = logApiService.search("logs-fortinet_fortigate.log-default*",
+                            requestBody.getBody());
+                }
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
         }
 
-        // Bước 2: Luôn thực hiện tìm kiếm Elasticsearch (vì đã bắt buộc query = 1)
-        // Cần tìm kiếm: gọi Elasticsearch và lấy dữ liệu log
-        content =  logApiService.search("logs-fortinet_fortigate.log-default*",
-            requestBody.getBody());
 
         // Bước 3: Tóm tắt kết quả và trả lời người dùng
         return getAiResponse(sessionId,chatRequest,content, requestBody.getBody());
@@ -329,7 +371,6 @@ public class AiServiceImpl implements AiService {
         SystemMessage systemMessage = new SystemMessage("""
                 You are HPT.AI
                 You should respond in a formal voice.
-                If the query is executed but no results are found, return the Elasticsearch query body itself, summary of the result query.
                 logData :
                 """ + content+" query: " + query);
 
