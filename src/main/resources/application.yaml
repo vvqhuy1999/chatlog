@@ -1,11 +1,12 @@
 server:
+  address: 0.0.0.0
   port: 8080
 
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/chatlog
     username: postgres
-    password: 123456
+    password: postgres
     driver-class-name: org.postgresql.Driver
   jpa:
     show-sql: true
@@ -14,7 +15,6 @@ spring:
       ddl-auto: update
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
     defer-datasource-initialization: true
 
@@ -23,7 +23,7 @@ spring:
       api-key: ${OPENAI_API_KEY}
       chat:
         options:
-          model: gpt-4o
+          model: gpt-4o-mini
 
     chat:
       memory:
