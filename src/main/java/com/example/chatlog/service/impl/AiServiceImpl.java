@@ -239,15 +239,15 @@ public class AiServiceImpl implements AiService {
                 MANDATORY OUTPUT FORMAT (copy this structure exactly):
                 {
                   "query": 1,
-                  "body": "{\\"query\\":{\\"bool\\":{\\"must\\":[...]}},\\"size\\":100,\\"_source\\":[...]}"
+                  "body": "{"query":{"bool":{"must":[...]}},"size":100,"_source":[...]}"
                 }
                 
                 EXAMPLE CORRECT RESPONSES:
                 Question: "Show connections from IP 10.0.30.199 in last 3 days"
-                Response: {"query":1,"body":"{\\"query\\":{\\"bool\\":{\\"must\\":[{\\"term\\":{\\"source.ip\\":\\"10.0.30.199\\"}},{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-07T00:00:00+07:00\\",\\"lte\\":\\"2025-09-10T23:59:59+07:00\\"}}}]}},\\"size\\":100,\\"_source\\":[\\"@timestamp\\",\\"source.ip\\",\\"destination.ip\\",\\"event.action\\"]}"}
+                Response: {"query":1,"body":"{"query":{"bool":{"must":[{"term":{"source.ip":"10.0.30.199"}},{"range":{"@timestamp":{"gte":"2025-09-07T00:00:00+07:00","lte":"2025-09-10T23:59:59+07:00"}}}]}},"size":100,"_source":["@timestamp","source.ip","destination.ip","event.action"]}"}
                 
                 Question: "Count failed logins today"  
-                Response: {"query":1,"body":"{\\"query\\":{\\"bool\\":{\\"must\\":[{\\"term\\":{\\"event.action\\":\\"login\\"}},{\\"term\\":{\\"event.outcome\\":\\"failure\\"}},{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-10T00:00:00+07:00\\",\\"lte\\":\\"2025-09-10T23:59:59+07:00\\"}}}]}},\\"aggs\\":{\\"login_count\\":{\\"value_count\\":{\\"field\\":\\"event.action\\"}}},\\"size\\":0}"}
+                Response: {"query":1,"body":"{"query":{"bool":{"must":[{"term":{"event.action":"login"}},{"term":{"event.outcome":"failure"}},{"range":{"@timestamp":{"gte":"2025-09-10T00:00:00+07:00","lte":"2025-09-10T23:59:59+07:00"}}}]}},"aggs":{"login_count":{"value_count":{"field":"event.action"}}},"size":0}"}
                 
                 WRONG EXAMPLES (NEVER DO THIS):
                 ❌ "Trong 5 ngày qua, có 50 kết nối được mở bởi IP 10.0.30.199"
