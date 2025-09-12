@@ -327,8 +327,15 @@ public class AiServiceImpl implements AiService {
         // Bước 2: Luôn thực hiện tìm kiếm Elasticsearch (vì đã bắt buộc query = 1)
         // Cần tìm kiếm: gọi Elasticsearch và lấy dữ liệu log
         String content = "";
-        content =  logApiService.search("logs-fortinet_fortigate.log-default*",
-                requestBody.getBody());
+        try{
+            content =  logApiService.search("logs-fortinet_fortigate.log-default*",
+                    requestBody.getBody());
+        }catch (Exception e){
+            content="";
+            System.out.println("[AiServiceImpl] ERROR: Log API returned an error! " + e.getMessage());
+        }
+
+
 
         try {
             JsonNode jsonNode = objectMapper.readTree(content);
@@ -341,7 +348,7 @@ public class AiServiceImpl implements AiService {
 
                 String systemMsg = """
                     The user request may not be fully accurate, or the previous query may not be correct.
-                    Please rely on the correct fields to generate a new, valid ElasticSearch query 
+                    Please rely on the correct fields to generate a new, valid ElasticSearch query
                     that best matches the user request.
                     Correct fields: %s
                     """.formatted(allFields);

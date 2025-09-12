@@ -8,7 +8,7 @@ public class SchemaHint {
         return """
         Login
         Index pattern: {index}.
-        - @timestamp (date)
+        - @timestamp
         - source.user.name (keyword)
         - source.ip (ip)
         - destination.ip (ip)
@@ -93,7 +93,7 @@ public class SchemaHint {
         - source.ip
         - destination.ip
         - destination.port
-        - event.action (e.g., "allow", "deny", "drop")
+        - event.action (e.g.,"login", "accept", "close", "server-rst", "timeout", "ssl-anomaly", "logged-off", "ssh_login", "Health Check")
         - rule.name
         - event.outcome
         
@@ -112,23 +112,79 @@ public class SchemaHint {
         - source.user.name
         - destination.ip
         - destination.port
-        - event.action (e.g., "allow", "deny", "drop")
-        - log.level (e.g., "information", "warning")
+        - event.action (e.g., "accept", "close", "server-rst", "timeout", "ssl-anomaly", "logged-off", "ssh_login", "Health Check")
+        - log.level (e.g., "information", "warning", "notice", "alert")
         - message
         Default time filter: @timestamp >= NOW() - {hours} HOURS unless specified.
         """;
 
     }
 
+        public static String webTraffic() {
+            return """
+            Web Traffic
+            Index pattern: {index}.
+            Use ECS fields:
+            - @timestamp
+            - source.ip
+            - source.user.name
+            - destination.ip
+            - destination.port (80, 443)
+            - http.request.method (GET, POST, PUT, DELETE)
+            - http.response.status_code
+            - url.full
+            - user_agent.original
+            
+            Default time filter: @timestamp >= NOW() - {hours} HOURS unless specified.
+            When aggregating, group by http.response.status_code or url.domain.
+            """;
+        }
+
+
+        public static String systemErrors() {
+            return """
+            System Errors
+            Index pattern: {index}.
+            Use ECS fields:
+            - @timestamp
+            - host.name
+            - log.level (error, critical, fatal)
+            - process.name
+            - process.pid
+            - message
+        
+            Default time filter: @timestamp >= NOW() - {hours} HOURS unless specified.
+            Always filter log.level in (error, critical, fatal).
+        """;
+        }
+
+    public static String dateTimeWithOffset() {
+        return """
+        DateTime with Offset
+        Use the same format as stored in logs for @timestamp.
+        Example: "@timestamp": "2025-09-03T09:45:25.000+07:00"
+        
+        Rules:
+        - Always include milliseconds (.SSS).
+        - Always include timezone offset (+HH:mm).
+        - Make sure both gte and lte use this format in range queries.
+        - Do not truncate the offset or remove milliseconds.
+        """;
+    }
+
+
     public static List<String> allSchemas() {
         return List.of(
-                login(),
-                findUser(),
-                failedLogin(),
-                connections(),
-                aggregationByIP(),
-                firewallEvents(),
-                Warning()
+            login(),
+            findUser(),
+            failedLogin(),
+            connections(),
+            aggregationByIP(),
+            firewallEvents(),
+            Warning(),
+            webTraffic(),
+            systemErrors(),
+            dateTimeWithOffset()
         );
     }
 }
