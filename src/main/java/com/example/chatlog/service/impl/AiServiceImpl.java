@@ -406,11 +406,11 @@ public class AiServiceImpl implements AiService {
         String conversationId = sessionId.toString();
         System.out.println("[AiServiceImpl] Content: " + content);
         // Tạo system message hướng dẫn AI cách phản hồi
-        SystemMessage systemMessage = new SystemMessage(String.format("""
+        SystemMessage systemMessage = new SystemMessage("""
                 You are HPT.AI
                 You should respond in a formal voice.
-                logData, query
-                """,content,query));
+                logData :
+                """ + content+" query: " + query);
 
         UserMessage userMessage = new UserMessage(chatRequest.message());
         Prompt prompt = new Prompt(systemMessage, userMessage);
