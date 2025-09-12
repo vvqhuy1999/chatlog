@@ -268,7 +268,7 @@ public class AiServiceImpl implements AiService {
 
         // Cấu hình ChatClient với temperature = 0 để có kết quả ổn định
         ChatOptions chatOptions = ChatOptions.builder()
-                .temperature(0.5D)
+                .temperature(0D)
                 .build();
 
         // Gọi AI để phân tích và tạo request body
@@ -303,20 +303,13 @@ public class AiServiceImpl implements AiService {
     private String checkBodyFormat(RequestBody requestBody){
         String body = requestBody.getBody().trim();
 
-        // Kiểm tra format JSON hợp lệ
-        if (!body.startsWith("{") || !body.contains("\"query\"")) {
+        try {
+            new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);
+        } catch (Exception e) {
             System.out.println("[AiServiceImpl] ERROR: Invalid JSON format!");
-            System.out.println("[AiServiceImpl] Expected: JSON starting with { and containing 'query'");
+            System.out.println("[AiServiceImpl] Expected: JSON object with 'query' field");
             System.out.println("[AiServiceImpl] Received: " + body);
             return "❌ AI model trả về format không đúng. Cần JSON query, nhận được: " + body;
-        }
-
-        // Kiểm tra không phải câu trả lời trực tiếp
-        if (body.toLowerCase().contains("trong") || body.toLowerCase().contains("ngày qua") ||
-                body.toLowerCase().contains("kết nối")) {
-            System.out.println("[AiServiceImpl] ERROR: AI returned direct answer instead of query!");
-            System.out.println("[AiServiceImpl] Body content: " + body);
-            return "❌ AI model đã trả lời trực tiếp thay vì tạo Elasticsearch query. Đang thử lại...";
         }
 
         return null;
@@ -347,8 +340,7 @@ public class AiServiceImpl implements AiService {
                 String userMess = chatRequest.message();
 
                 String systemMsg = """
-                    The user request may not be fully accurate, or the previous query may not be correct.
-                    Please rely on the correct fields to generate a new, valid ElasticSearch query
+                    Re-gen the ElasticSearch query
                     that best matches the user request.
                     Correct fields: %s
                     """.formatted(allFields);
