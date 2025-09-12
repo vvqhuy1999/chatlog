@@ -178,15 +178,9 @@ public class SchemaHint {
     - Use "@timestamp" as the date field for range filters.
     - Time format must be ISO-8601 with timezone, e.g. 2025-09-12T15:45:31.000+07:00.
     - Alternatively, use relative times like "now-30m/m" and "now/m".
-    - For keyword fields (e.g., log.level), prefer "log.level.keyword" when using "term".
-    - If unsure about mapping (text vs keyword), use "match" instead of "term".
 
     MUST array rule:
     - "must" must ALWAYS be an array.
-    - Each element of "must" must be a single condition object:
-      ✅ { "range": { "@timestamp": { "gte": "...", "lte": "..." } } }
-      ✅ { "term": { "log.level.keyword": "information" } }
-      ❌ Never combine multiple conditions in the same object.
 
     Common pitfalls:
     - Do not mix "term" with text fields.
