@@ -4,6 +4,7 @@ import com.example.chatlog.dto.ChatRequest;
 import com.example.chatlog.dto.RequestBody;
 import com.example.chatlog.service.AiService;
 import com.example.chatlog.service.LogApiService;
+import com.example.chatlog.utils.SchemaHint;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.chat.client.ChatClient;
@@ -22,8 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Service
 public class AiServiceImpl implements AiService {
@@ -236,25 +237,8 @@ public class AiServiceImpl implements AiService {
                 3. ALWAYS generate an Elasticsearch query JSON.
                 4. ALWAYS return the exact JSON format below
                 5. If size is not define, Default size = 10.
+                6. Try to use the SchemaHint to get data.
                 
-                MANDATORY OUTPUT FORMAT (copy this structure exactly):
-                {
-                  "query": 1,
-                  "body": "{"query":{"bool":{"must":[...]}},"size":100,"_source":[...]}"
-                }
-                
-                EXAMPLE CORRECT RESPONSES:
-                Question: "Show connections from IP 10.0.30.199 in last 3 days"
-                Response: {"query":1,"body":"{"query":{"bool":{"must":[{"term":{"source.ip":"10.0.30.199"}},{"range":{"@timestamp":{"gte":"2025-09-08T00:00:00","lte":"2025-09-11T23:59:59"}}}]}},"size":100,"_source":["@timestamp","source.ip","destination.ip","source.user.name","event.action"]}"}
-                
-                Question: "Count total logs today using aggregation"
-                Response: {"query":1,"body":"{"query":{"range":{"@timestamp":{"gte":"2025-09-11T00:00:00","lte":"2025-09-11T23:59:59"}}},"aggs":{"log_count":{"value_count":{"field":"@timestamp"}}},"size":0}"}
-                
-                Question: "Count successful and failed logins for user TrangNT today"
-                Response: {"query":1,"body":"{"query":{"bool":{"must":[{"term":{"source.user.name":"TrangNT"}},{"range":{"@timestamp":{"gte":"2025-09-11T00:00:00","lte":"2025-09-11T23:59:59"}}}]}},"aggs":{"outcome_count":{"terms":{"field":"event.outcome"}}},"size":0,"_source":["@timestamp","source.user.name","event.action","event.outcome"]}"}
-                
-                Question: "Show logs in last 5 minutes"
-                Response: {"query":1,"body":"{"query":{"range":{"@timestamp":{"gte":"2025-09-11T13:32:45","lte":"2025-09-11T13:37:45"}}},"size":50,"sort":[{"@timestamp":{"order":"desc"}}],"_source":["@timestamp","source.ip","destination.ip","source.user.name","event.action","event.outcome","message"]}"}
                 
                 CRITICAL STRUCTURE RULES:
                 - ALL time range filters MUST be inside the "query" block
@@ -263,34 +247,29 @@ public class AiServiceImpl implements AiService {
                 - Use "value_count" aggregation for counting total logs
                 - Use "terms" aggregation for grouping by field values
                 
-                WRONG EXAMPLES (NEVER DO THIS):
-                ❌ "Trong 5 ngày qua, có 50 kết nối được mở bởi IP 10.0.30.199"
-                ❌ "Based on the logs, there were 30 connections..."
-                ❌ Any text that is not the JSON format above
-                ❌ Using "+07:00" in timestamps: "2025-09-11T14:30:45+07:00" (causes JSON parsing error)
-                ❌ Putting "range" outside "query": {"query":{"match_all":{}},"range":{"@timestamp":{...}}} (WRONG STRUCTURE)
-                ❌ Missing "source.user.name" in _source when searching for users
-                
                 Available Elasticsearch fields:
                 %s
                 
                 Generate ONLY the JSON response. No explanations, no summaries, just the JSON.
-                DateContext, Field list
                 """, 
                 dateContext,
                 getFieldLog()));
 
-        // Cấu hình ChatClient với temperature = 0 để có kết quả ổn định
-        ChatOptions chatOptions = ChatOptions.builder()
-            .temperature(0.5D)
-            .build();
 
-        UserMessage userMessage = new UserMessage(chatRequest.message());
+        List<String> schemaHints = SchemaHint.allSchemas();
+        String schemaContext = String.join("\n\n", schemaHints);
+        UserMessage schemaMsg = new UserMessage("Available schema hints:\n" + schemaContext);
+
+
+          UserMessage userMessage = new UserMessage(chatRequest.message());
         System.out.println(userMessage);
         System.out.println("----------------------------------------------------------");
-        // System.out.println(systemMessage);
-        Prompt prompt = new Prompt(systemMessage, userMessage);
+        Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, userMessage));
 
+        // Cấu hình ChatClient với temperature = 0 để có kết quả ổn định
+        ChatOptions chatOptions = ChatOptions.builder()
+                .temperature(0.5D)
+                .build();
 
         // Gọi AI để phân tích và tạo request body
         requestBody =  chatClient
@@ -381,6 +360,8 @@ public class AiServiceImpl implements AiService {
                         .call()
                         .entity(new ParameterizedTypeReference<>() {});
 
+                System.out.println("[AiServiceImpl] Generated query body2: " + requestBody.getBody());
+
                 content = logApiService.search("logs-fortinet_fortigate.log-default*",
                         requestBody.getBody());
             }
@@ -404,13 +385,15 @@ public class AiServiceImpl implements AiService {
      */
     public String getAiResponse(Long sessionId,ChatRequest chatRequest, String content,String query) {
         String conversationId = sessionId.toString();
-        System.out.println("[AiServiceImpl] Content: " + content);
+
         // Tạo system message hướng dẫn AI cách phản hồi
-        SystemMessage systemMessage = new SystemMessage("""
+        SystemMessage systemMessage = new SystemMessage(String.format("""
                 You are HPT.AI
                 You should respond in a formal voice.
-                logData :
-                """ + content+" query: " + query);
+                logData : %s
+                query : %s
+                """
+                ,content,query));
 
         UserMessage userMessage = new UserMessage(chatRequest.message());
         Prompt prompt = new Prompt(systemMessage, userMessage);

@@ -67,10 +67,7 @@ public class LogApiServiceImpl implements LogApiService {
      */
     @Override
     public String search(String index,String body) {
-        // In ra console để debug query được gửi đi
-        System.out.println(body);
-        
-        // Gửi HTTP POST request đến Elasticsearch _search endpoint
+     // Gửi HTTP POST request đến Elasticsearch _search endpoint
         return webClient.post()
             .uri("/" + index + "/_search") // Đường dẫn tìm kiếm của Elasticsearch
             .bodyValue(body) // JSON query body
