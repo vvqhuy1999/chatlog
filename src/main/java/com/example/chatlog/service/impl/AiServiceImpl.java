@@ -240,21 +240,21 @@ public class AiServiceImpl implements AiService {
                 MANDATORY OUTPUT FORMAT (copy this structure exactly):
                 {
                   "query": 1,
-                  "body": "{\\"query\\":{\\"bool\\":{\\"must\\":[...]}},\\"size\\":100,\\"_source\\":[...]}"
+                  "body": "{"query":{"bool":{"must":[...]}},"size":100,"_source":[...]}"
                 }
                 
                 EXAMPLE CORRECT RESPONSES:
                 Question: "Show connections from IP 10.0.30.199 in last 3 days"
-                Response: {"query":1,"body":"{\\"query\\":{\\"bool\\":{\\"must\\":[{\\"term\\":{\\"source.ip\\":\\"10.0.30.199\\"}},{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-08T00:00:00\\",\\"lte\\":\\"2025-09-11T23:59:59\\"}}}]}},\\"size\\":100,\\"_source\\":[\\"@timestamp\\",\\"source.ip\\",\\"destination.ip\\",\\"source.user.name\\",\\"event.action\\"]}"}
+                Response: {"query":1,"body":"{"query":{"bool":{"must":[{"term":{"source.ip":"10.0.30.199"}},{"range":{"@timestamp":{"gte":"2025-09-08T00:00:00","lte":"2025-09-11T23:59:59"}}}]}},"size":100,"_source":["@timestamp","source.ip","destination.ip","source.user.name","event.action"]}"}
                 
-                Question: "Count total logs today using aggregation"  
-                Response: {"query":1,"body":"{\\"query\\":{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-11T00:00:00\\",\\"lte\\":\\"2025-09-11T23:59:59\\"}}},\\"aggs\\":{\\"log_count\\":{\\"value_count\\":{\\"field\\":\\"@timestamp\\"}}},\\"size\\":0}"}
+                Question: "Count total logs today using aggregation"
+                Response: {"query":1,"body":"{"query":{"range":{"@timestamp":{"gte":"2025-09-11T00:00:00","lte":"2025-09-11T23:59:59"}}},"aggs":{"log_count":{"value_count":{"field":"@timestamp"}}},"size":0}"}
                 
-                Question: "Count successful and failed logins for user TrangNT today"  
-                Response: {"query":1,"body":"{\\"query\\":{\\"bool\\":{\\"must\\":[{\\"term\\":{\\"source.user.name\\":\\"TrangNT\\"}},{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-11T00:00:00\\",\\"lte\\":\\"2025-09-11T23:59:59\\"}}}]}},\\"aggs\\":{\\"outcome_count\\":{\\"terms\\":{\\"field\\":\\"event.outcome\\"}}},\\"size\\":0,\\"_source\\":[\\"@timestamp\\",\\"source.user.name\\",\\"event.action\\",\\"event.outcome\\"]}"}
+                Question: "Count successful and failed logins for user TrangNT today"
+                Response: {"query":1,"body":"{"query":{"bool":{"must":[{"term":{"source.user.name":"TrangNT"}},{"range":{"@timestamp":{"gte":"2025-09-11T00:00:00","lte":"2025-09-11T23:59:59"}}}]}},"aggs":{"outcome_count":{"terms":{"field":"event.outcome"}}},"size":0,"_source":["@timestamp","source.user.name","event.action","event.outcome"]}"}
                 
                 Question: "Show logs in last 5 minutes"
-                Response: {"query":1,"body":"{\\"query\\":{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-11T13:32:45\\",\\"lte\\":\\"2025-09-11T13:37:45\\"}}},\\"size\\":50,\\"sort\\":[{\\"@timestamp\\":{\\"order\\":\\"desc\\"}}],\\"_source\\":[\\"@timestamp\\",\\"source.ip\\",\\"destination.ip\\",\\"source.user.name\\",\\"event.action\\",\\"event.outcome\\",\\"message\\"]}"}
+                Response: {"query":1,"body":"{"query":{"range":{"@timestamp":{"gte":"2025-09-11T13:32:45","lte":"2025-09-11T13:37:45"}}},"size":50,"sort":[{"@timestamp":{"order":"desc"}}],"_source":["@timestamp","source.ip","destination.ip","source.user.name","event.action","event.outcome","message"]}"}
                 
                 CRITICAL STRUCTURE RULES:
                 - ALL time range filters MUST be inside the "query" block
@@ -306,70 +306,91 @@ public class AiServiceImpl implements AiService {
         // Validation: Kiểm tra xem body có phải là JSON query hay không
         if (requestBody.getBody() != null) {
 
-            String body = requestBody.getBody().trim();
-            
-            // Kiểm tra format JSON hợp lệ
-            if (!body.startsWith("{") || !body.contains("\"query\"")) {
-                System.out.println("[AiServiceImpl] ERROR: Invalid JSON format!");
-                System.out.println("[AiServiceImpl] Expected: JSON starting with { and containing 'query'");
-                System.out.println("[AiServiceImpl] Received: " + body);
-                return "❌ AI model trả về format không đúng. Cần JSON query, nhận được: " + body;
+            String flg = checkBodyFormat(requestBody);
+            if (flg != null)
+            {
+                return flg;
             }
-            
-            // Kiểm tra không phải câu trả lời trực tiếp
-            if (body.toLowerCase().contains("trong") || body.toLowerCase().contains("ngày qua") || 
+
+            content = getLogData(requestBody, chatRequest);
+
+
+        }
+
+        // Bước 3: Tóm tắt kết quả và trả lời người dùng
+        return getAiResponse(sessionId,chatRequest,content, requestBody.getBody());
+    }
+
+    private String checkBodyFormat(RequestBody requestBody){
+        String body = requestBody.getBody().trim();
+
+        // Kiểm tra format JSON hợp lệ
+        if (!body.startsWith("{") || !body.contains("\"query\"")) {
+            System.out.println("[AiServiceImpl] ERROR: Invalid JSON format!");
+            System.out.println("[AiServiceImpl] Expected: JSON starting with { and containing 'query'");
+            System.out.println("[AiServiceImpl] Received: " + body);
+            return "❌ AI model trả về format không đúng. Cần JSON query, nhận được: " + body;
+        }
+
+        // Kiểm tra không phải câu trả lời trực tiếp
+        if (body.toLowerCase().contains("trong") || body.toLowerCase().contains("ngày qua") ||
                 body.toLowerCase().contains("kết nối") || body.toLowerCase().contains("connections")) {
-                System.out.println("[AiServiceImpl] ERROR: AI returned direct answer instead of query!");
-                System.out.println("[AiServiceImpl] Body content: " + body);
-                return "❌ AI model đã trả lời trực tiếp thay vì tạo Elasticsearch query. Đang thử lại...";
-            }
+            System.out.println("[AiServiceImpl] ERROR: AI returned direct answer instead of query!");
+            System.out.println("[AiServiceImpl] Body content: " + body);
+            return "❌ AI model đã trả lời trực tiếp thay vì tạo Elasticsearch query. Đang thử lại...";
+        }
 
+        return null;
+    }
 
-            // Bước 2: Luôn thực hiện tìm kiếm Elasticsearch (vì đã bắt buộc query = 1)
-            // Cần tìm kiếm: gọi Elasticsearch và lấy dữ liệu log
-            content =  logApiService.search("logs-fortinet_fortigate.log-default*",
-                    requestBody.getBody());
+    private String getLogData(RequestBody requestBody, ChatRequest chatRequest)
+    {
+        // Bước 2: Luôn thực hiện tìm kiếm Elasticsearch (vì đã bắt buộc query = 1)
+        // Cần tìm kiếm: gọi Elasticsearch và lấy dữ liệu log
+        String content = "";
+        content =  logApiService.search("logs-fortinet_fortigate.log-default*",
+                requestBody.getBody());
 
-            try {
-                JsonNode jsonNode = objectMapper.readTree(content);
-                int totalHits = jsonNode.path("hits").path("total").path("value").asInt();
+        try {
+            JsonNode jsonNode = objectMapper.readTree(content);
+            int totalHits = jsonNode.path("hits").path("total").path("value").asInt();
 
-                if (totalHits == 0) {
-                    String allFields = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
-                    String prevQuery = requestBody.getBody();
-                    String userMess = chatRequest.message();
+            if (totalHits == 0) {
+                String allFields = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
+                String prevQuery = requestBody.getBody();
+                String userMess = chatRequest.message();
 
-                    String systemMsg = """
+                String systemMsg = """
                     The user request may not be fully accurate, or the previous query may not be correct.
                     Please rely on the correct fields to generate a new, valid ElasticSearch query 
                     that best matches the user request.
                     Correct fields: %s
                     """.formatted(allFields);
 
-                    Prompt comparePrompt = new Prompt(
-                            new SystemMessage(systemMsg),
-                            new UserMessage("User request: " + userMess + " | Previous query: " + prevQuery)
-                    );
+                Prompt comparePrompt = new Prompt(
+                        new SystemMessage(systemMsg),
+                        new UserMessage("User request: " + userMess + " | Previous query: " + prevQuery)
+                );
 
-                    requestBody = chatClient.prompt(comparePrompt)
-                            .options(chatOptions)
-                            .call()
-                            .entity(new ParameterizedTypeReference<>() {});
-                    content = logApiService.search("logs-fortinet_fortigate.log-default*",
-                            requestBody.getBody());
-                }
-            }
-            catch (Exception e)
-            {
-                e.printStackTrace();
+                ChatOptions chatOptions = ChatOptions.builder()
+                        .temperature(0D)
+                        .build();
+
+                requestBody = chatClient.prompt(comparePrompt)
+                        .options(chatOptions)
+                        .call()
+                        .entity(new ParameterizedTypeReference<>() {});
+
+                content = logApiService.search("logs-fortinet_fortigate.log-default*",
+                        requestBody.getBody());
             }
         }
-
-
-        // Bước 3: Tóm tắt kết quả và trả lời người dùng
-        return getAiResponse(sessionId,chatRequest,content, requestBody.getBody());
+        catch (Exception e)
+        {
+            System.out.println("[AiServiceImpl] - getLogData: " +e.getMessage());
+        }
+        return content;
     }
-
 
     /**
      * Tóm tắt và diễn giải dữ liệu log thành ngôn ngữ tự nhiên
@@ -383,13 +404,13 @@ public class AiServiceImpl implements AiService {
      */
     public String getAiResponse(Long sessionId,ChatRequest chatRequest, String content,String query) {
         String conversationId = sessionId.toString();
-
+        System.out.println("[AiServiceImpl] Content: " + content);
         // Tạo system message hướng dẫn AI cách phản hồi
-        SystemMessage systemMessage = new SystemMessage("""
+        SystemMessage systemMessage = new SystemMessage(String.format("""
                 You are HPT.AI
                 You should respond in a formal voice.
-                logData :
-                """ + content+" query: " + query);
+                logData, query
+                """,content,query));
 
         UserMessage userMessage = new UserMessage(chatRequest.message());
         Prompt prompt = new Prompt(systemMessage, userMessage);

@@ -70,9 +70,8 @@ public class LogApiServiceImpl implements LogApiService {
         // In ra console để debug query được gửi đi
         System.out.println(body);
         
-        // Gửi HTTP GET request đến Elasticsearch _search endpoint
-        return webClient
-            .method(HttpMethod.GET) // Sử dụng phương thức GET
+        // Gửi HTTP POST request đến Elasticsearch _search endpoint
+        return webClient.post()
             .uri("/" + index + "/_search") // Đường dẫn tìm kiếm của Elasticsearch
             .bodyValue(body) // JSON query body
             .retrieve() // Thực hiện request
@@ -89,9 +88,9 @@ public class LogApiServiceImpl implements LogApiService {
      */
     @Override
     public String getFieldLog(String index) {
-        // Gửi HTTP GET request đến Elasticsearch _mapping endpoint
+        // Gửi HTTP POST request đến Elasticsearch _mapping endpoint
         return webClient
-            .method(HttpMethod.GET) // Sử dụng phương thức GET
+                .method(HttpMethod.GET)
             .uri("/"+index+"/_mapping") // Đường dẫn mapping của Elasticsearch
             .retrieve() // Thực hiện request
             .bodyToMono(String.class) // Chuyển đổi response thành String
@@ -100,7 +99,7 @@ public class LogApiServiceImpl implements LogApiService {
     @Override
     public String getAllField(String index){
         String json = webClient
-                .method(HttpMethod.GET)
+                .post()
                 .uri("/"+index+"/_field_caps?fields=*")
                 .retrieve()
                 .bodyToMono(String.class)
@@ -119,11 +118,11 @@ public class LogApiServiceImpl implements LogApiService {
                 }
             }
 
-            System.out.println("Danh sách field:");
+//            System.out.println("Danh sách field:");
             // fieldNames.forEach(System.out::println);
             return fieldNames.toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("[LogApiServiceImpl] : " +e.getMessage());
         }
         return "";
     }
