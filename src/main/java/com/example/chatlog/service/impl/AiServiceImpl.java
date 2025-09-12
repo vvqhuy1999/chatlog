@@ -4,6 +4,7 @@ import com.example.chatlog.dto.ChatRequest;
 import com.example.chatlog.dto.RequestBody;
 import com.example.chatlog.service.AiService;
 import com.example.chatlog.service.LogApiService;
+import com.example.chatlog.utils.SchemaHint;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.chat.client.ChatClient;
@@ -22,8 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Service
 public class AiServiceImpl implements AiService {
@@ -62,14 +63,14 @@ public class AiServiceImpl implements AiService {
         String currentDateTime = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String currentDate = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String currentTime = now.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-        
+
         // Tính toán thời gian theo phút (real-time calculation)
         String fiveMinutesAgo = now.minusMinutes(5).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String tenMinutesAgo = now.minusMinutes(10).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String fifteenMinutesAgo = now.minusMinutes(15).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String thirtyMinutesAgo = now.minusMinutes(30).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String fortyFiveMinutesAgo = now.minusMinutes(45).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        
+
         // Tính toán thời gian theo giờ (real-time calculation)
         String oneHourAgo = now.minusHours(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String twoHoursAgo = now.minusHours(2).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
@@ -77,7 +78,7 @@ public class AiServiceImpl implements AiService {
         String sixHoursAgo = now.minusHours(6).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String twelveHoursAgo = now.minusHours(12).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String twentyFourHoursAgo = now.minusHours(24).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        
+
         // Các mốc ngày
         String yesterday = now.minusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String twoDaysAgo = now.minusDays(2).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -85,19 +86,19 @@ public class AiServiceImpl implements AiService {
         String fourDaysAgo = now.minusDays(4).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String fiveDaysAgo = now.minusDays(5).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String oneWeekAgo = now.minusDays(7).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        
+
         // Thời gian buổi trong ngày với ngày hiện tại
         String todayMorning = now.withHour(6).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String todayAfternoon = now.withHour(12).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String todayEvening = now.withHour(18).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String todayNight = now.withHour(22).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        
+
         // Thời gian buổi của ngày hôm qua
         String yesterdayMorning = now.minusDays(1).withHour(6).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String yesterdayAfternoon = now.minusDays(1).withHour(12).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String yesterdayEvening = now.minusDays(1).withHour(18).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String yesterdayNight = now.minusDays(1).withHour(22).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        
+
         return String.format("""
                 REAL-TIME CONTEXT (Vietnam timezone +07:00):
                 Current exact time: %s (+07:00)
@@ -150,36 +151,36 @@ public class AiServiceImpl implements AiService {
                 - For current time-based queries, calculate from exact current moment: %s
                 - For "gần đây" without specific time, default to last 30 minutes
                 """,
-                currentDateTime, currentDate, currentTime,
-                fiveMinutesAgo, currentDateTime,
-                tenMinutesAgo, currentDateTime,
-                fifteenMinutesAgo, currentDateTime,
-                thirtyMinutesAgo, currentDateTime,
-                fortyFiveMinutesAgo, currentDateTime,
-                oneHourAgo, currentDateTime,
-                twoHoursAgo, currentDateTime,
-                threeHoursAgo, currentDateTime,
-                sixHoursAgo, currentDateTime,
-                twelveHoursAgo, currentDateTime,
-                twentyFourHoursAgo, currentDateTime,
-                todayMorning, currentDateTime, todayMorning, currentDateTime,
-                todayAfternoon, currentDateTime, todayAfternoon, currentDateTime,
-                todayEvening, currentDateTime, todayEvening, currentDateTime,
-                todayNight, currentDateTime,
-                yesterdayMorning, yesterdayMorning.substring(0,10) + " 11:59:59",
-                yesterdayAfternoon, yesterdayAfternoon.substring(0,10) + " 17:59:59",
-                yesterdayEvening, yesterdayEvening.substring(0,10) + " 21:59:59",
-                yesterdayNight, currentDate + " 05:59:59",
-                currentDate, currentDate,
-                yesterday, yesterday,
-                twoDaysAgo, currentDate,
-                threeDaysAgo, currentDate,
-                fourDaysAgo, currentDate,
-                fiveDaysAgo, currentDate,
-                oneWeekAgo, currentDate,
-                thirtyMinutesAgo, currentDateTime,
-                fiveMinutesAgo, currentDateTime,
-                currentDateTime);
+            currentDateTime, currentDate, currentTime,
+            fiveMinutesAgo, currentDateTime,
+            tenMinutesAgo, currentDateTime,
+            fifteenMinutesAgo, currentDateTime,
+            thirtyMinutesAgo, currentDateTime,
+            fortyFiveMinutesAgo, currentDateTime,
+            oneHourAgo, currentDateTime,
+            twoHoursAgo, currentDateTime,
+            threeHoursAgo, currentDateTime,
+            sixHoursAgo, currentDateTime,
+            twelveHoursAgo, currentDateTime,
+            twentyFourHoursAgo, currentDateTime,
+            todayMorning, currentDateTime, todayMorning, currentDateTime,
+            todayAfternoon, currentDateTime, todayAfternoon, currentDateTime,
+            todayEvening, currentDateTime, todayEvening, currentDateTime,
+            todayNight, currentDateTime,
+            yesterdayMorning, yesterdayMorning.substring(0,10) + " 11:59:59",
+            yesterdayAfternoon, yesterdayAfternoon.substring(0,10) + " 17:59:59",
+            yesterdayEvening, yesterdayEvening.substring(0,10) + " 21:59:59",
+            yesterdayNight, currentDate + " 05:59:59",
+            currentDate, currentDate,
+            yesterday, yesterday,
+            twoDaysAgo, currentDate,
+            threeDaysAgo, currentDate,
+            fourDaysAgo, currentDate,
+            fiveDaysAgo, currentDate,
+            oneWeekAgo, currentDate,
+            thirtyMinutesAgo, currentDateTime,
+            fiveMinutesAgo, currentDateTime,
+            currentDateTime);
     }
 
     /**
@@ -208,7 +209,7 @@ public class AiServiceImpl implements AiService {
      * 1. Phân tích câu hỏi và tạo Elasticsearch query (bắt buộc cho tất cả request)
      * 2. Thực hiện tìm kiếm Elasticsearch và lấy dữ liệu log
      * 3. Tóm tắt và trả lời bằng ngôn ngữ tự nhiên
-     * 
+     *
      * @param sessionId ID phiên chat để duy trì ngữ cảnh
      * @param chatRequest Yêu cầu từ người dùng
      * @return Câu trả lời đã được xử lý
@@ -218,7 +219,7 @@ public class AiServiceImpl implements AiService {
 
         String content = "";
         RequestBody requestBody;
-        
+
         // Bước 1: Tạo system message hướng dẫn AI phân tích yêu cầu
         // Lấy ngày hiện tại để AI có thể xử lý các yêu cầu về thời gian chính xác
         LocalDateTime now = LocalDateTime.now();
@@ -236,25 +237,8 @@ public class AiServiceImpl implements AiService {
                 3. ALWAYS generate an Elasticsearch query JSON.
                 4. ALWAYS return the exact JSON format below
                 5. If size is not define, Default size = 10.
+                6. Try to use the SchemaHint to get data.
                 
-                MANDATORY OUTPUT FORMAT (copy this structure exactly):
-                {
-                  "query": 1,
-                  "body": "{\\"query\\":{\\"bool\\":{\\"must\\":[...]}},\\"size\\":100,\\"_source\\":[...]}"
-                }
-                
-                EXAMPLE CORRECT RESPONSES:
-                Question: "Show connections from IP 10.0.30.199 in last 3 days"
-                Response: {"query":1,"body":"{\\"query\\":{\\"bool\\":{\\"must\\":[{\\"term\\":{\\"source.ip\\":\\"10.0.30.199\\"}},{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-08T00:00:00\\",\\"lte\\":\\"2025-09-11T23:59:59\\"}}}]}},\\"size\\":100,\\"_source\\":[\\"@timestamp\\",\\"source.ip\\",\\"destination.ip\\",\\"source.user.name\\",\\"event.action\\"]}"}
-                
-                Question: "Count total logs today using aggregation"  
-                Response: {"query":1,"body":"{\\"query\\":{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-11T00:00:00\\",\\"lte\\":\\"2025-09-11T23:59:59\\"}}},\\"aggs\\":{\\"log_count\\":{\\"value_count\\":{\\"field\\":\\"@timestamp\\"}}},\\"size\\":0}"}
-                
-                Question: "Count successful and failed logins for user TrangNT today"  
-                Response: {"query":1,"body":"{\\"query\\":{\\"bool\\":{\\"must\\":[{\\"term\\":{\\"source.user.name\\":\\"TrangNT\\"}},{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-11T00:00:00\\",\\"lte\\":\\"2025-09-11T23:59:59\\"}}}]}},\\"aggs\\":{\\"outcome_count\\":{\\"terms\\":{\\"field\\":\\"event.outcome\\"}}},\\"size\\":0,\\"_source\\":[\\"@timestamp\\",\\"source.user.name\\",\\"event.action\\",\\"event.outcome\\"]}"}
-                
-                Question: "Show logs in last 5 minutes"
-                Response: {"query":1,"body":"{\\"query\\":{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-11T13:32:45\\",\\"lte\\":\\"2025-09-11T13:37:45\\"}}},\\"size\\":50,\\"sort\\":[{\\"@timestamp\\":{\\"order\\":\\"desc\\"}}],\\"_source\\":[\\"@timestamp\\",\\"source.ip\\",\\"destination.ip\\",\\"source.user.name\\",\\"event.action\\",\\"event.outcome\\",\\"message\\"]}"}
                 
                 CRITICAL STRUCTURE RULES:
                 - ALL time range filters MUST be inside the "query" block
@@ -263,34 +247,51 @@ public class AiServiceImpl implements AiService {
                 - Use "value_count" aggregation for counting total logs
                 - Use "terms" aggregation for grouping by field values
                 
-                WRONG EXAMPLES (NEVER DO THIS):
-                ❌ "Trong 5 ngày qua, có 50 kết nối được mở bởi IP 10.0.30.199"
-                ❌ "Based on the logs, there were 30 connections..."
-                ❌ Any text that is not the JSON format above
-                ❌ Using "+07:00" in timestamps: "2025-09-11T14:30:45+07:00" (causes JSON parsing error)
-                ❌ Putting "range" outside "query": {"query":{"match_all":{}},"range":{"@timestamp":{...}}} (WRONG STRUCTURE)
-                ❌ Missing "source.user.name" in _source when searching for users
+                REQUIRED JSON FORMAT:
+                {
+                  "query": { ... elasticsearch query ... },
+                  "size": 10,
+                  "_source": ["@timestamp", "source.ip", ...],
+                  "sort": [{"@timestamp": {"order": "desc"}}]
+                }
+                
+                For aggregations, add "aggs" at the same level as "query":
+                {
+                  "query": { ... },
+                  "aggs": { ... },
+                  "size": 0
+                }
+                
+                EXAMPLE CORRECT RESPONSES:
+                Question: "Get last 10 logs from yesterday"
+                Response: {"query":{"range":{"@timestamp":{"gte":"2025-09-11T00:00:00.000+07:00","lte":"2025-09-11T23:59:59.999+07:00"}}},"size":10,"sort":[{"@timestamp":{"order":"desc"}}],"_source":["@timestamp","source.ip","destination.ip","event.action","message"]}
+                
+                Question: "Count total logs today"
+                Response: {"query":{"range":{"@timestamp":{"gte":"2025-09-12T00:00:00.000+07:00","lte":"2025-09-12T23:59:59.999+07:00"}}},"aggs":{"log_count":{"value_count":{"field":"@timestamp"}}},"size":0}
                 
                 Available Elasticsearch fields:
                 %s
                 
                 Generate ONLY the JSON response. No explanations, no summaries, just the JSON.
-                DateContext, Field list
-                """, 
-                dateContext,
-                getFieldLog()));
+                """,
+            dateContext,
+            getFieldLog()));
 
-        // Cấu hình ChatClient với temperature = 0 để có kết quả ổn định
-        ChatOptions chatOptions = ChatOptions.builder()
-            .temperature(0.5D)
-            .build();
+
+        List<String> schemaHints = SchemaHint.allSchemas();
+        String schemaContext = String.join("\n\n", schemaHints);
+        UserMessage schemaMsg = new UserMessage("Available schema hints:\n" + schemaContext);
+
 
         UserMessage userMessage = new UserMessage(chatRequest.message());
         System.out.println(userMessage);
         System.out.println("----------------------------------------------------------");
-        // System.out.println(systemMessage);
-        Prompt prompt = new Prompt(systemMessage, userMessage);
+        Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, userMessage));
 
+        // Cấu hình ChatClient với temperature = 0 để có kết quả ổn định
+        ChatOptions chatOptions = ChatOptions.builder()
+            .temperature(0D)
+            .build();
 
         // Gọi AI để phân tích và tạo request body
         requestBody =  chatClient
@@ -306,75 +307,175 @@ public class AiServiceImpl implements AiService {
         // Validation: Kiểm tra xem body có phải là JSON query hay không
         if (requestBody.getBody() != null) {
 
-            String body = requestBody.getBody().trim();
-            
-            // Kiểm tra format JSON hợp lệ
-            if (!body.startsWith("{") || !body.contains("\"query\"")) {
-                System.out.println("[AiServiceImpl] ERROR: Invalid JSON format!");
-                System.out.println("[AiServiceImpl] Expected: JSON starting with { and containing 'query'");
-                System.out.println("[AiServiceImpl] Received: " + body);
-                return "❌ AI model trả về format không đúng. Cần JSON query, nhận được: " + body;
-            }
-            
-            // Kiểm tra không phải câu trả lời trực tiếp
-            if (body.toLowerCase().contains("trong") || body.toLowerCase().contains("ngày qua") || 
-                body.toLowerCase().contains("kết nối") || body.toLowerCase().contains("connections")) {
-                System.out.println("[AiServiceImpl] ERROR: AI returned direct answer instead of query!");
-                System.out.println("[AiServiceImpl] Body content: " + body);
-                return "❌ AI model đã trả lời trực tiếp thay vì tạo Elasticsearch query. Đang thử lại...";
-            }
-
-
-            // Bước 2: Luôn thực hiện tìm kiếm Elasticsearch (vì đã bắt buộc query = 1)
-            // Cần tìm kiếm: gọi Elasticsearch và lấy dữ liệu log
-            content =  logApiService.search("logs-fortinet_fortigate.log-default*",
-                    requestBody.getBody());
-
-            try {
-                JsonNode jsonNode = objectMapper.readTree(content);
-                int totalHits = jsonNode.path("hits").path("total").path("value").asInt();
-
-                if (totalHits == 0) {
-                    String allFields = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
-                    String prevQuery = requestBody.getBody();
-                    String userMess = chatRequest.message();
-
-                    String systemMsg = """
-                    The user request may not be fully accurate, or the previous query may not be correct.
-                    Please rely on the correct fields to generate a new, valid ElasticSearch query 
-                    that best matches the user request.
-                    Correct fields: %s
-                    """.formatted(allFields);
-
-                    Prompt comparePrompt = new Prompt(
-                            new SystemMessage(systemMsg),
-                            new UserMessage("User request: " + userMess + " | Previous query: " + prevQuery)
-                    );
-
-                    requestBody = chatClient.prompt(comparePrompt)
-                            .options(chatOptions)
-                            .call()
-                            .entity(new ParameterizedTypeReference<>() {});
-                    content = logApiService.search("logs-fortinet_fortigate.log-default*",
-                            requestBody.getBody());
-                }
-            }
-            catch (Exception e)
+            String flg = checkBodyFormat(requestBody);
+            if (flg != null)
             {
-                e.printStackTrace();
+                return flg;
             }
-        }
 
+            content = getLogData(requestBody, chatRequest);
+
+
+        }
 
         // Bước 3: Tóm tắt kết quả và trả lời người dùng
         return getAiResponse(sessionId,chatRequest,content, requestBody.getBody());
     }
 
+    private String checkBodyFormat(RequestBody requestBody){
+        String body = requestBody.getBody().trim();
+        
+        // Fix JSON formatting by balancing braces
+        body = fixJsonBraces(body);
+        
+        // Update the body in requestBody
+        requestBody.setBody(body);
+
+        try {
+            JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);
+            
+            // Validate that it's a proper Elasticsearch query
+            if (!jsonNode.has("query") && !jsonNode.has("aggs")) {
+                System.out.println("[AiServiceImpl] ERROR: Missing 'query' or 'aggs' field!");
+                return "❌ AI model trả về query không hợp lệ. Cần có 'query' hoặc 'aggs' field.";
+            }
+            
+        } catch (Exception e) {
+            System.out.println("[AiServiceImpl] ERROR: Invalid JSON format!");
+            System.out.println("[AiServiceImpl] Expected: JSON object with 'query' field");
+            System.out.println("[AiServiceImpl] Received: " + body);
+            return "❌ AI model trả về format không đúng. Cần JSON query, nhận được: " + body;
+        }
+
+        return null;
+    }
+    
+    /**
+     * Fix JSON by balancing opening and closing braces
+     * Remove extra closing braces that don't have matching opening braces
+     */
+    private String fixJsonBraces(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return json;
+        }
+        
+        int openBraces = 0;
+        int closeBraces = 0;
+        boolean inString = false;
+        boolean escaped = false;
+        
+        // Count braces outside of string literals
+        for (int i = 0; i < json.length(); i++) {
+            char c = json.charAt(i);
+            
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            
+            if (c == '\\' && inString) {
+                escaped = true;
+                continue;
+            }
+            
+            if (c == '"') {
+                inString = !inString;
+                continue;
+            }
+            
+            if (!inString) {
+                if (c == '{') {
+                    openBraces++;
+                } else if (c == '}') {
+                    closeBraces++;
+                }
+            }
+        }
+        
+        // If we have extra closing braces, remove them from the end
+        if (closeBraces > openBraces) {
+            int extraBraces = closeBraces - openBraces;
+            String result = json;
+            
+            // Remove extra closing braces from the end
+            for (int i = 0; i < extraBraces; i++) {
+                int lastBraceIndex = result.lastIndexOf('}');
+                if (lastBraceIndex > 0) {
+                    result = result.substring(0, lastBraceIndex).trim();
+                }
+            }
+            
+            System.out.println("[AiServiceImpl] Fixed JSON: Removed " + extraBraces + " extra closing braces");
+            System.out.println("[AiServiceImpl] Fixed JSON result: " + result);
+            return result;
+        }
+        
+        return json;
+    }
+
+    private String getLogData(RequestBody requestBody, ChatRequest chatRequest)
+    {
+        // Bước 2: Luôn thực hiện tìm kiếm Elasticsearch (vì đã bắt buộc query = 1)
+        // Cần tìm kiếm: gọi Elasticsearch và lấy dữ liệu log
+        String content = "";
+        try{
+            content =  logApiService.search("logs-fortinet_fortigate.log-default*",
+                requestBody.getBody());
+        }catch (Exception e){
+            content="";
+            System.out.println("[AiServiceImpl] ERROR: Log API returned an error! " + e.getMessage());
+        }
+
+
+
+        try {
+            JsonNode jsonNode = objectMapper.readTree(content);
+            int totalHits = jsonNode.path("hits").path("total").path("value").asInt();
+
+            if (totalHits == 0) {
+                String allFields = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
+                String prevQuery = requestBody.getBody();
+                String userMess = chatRequest.message();
+
+                String systemMsg = """
+                    Re-gen the ElasticSearch query
+                    that best matches the user request.
+                    Correct fields: %s
+                    """.formatted(allFields);
+
+                Prompt comparePrompt = new Prompt(
+                    new SystemMessage(systemMsg),
+                    new UserMessage("User request: " + userMess + " | Previous query: " + prevQuery)
+                );
+
+                ChatOptions chatOptions = ChatOptions.builder()
+                    .temperature(0D)
+                    .build();
+
+                requestBody = chatClient.prompt(comparePrompt)
+                    .options(chatOptions)
+                    .call()
+                    .entity(new ParameterizedTypeReference<>() {});
+
+                System.out.println("[AiServiceImpl] Generated query body2: " + requestBody.getBody());
+
+                content = logApiService.search("logs-fortinet_fortigate.log-default*",
+                    requestBody.getBody());
+            }
+        }
+        catch (Exception e)
+        {
+            content = "Failure to request data";
+            System.out.println("[AiServiceImpl] - getLogData: "+content+ " " +e.getMessage());
+        }
+
+        return content;
+    }
 
     /**
      * Tóm tắt và diễn giải dữ liệu log thành ngôn ngữ tự nhiên
      * Sử dụng AI để phân tích kết quả từ Elasticsearch và tạo câu trả lời dễ hiểu
-     * 
+     *
      * @param sessionId ID phiên chat để duy trì ngữ cảnh
      * @param chatRequest Yêu cầu gốc từ người dùng
      * @param content Dữ liệu log từ Elasticsearch hoặc câu trả lời trực tiếp
@@ -385,11 +486,13 @@ public class AiServiceImpl implements AiService {
         String conversationId = sessionId.toString();
 
         // Tạo system message hướng dẫn AI cách phản hồi
-        SystemMessage systemMessage = new SystemMessage("""
+        SystemMessage systemMessage = new SystemMessage(String.format("""
                 You are HPT.AI
                 You should respond in a formal voice.
-                logData :
-                """ + content+" query: " + query);
+                logData : %s
+                query : %s
+                """
+            ,content,query));
 
         UserMessage userMessage = new UserMessage(chatRequest.message());
         Prompt prompt = new Prompt(systemMessage, userMessage);
@@ -407,7 +510,7 @@ public class AiServiceImpl implements AiService {
     /**
      * Xử lý yêu cầu với file đính kèm (hình ảnh, tài liệu, v.v.)
      * Cho phép người dùng gửi file cùng với tin nhắn để AI phân tích
-     * 
+     *
      * @param sessionId ID phiên chat để duy trì ngữ cảnh
      * @param file File được upload bởi người dùng
      * @param request Yêu cầu kèm theo từ người dùng
