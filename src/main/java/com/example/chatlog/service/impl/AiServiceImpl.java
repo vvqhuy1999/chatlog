@@ -375,8 +375,10 @@ public class AiServiceImpl implements AiService {
         }
         catch (Exception e)
         {
-            System.out.println("[AiServiceImpl] - getLogData: " +e.getMessage());
+            content = "Failure to request data";
+            System.out.println("[AiServiceImpl] - getLogData: "+content+ " " +e.getMessage());
         }
+
         return content;
     }
 

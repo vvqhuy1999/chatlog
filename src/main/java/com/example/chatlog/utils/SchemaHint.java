@@ -12,9 +12,9 @@ public class SchemaHint {
         - source.user.name (keyword)
         - source.ip (ip)
         - destination.ip (ip)
-        - event.action (keyword, e.g., "login", "logout")
+        - event.action (keyword, e.g., "login")
         - event.outcome (keyword: success/failure)
-        - event.module (should be "fortinet")
+        - event.module (should be "fortinet_fortigate"/"system")
         - event.dataset (should be "fortinet_fortigate.log")
         - message (text)
         
@@ -51,22 +51,6 @@ public class SchemaHint {
         """;
     }
 
-    public static String connections() {
-        return """
-        Connections
-        Index pattern: {index}.
-        Use ECS fields:
-        - @timestamp
-        - source.ip
-        - destination.ip
-        - network.transport (tcp/udp)
-        - event.action (e.g., "connection_start", "connection_end")
-        
-        Default time filter: @timestamp >= NOW() - {hours} HOURS unless specified.
-        When grouping, return source.ip, destination.ip, count, and last_seen.
-        """;
-    }
-
     public static String aggregationByIP() {
         return """
         Aggregation by IP
@@ -75,7 +59,7 @@ public class SchemaHint {
         - @timestamp
         - source.ip
         - destination.ip
-        - event.action
+        - event.action (e.g.,"login", "accept","deny", "close", "server-rst", "client-rst","dns","", "timeout", "ssl-anomaly","logged-on","signature", "logged-off", "ssh_login", "Health Check")
         - event.outcome
         
         Default time filter: @timestamp >= NOW() - {hours} HOURS unless specified.
@@ -93,8 +77,8 @@ public class SchemaHint {
         - source.ip
         - destination.ip
         - destination.port
-        - event.action (e.g.,"login", "accept", "close", "server-rst", "timeout", "ssl-anomaly", "logged-off", "ssh_login", "Health Check")
-        - rule.name
+        - event.action (e.g.,"login", "accept","deny", "close", "server-rst", "client-rst","dns","", "timeout", "ssl-anomaly","logged-on","signature", "logged-off", "ssh_login", "Health Check")
+        - rule.name (e.g.,"TO_INTERNET_SDWAN", "AD_SERVICES", "BLOCK_EXTERNAL_DNS", "AP_CONTROLLER", "SNMP_SERVICE", "TO_AP_CONTROLLER", "PRINT_CONTROLLER_CONNECT", "TO_VMS_CAMERA", "ADMIN_MGMT","HTTP_HTTPs_SERVICES","TO_JBSIGN")
         - event.outcome
         
         Default time filter: @timestamp >= NOW() - {hours} HOURS unless specified.
@@ -112,8 +96,8 @@ public class SchemaHint {
         - source.user.name
         - destination.ip
         - destination.port
-        - event.action (e.g., "accept", "close", "server-rst", "timeout", "ssl-anomaly", "logged-off", "ssh_login", "Health Check")
-        - log.level (e.g., "information", "warning", "notice", "alert")
+        - event.action (e.g.,"login", "accept","deny", "close", "server-rst", "client-rst","dns","", "timeout", "ssl-anomaly","logged-on","signature", "logged-off", "ssh_login", "Health Check")
+        - log.level (e.g.,"info","error", "information", "warning", "notice", "alert", "warn", "critical")
         - message
         Default time filter: @timestamp >= NOW() - {hours} HOURS unless specified.
         """;
@@ -129,10 +113,8 @@ public class SchemaHint {
             - source.ip
             - source.user.name
             - destination.ip
-            - destination.port (80, 443)
-            - http.request.method (GET, POST, PUT, DELETE)
-            - http.response.status_code
-            - url.full
+            - destination.port
+            - http.request.method (GET)
             - user_agent.original
             
             Default time filter: @timestamp >= NOW() - {hours} HOURS unless specified.
@@ -148,7 +130,7 @@ public class SchemaHint {
             Use ECS fields:
             - @timestamp
             - host.name
-            - log.level (error, critical, fatal)
+            - log.level (e.g.,"info","error", "information", "warning", "notice", "alert", "warn", "critical")
             - process.name
             - process.pid
             - message
@@ -171,6 +153,48 @@ public class SchemaHint {
         - Do not truncate the offset or remove milliseconds.
         """;
     }
+    public static String jsonStructure() {
+        return """
+    JSON Query Structure (Elasticsearch DSL)
+    ----------------------------------------
+    - Always use valid Elasticsearch JSON syntax.
+    - Ensure all braces `{}` and brackets `[]` are balanced.
+    - Queries must follow this format: 
+      {
+        "query": {
+          "bool": {
+            "must": [
+              { ... },   // each condition must be a separate object
+              { ... }
+            ]
+          }
+        },
+        "size": N,
+        "sort": [ { "@timestamp": { "order": "desc" } } ],
+        "_source": [ ... ]
+      }
+
+    Field handling:
+    - Use "@timestamp" as the date field for range filters.
+    - Time format must be ISO-8601 with timezone, e.g. 2025-09-12T15:45:31.000+07:00.
+    - Alternatively, use relative times like "now-30m/m" and "now/m".
+    - For keyword fields (e.g., log.level), prefer "log.level.keyword" when using "term".
+    - If unsure about mapping (text vs keyword), use "match" instead of "term".
+
+    MUST array rule:
+    - "must" must ALWAYS be an array.
+    - Each element of "must" must be a single condition object:
+      ✅ { "range": { "@timestamp": { "gte": "...", "lte": "..." } } }
+      ✅ { "term": { "log.level.keyword": "information" } }
+      ❌ Never combine multiple conditions in the same object.
+
+    Common pitfalls:
+    - Do not mix "term" with text fields.
+    - Always close each object and array properly.
+    - If query returns no logs, verify field type in index mapping.
+    """;
+    }
+
 
 
     public static List<String> allSchemas() {
@@ -178,13 +202,13 @@ public class SchemaHint {
             login(),
             findUser(),
             failedLogin(),
-            connections(),
             aggregationByIP(),
             firewallEvents(),
             Warning(),
             webTraffic(),
             systemErrors(),
-            dateTimeWithOffset()
+            dateTimeWithOffset(),
+                jsonStructure()
         );
     }
 }
