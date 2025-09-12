@@ -313,7 +313,7 @@ public class AiServiceImpl implements AiService {
 
         // Kiểm tra không phải câu trả lời trực tiếp
         if (body.toLowerCase().contains("trong") || body.toLowerCase().contains("ngày qua") ||
-                body.toLowerCase().contains("kết nối") || body.toLowerCase().contains("connections")) {
+                body.toLowerCase().contains("kết nối")) {
             System.out.println("[AiServiceImpl] ERROR: AI returned direct answer instead of query!");
             System.out.println("[AiServiceImpl] Body content: " + body);
             return "❌ AI model đã trả lời trực tiếp thay vì tạo Elasticsearch query. Đang thử lại...";

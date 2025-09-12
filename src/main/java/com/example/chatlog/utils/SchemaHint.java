@@ -109,6 +109,7 @@ public class SchemaHint {
         Use ECS fields:
         - @timestamp
         - source.ip
+        - source.user.name
         - destination.ip
         - destination.port
         - event.action (e.g., "allow", "deny", "drop")
