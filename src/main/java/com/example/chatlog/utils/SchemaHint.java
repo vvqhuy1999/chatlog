@@ -4,12 +4,12 @@ import java.util.List;
 
 public class SchemaHint {
 
-    /**
-     * Schema hint chính cho Fortinet integration theo ECS fields
-     * Tương đương với SCHEMA_HINT trong Python
-     */
-    public static String getSchemaHint() {
-        return """
+  /**
+   * Schema hint chính cho Fortinet integration theo ECS fields
+   * Tương đương với SCHEMA_HINT trong Python
+   */
+  public static String getSchemaHint() {
+    return """
         Index pattern: {index}.
         Use ECS field names typical for Fortinet integration:
         - @timestamp (date)
@@ -30,7 +30,6 @@ public class SchemaHint {
         - host.name (keyword)
         - process.name (keyword)
         - process.pid (long)
-        - destination.as.organization.name
         
         Default time filter: @timestamp >= NOW() - {hours} HOURS unless the question specifies otherwise.
         When the question is about successful logins, filter with event.action like *login* and event.outcome == success.
@@ -38,10 +37,34 @@ public class SchemaHint {
         """;
     }
 
-    /**
-     * Trả về danh sách schema hints (chỉ có một schema duy nhất)
-     */
-    public static List<String> allSchemas() {
-        return List.of(getSchemaHint());
+  /**
+   * Chuẩn hóa roles thành format chuẩn
+   * Ví dụ: admin, ad, Admin, administrator -> Administrator
+   */
+  public static String normalizeRole(String role) {
+    if (role == null || role.trim().isEmpty()) {
+      return role;
     }
+
+    String normalized = role.trim().toLowerCase();
+
+    // Chuẩn hóa các biến thể của Administrator
+    switch (normalized) {
+      case "admin":
+      case "ad":
+      case "administrator":
+        return "Administrator";
+      default:
+        // Giữ nguyên format gốc nhưng chuẩn hóa chữ hoa đầu
+        return role.trim().substring(0, 1).toUpperCase() +
+            role.trim().substring(1).toLowerCase();
+    }
+  }
+
+  /**
+   * Trả về danh sách schema hints (chỉ có một schema duy nhất)
+   */
+  public static List<String> allSchemas() {
+    return List.of(getSchemaHint());
+  }
 }
