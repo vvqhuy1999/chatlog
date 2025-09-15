@@ -7,6 +7,10 @@ import com.example.chatlog.service.LogApiService;
 import com.example.chatlog.utils.SchemaHint;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.Iterator;
+import java.util.Map;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -223,9 +227,9 @@ public class AiServiceImpl implements AiService {
         // Bước 1: Tạo system message hướng dẫn AI phân tích yêu cầu
         // Lấy ngày hiện tại để AI có thể xử lý các yêu cầu về thời gian chính xác
         LocalDateTime now = LocalDateTime.now();
-        System.out.println(now);
+//        System.out.println(now);
         String dateContext = generateDateContext(now);
-        System.out.println(dateContext);
+//        System.out.println(dateContext);
         SystemMessage systemMessage = new SystemMessage(String.format("""
                 You are an Elasticsearch Query Generator. Your ONLY job is to convert user questions into Elasticsearch queries.
                 
@@ -238,6 +242,20 @@ public class AiServiceImpl implements AiService {
                 4. ALWAYS return the exact JSON format below
                 5. If size is not define, Default size = 10.
                 6. Try to use the SchemaHint to get data.
+                7. ALWAYS set query = 1 in your response to enable search.
+                8. ALWAYS use '+07:00' timezone format in timestamps (Vietnam timezone).
+                9. ALWAYS return a single-line JSON response without line breaks or string concatenation.
+                
+                TIMESTAMP FORMAT RULES:
+                - CORRECT: "2025-09-14T10:55:55.000+07:00"
+                - INCORRECT: "2025-09-14T10:55:55.000Z"
+                - Use Vietnam timezone (+07:00) to match the data in Elasticsearch
+                
+                JSON FORMAT RULES:
+                - NEVER use line breaks in the JSON response
+                - NEVER use string concatenation with '+' operator
+                - Return the entire JSON as a single continuous string
+                - When using +07:00 in timestamps, ensure it's properly escaped in JSON strings
                 
                 
                 CRITICAL STRUCTURE RULES:
@@ -262,12 +280,17 @@ public class AiServiceImpl implements AiService {
                   "size": 0
                 }
                 
+                RESPONSE FORMAT:
+                You must return a RequestBody object with these fields:
+                - body: The JSON query string for Elasticsearch
+                - query: MUST be set to 1 to enable search functionality
+                
                 EXAMPLE CORRECT RESPONSES:
                 Question: "Get last 10 logs from yesterday"
-                Response: {"query":{"range":{"@timestamp":{"gte":"2025-09-11T00:00:00.000+07:00","lte":"2025-09-11T23:59:59.999+07:00"}}},"size":10,"sort":[{"@timestamp":{"order":"desc"}}],"_source":["@timestamp","source.ip","destination.ip","event.action","message"]}
+                Response: {"body":"{\"query\":{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-11T00:00:00.000+07:00\",\"lte\":\"2025-09-11T23:59:59.999+07:00\"}}},\"size\":10,\"sort\":[{\"@timestamp\":{\"order\":\"desc\"}}],\"_source\":[\"@timestamp\",\"source.ip\",\"destination.ip\",\"event.action\",\"message\"]}","query":1}
                 
                 Question: "Count total logs today"
-                Response: {"query":{"range":{"@timestamp":{"gte":"2025-09-12T00:00:00.000+07:00","lte":"2025-09-12T23:59:59.999+07:00"}}},"aggs":{"log_count":{"value_count":{"field":"@timestamp"}}},"size":0}
+                Response: {"body":"{\"query\":{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-12T00:00:00.000+07:00\",\"lte\":\"2025-09-12T23:59:59.999+07:00\"}}},\"aggs\":{\"log_count\":{\"value_count\":{\"field\":\"@timestamp\"}}},\"size\":0}","query":1}
                 
                 Available Elasticsearch fields:
                 %s
@@ -290,66 +313,120 @@ public class AiServiceImpl implements AiService {
 
         // Cấu hình ChatClient với temperature = 0 để có kết quả ổn định
         ChatOptions chatOptions = ChatOptions.builder()
-            .temperature(0D)
+            .temperature(0.5D)
             .build();
 
         // Gọi AI để phân tích và tạo request body
-        requestBody =  chatClient
-            .prompt(prompt)
-            .options(chatOptions)
-            .call()
-            .entity(new ParameterizedTypeReference<>() {
-            });
+        try {
+            requestBody =  chatClient
+                .prompt(prompt)
+                .options(chatOptions)
+                .call()
+                .entity(new ParameterizedTypeReference<>() {
+                });
+        } catch (Exception e) {
+            System.out.println("[AiServiceImpl] ERROR: Failed to parse AI response: " + e.getMessage());
+
+            // Thử lấy raw response và fix manually
+            String rawResponse = chatClient
+                .prompt(prompt)
+                .options(chatOptions)
+                .call()
+                .content();
+
+            System.out.println("[AiServiceImpl] Raw AI response: " + rawResponse);
+
+            // Fix JSON format issues
+            String fixedResponse = fixAiJsonResponse(rawResponse);
+            System.out.println("[AiServiceImpl] Fixed AI response: " + fixedResponse);
+
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                requestBody = mapper.readValue(fixedResponse, RequestBody.class);
+                System.out.println("[AiServiceImpl] Successfully parsed fixed response");
+            } catch (Exception ex) {
+                System.out.println("[AiServiceImpl] ERROR: Still failed to parse after fixing: " + ex.getMessage());
+                return "❌ AI model trả về format không hợp lệ và không thể sửa được: " + ex.getMessage();
+            }
+        }
+
+        // Đảm bảo query luôn là 1 (bắt buộc tìm kiếm)
+        if (requestBody.getQuery() != 1) {
+            System.out.println("[AiServiceImpl] Setting query=1 (was " + requestBody.getQuery() + ")");
+            requestBody.setQuery(1);
+        }
 
         System.out.println("THong tin quey: "+requestBody.getQuery());
         System.out.println("[AiServiceImpl] Generated query body: " + requestBody.getBody());
         System.out.println("[AiServiceImpl] Using current date context: " + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+
+
         // Validation: Kiểm tra xem body có phải là JSON query hay không
         if (requestBody.getBody() != null) {
 
             String flg = checkBodyFormat(requestBody);
+            System.out.println("flg: " + flg);
             if (flg != null)
             {
                 return flg;
             }
 
+
             content = getLogData(requestBody, chatRequest);
+
+            System.out.println("content: " + content);
 
 
         }
+
+
 
         // Bước 3: Tóm tắt kết quả và trả lời người dùng
         return getAiResponse(sessionId,chatRequest,content, requestBody.getBody());
     }
 
     private String checkBodyFormat(RequestBody requestBody){
-        String body = requestBody.getBody().trim();
-        
+        String originalBody = requestBody.getBody().trim();
+        String body = originalBody;
+
         // Fix JSON formatting by balancing braces
         body = fixJsonBraces(body);
-        
-        // Update the body in requestBody
-        requestBody.setBody(body);
+
+        // Log if JSON was fixed
+        if (!body.equals(originalBody)) {
+            System.out.println("[AiServiceImpl] JSON was automatically fixed:");
+            System.out.println("[AiServiceImpl] Original: " + originalBody);
+            System.out.println("[AiServiceImpl] Fixed:    " + body);
+
+            // When JSON is fixed, we should regenerate the query field to ensure consistency
+            // For now, we'll keep the original query but log a warning
+            System.out.println("[AiServiceImpl] WARNING: JSON was fixed but query field may be inconsistent");
+            System.out.println("[AiServiceImpl] Current query field: " + requestBody.getQuery());
+
+            // Regenerate RequestBody to ensure consistency between body and query fields
+            requestBody = regenerateRequestBodyWithFixedJson(body, requestBody.getQuery());
+        }
 
         try {
-            JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);
-            
+            JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(requestBody.getBody());
+
             // Validate that it's a proper Elasticsearch query
             if (!jsonNode.has("query") && !jsonNode.has("aggs")) {
                 System.out.println("[AiServiceImpl] ERROR: Missing 'query' or 'aggs' field!");
                 return "❌ AI model trả về query không hợp lệ. Cần có 'query' hoặc 'aggs' field.";
             }
-            
+
         } catch (Exception e) {
-            System.out.println("[AiServiceImpl] ERROR: Invalid JSON format!");
+            System.out.println("[AiServiceImpl] ERROR: Invalid JSON format even after auto-fix!");
             System.out.println("[AiServiceImpl] Expected: JSON object with 'query' field");
-            System.out.println("[AiServiceImpl] Received: " + body);
-            return "❌ AI model trả về format không đúng. Cần JSON query, nhận được: " + body;
+            System.out.println("[AiServiceImpl] Received: " + requestBody.getBody());
+            System.out.println("[AiServiceImpl] Error details: " + e.getMessage());
+            return "❌ AI model trả về format không đúng. Đã cố gắng sửa tự động nhưng vẫn không hợp lệ. Cần JSON query, nhận được: " + requestBody.getBody();
         }
 
         return null;
     }
-    
+
     /**
      * Fix JSON by balancing opening and closing braces
      * Remove extra closing braces that don't have matching opening braces
@@ -358,31 +435,31 @@ public class AiServiceImpl implements AiService {
         if (json == null || json.trim().isEmpty()) {
             return json;
         }
-        
+
         int openBraces = 0;
         int closeBraces = 0;
         boolean inString = false;
         boolean escaped = false;
-        
+
         // Count braces outside of string literals
         for (int i = 0; i < json.length(); i++) {
             char c = json.charAt(i);
-            
+
             if (escaped) {
                 escaped = false;
                 continue;
             }
-            
+
             if (c == '\\' && inString) {
                 escaped = true;
                 continue;
             }
-            
+
             if (c == '"') {
                 inString = !inString;
                 continue;
             }
-            
+
             if (!inString) {
                 if (c == '{') {
                     openBraces++;
@@ -391,12 +468,12 @@ public class AiServiceImpl implements AiService {
                 }
             }
         }
-        
+
         // If we have extra closing braces, remove them from the end
         if (closeBraces > openBraces) {
             int extraBraces = closeBraces - openBraces;
             String result = json;
-            
+
             // Remove extra closing braces from the end
             for (int i = 0; i < extraBraces; i++) {
                 int lastBraceIndex = result.lastIndexOf('}');
@@ -404,13 +481,204 @@ public class AiServiceImpl implements AiService {
                     result = result.substring(0, lastBraceIndex).trim();
                 }
             }
-            
+
             System.out.println("[AiServiceImpl] Fixed JSON: Removed " + extraBraces + " extra closing braces");
             System.out.println("[AiServiceImpl] Fixed JSON result: " + result);
             return result;
         }
-        
+
         return json;
+    }
+
+    /**
+     * Regenerate RequestBody with fixed JSON to ensure consistency
+     * This creates a new RequestBody with the fixed JSON and preserves the query field
+     */
+    private RequestBody regenerateRequestBodyWithFixedJson(String fixedJson, int originalQuery) {
+        System.out.println("[AiServiceImpl] Regenerating RequestBody with fixed JSON");
+        // Đảm bảo query luôn là 1, bất kể giá trị originalQuery
+        return new RequestBody(fixedJson, 1);
+    }
+
+    /**
+     * Fix AI JSON response by removing line breaks and string concatenation
+     * @param rawResponse Raw response from AI
+     * @return Fixed JSON string
+     */
+    private String fixAiJsonResponse(String rawResponse) {
+        if (rawResponse == null || rawResponse.trim().isEmpty()) {
+            return rawResponse;
+        }
+
+        String fixed = rawResponse;
+
+        // Remove line breaks and extra whitespace
+        fixed = fixed.replaceAll("\\n", "").replaceAll("\\r", "").trim();
+
+        // Fix string concatenation with + operator
+        // Pattern: "text1" + "text2" -> "text1text2"
+        fixed = fixed.replaceAll("\"\\s*\\+\\s*\"", "");
+
+        // Fix cases where there are spaces around +
+        fixed = fixed.replaceAll("\"\\s*\\+\\s*\\n\\s*\"", "");
+
+        // Remove extra spaces
+        fixed = fixed.replaceAll("\\s+", " ");
+
+        System.out.println("[AiServiceImpl] Fixed JSON concatenation issues");
+        return fixed;
+    }
+
+    /**
+     * Xử lý một match clause và chuyển đổi thành term nếu cần
+     * @param clause JsonNode chứa match clause
+     * @param mapper ObjectMapper để tạo nodes
+     * @param targetArray ArrayNode để thêm kết quả
+     * @param index Index để set trong array
+     * @return true nếu có thay đổi
+     */
+    private boolean processMatchClause(JsonNode clause, ObjectMapper mapper, ArrayNode targetArray, int index) {
+        if (!clause.has("match")) {
+            return false;
+        }
+
+        JsonNode matchNode = clause.get("match");
+        @SuppressWarnings("deprecation")
+        Iterator<Map.Entry<String, JsonNode>> fieldIterator = matchNode.fields();
+
+        boolean modified = false;
+        while (fieldIterator.hasNext()) {
+            Map.Entry<String, JsonNode> field = fieldIterator.next();
+            String fieldName = field.getKey();
+
+            if (fieldName.equals("event.action") ||
+                fieldName.equals("event.outcome") ||
+                fieldName.equals("source.user.name") ||
+                fieldName.equals("source.user.roles")) {
+
+                // Chuẩn hóa roles nếu là trường source.user.roles
+                JsonNode fieldValue = field.getValue();
+                if (fieldName.equals("source.user.roles") && fieldValue.isTextual()) {
+                    String originalRole = fieldValue.asText();
+                    String normalizedRole = SchemaHint.normalizeRole(originalRole);
+                    if (!originalRole.equals(normalizedRole)) {
+                        System.out.println("[AiServiceImpl] Normalized role: " + originalRole + " -> " + normalizedRole);
+                        fieldValue = mapper.valueToTree(normalizedRole);
+                    }
+                }
+
+                // Tạo term query mới
+                ObjectNode termQuery = mapper.createObjectNode();
+                ObjectNode termField = mapper.createObjectNode();
+                termField.set(fieldName, fieldValue);
+                termQuery.set("term", termField);
+
+                // Thêm vào array tại vị trí index
+                if (targetArray.size() <= index) {
+                    targetArray.add(termQuery);
+                } else {
+                    targetArray.set(index, termQuery);
+                }
+                modified = true;
+            }
+        }
+
+        // Nếu không có thay đổi, thêm clause gốc vào array
+        if (!modified && targetArray.size() <= index) {
+            targetArray.add(clause);
+        }
+
+        return modified;
+    }
+
+    /**
+     * Sửa các lỗi mapping phổ biến trong Elasticsearch query
+     * @param query JSON query gốc
+     * @return JSON query đã sửa
+     */
+    private String fixElasticsearchQuery(String query) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode rootNode = mapper.readTree(query);
+
+            // Tạo một bản sao để sửa
+            JsonNode fixedRoot = rootNode.deepCopy();
+            final boolean[] modified = {false};  // Sử dụng array để có thể thay đổi từ lambda
+
+            // Sửa lỗi phổ biến #1: Thêm .keyword cho aggregation fields
+            if (fixedRoot.has("aggs")) {
+                JsonNode aggsNode = fixedRoot.get("aggs");
+                // Duyệt qua các aggregation
+                @SuppressWarnings("deprecation")
+                Iterator<Map.Entry<String, JsonNode>> aggIterator = aggsNode.fields();
+                while (aggIterator.hasNext()) {
+                    Map.Entry<String, JsonNode> entry = aggIterator.next();
+                    JsonNode agg = entry.getValue();
+
+                    // Kiểm tra nếu đây là terms aggregation
+                    if (agg.has("terms") && agg.get("terms").has("field")) {
+                        String fieldName = agg.get("terms").get("field").asText();
+
+                        // Thêm .keyword cho các field text
+                        if (fieldName.equals("source.user.name") && !fieldName.endsWith(".keyword")) {
+                            ((ObjectNode)agg.get("terms"))
+                                .put("field", fieldName + ".keyword");
+                            modified[0] = true;
+                        }
+                    }
+                }
+            }
+
+            // Sửa lỗi phổ biến #2: Chuyển match thành term cho keyword fields
+            if (fixedRoot.has("query") && fixedRoot.get("query").has("bool") &&
+                fixedRoot.get("query").get("bool").has("must")) {
+
+                JsonNode mustNode = fixedRoot.get("query").get("bool").get("must");
+
+                // Xử lý trường hợp must là array
+                if (mustNode.isArray()) {
+                    for (int j = 0; j < mustNode.size(); j++) {
+                        final int index = j;  // Tạo biến final cho lambda
+                        JsonNode clause = mustNode.get(index);
+
+                        if (processMatchClause(clause, mapper, (ArrayNode)mustNode, index)) {
+                            modified[0] = true;
+                        }
+                    }
+                }
+                // Xử lý trường hợp must là object đơn
+                else if (mustNode.isObject()) {
+                    if (mustNode.has("match")) {
+                        // Chuyển đổi must object thành must array
+                        ArrayNode mustArray = mapper.createArrayNode();
+
+                        if (processMatchClause(mustNode, mapper, mustArray, 0)) {
+                            // Thay thế must object bằng must array
+                            ((ObjectNode)fixedRoot.get("query").get("bool")).set("must", mustArray);
+                            modified[0] = true;
+                        } else {
+                            // Nếu không có thay đổi, vẫn chuyển thành array để chuẩn hóa
+                            mustArray.add(mustNode);
+                            ((ObjectNode)fixedRoot.get("query").get("bool")).set("must", mustArray);
+                        }
+                    }
+                }
+            }
+
+            // Trả về query đã sửa nếu có thay đổi
+            if (modified[0]) {
+                String fixedQuery = mapper.writeValueAsString(fixedRoot);
+                System.out.println("[AiServiceImpl] Fixed Elasticsearch query mapping issues:");
+                System.out.println("[AiServiceImpl] Original: " + query);
+                System.out.println("[AiServiceImpl] Fixed: " + fixedQuery);
+                return fixedQuery;
+            }
+
+            return query;
+        } catch (Exception e) {
+            System.out.println("[AiServiceImpl] Error in fixElasticsearchQuery: " + e.getMessage());
+            return query;
+        }
     }
 
     private String getLogData(RequestBody requestBody, ChatRequest chatRequest)
@@ -419,11 +687,39 @@ public class AiServiceImpl implements AiService {
         // Cần tìm kiếm: gọi Elasticsearch và lấy dữ liệu log
         String content = "";
         try{
-            content =  logApiService.search("logs-fortinet_fortigate.log-default*",
-                requestBody.getBody());
+            // Sửa query trước khi gửi đến Elasticsearch
+            String fixedQuery = fixElasticsearchQuery(requestBody.getBody());
+            System.out.println("[AiServiceImpl] Sending query to Elasticsearch: " + fixedQuery);
+
+            content = logApiService.search("logs-fortinet_fortigate.log-default*", fixedQuery);
+            System.out.println("[AiServiceImpl] Elasticsearch response received successfully");
         }catch (Exception e){
             content="";
             System.out.println("[AiServiceImpl] ERROR: Log API returned an error! " + e.getMessage());
+
+            // Thử với một query đơn giản hơn để kiểm tra kết nối
+            try {
+                String simpleQuery = """
+                {
+                  "size": 1,
+                  "query": {
+                    "match_all": {}
+                  },
+                  "sort": [{"@timestamp": {"order": "desc"}}]
+                }
+                """;
+                System.out.println("[AiServiceImpl] Trying with a simple query: " + simpleQuery);
+                String simpleResult = logApiService.search("logs-fortinet_fortigate.log-default*", simpleQuery);
+
+                if (simpleResult != null && !simpleResult.isEmpty() && !simpleResult.contains("error")) {
+                    System.out.println("[AiServiceImpl] Simple query succeeded, there's likely a mapping issue with the original query");
+                    // Lấy mapping từ Elasticsearch để debug
+                    String mappingInfo = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
+                    System.out.println("[AiServiceImpl] Available fields: " + mappingInfo);
+                }
+            } catch (Exception ex) {
+                System.out.println("[AiServiceImpl] Simple query also failed: " + ex.getMessage());
+            }
         }
 
 
@@ -437,11 +733,26 @@ public class AiServiceImpl implements AiService {
                 String prevQuery = requestBody.getBody();
                 String userMess = chatRequest.message();
 
-                String systemMsg = """
-                    Re-gen the ElasticSearch query
-                    that best matches the user request.
-                    Correct fields: %s
-                    """.formatted(allFields);
+                String systemMsg = String.format("""
+                    You are an Elasticsearch Query Generator. Re-generate the query to match the user request better.
+                    
+                    CRITICAL RULES - FOLLOW EXACTLY:
+                    1. ALWAYS return RequestBody with body (JSON string) and query (set to 1)
+                    2. ALWAYS use '+07:00' timezone format in timestamps (Vietnam timezone)
+                    3. ALWAYS return single-line JSON without line breaks or string concatenation
+                    4. NEVER use line breaks in JSON response
+                    5. NEVER use string concatenation with '+' operator
+                    6. Return entire JSON as single continuous string
+                    
+                    TIMESTAMP FORMAT:
+                    - CORRECT: "2025-09-14T11:41:04.000+07:00"
+                    - INCORRECT: "2025-09-14T11:41:04.000Z"
+                    
+                    Available fields: %s
+                    
+                    Return ONLY the RequestBody JSON. No explanations.
+                    Example: {"body":"{\"query\":{\"match_all\":{}},\"size\":10}","query":1}
+                    """, allFields);
 
                 Prompt comparePrompt = new Prompt(
                     new SystemMessage(systemMsg),
@@ -452,15 +763,49 @@ public class AiServiceImpl implements AiService {
                     .temperature(0D)
                     .build();
 
-                requestBody = chatClient.prompt(comparePrompt)
-                    .options(chatOptions)
-                    .call()
-                    .entity(new ParameterizedTypeReference<>() {});
+                try {
+                    requestBody = chatClient.prompt(comparePrompt)
+                        .options(chatOptions)
+                        .call()
+                        .entity(new ParameterizedTypeReference<>() {});
+                } catch (Exception e) {
+                    System.out.println("[AiServiceImpl] ERROR: Failed to parse regenerated AI response: " + e.getMessage());
+
+                    // Thử lấy raw response và fix manually
+                    String rawResponse = chatClient.prompt(comparePrompt)
+                        .options(chatOptions)
+                        .call()
+                        .content();
+
+                    System.out.println("[AiServiceImpl] Raw regenerated AI response: " + rawResponse);
+
+                    // Fix JSON format issues
+                    String fixedResponse = fixAiJsonResponse(rawResponse);
+                    System.out.println("[AiServiceImpl] Fixed regenerated AI response: " + fixedResponse);
+
+                    try {
+                        ObjectMapper mapper = new ObjectMapper();
+                        requestBody = mapper.readValue(fixedResponse, RequestBody.class);
+                        System.out.println("[AiServiceImpl] Successfully parsed fixed regenerated response");
+                    } catch (Exception ex) {
+                        System.out.println("[AiServiceImpl] ERROR: Failed to parse regenerated response even after fixing: " + ex.getMessage());
+                        content = "Failure to regenerate query";
+                        return content;
+                    }
+                }
+
+                // Đảm bảo query luôn là 1 cho query được tạo lại
+                if (requestBody.getQuery() != 1) {
+                    System.out.println("[AiServiceImpl] Setting query=1 for regenerated query (was " + requestBody.getQuery() + ")");
+                    requestBody.setQuery(1);
+                }
 
                 System.out.println("[AiServiceImpl] Generated query body2: " + requestBody.getBody());
 
-                content = logApiService.search("logs-fortinet_fortigate.log-default*",
-                    requestBody.getBody());
+                // Sửa query trước khi gửi đến Elasticsearch
+                String fixedQuery = fixElasticsearchQuery(requestBody.getBody());
+                System.out.println("[AiServiceImpl] Sending regenerated query to Elasticsearch: " + fixedQuery);
+                content = logApiService.search("logs-fortinet_fortigate.log-default*", fixedQuery);
             }
         }
         catch (Exception e)
