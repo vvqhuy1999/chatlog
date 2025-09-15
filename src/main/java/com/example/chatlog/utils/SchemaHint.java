@@ -220,11 +220,11 @@ public class SchemaHint {
             findUser(),
             failedLogin(),
             aggregationByIP(),
-            firewallEvents(),
+//            firewallEvents(),
             Warning(),
-            webTraffic(),
-            systemErrors(),
-            dateTimeWithOffset()
+//            webTraffic(),
+            systemErrors()
+//                ,dateTimeWithOffset()
 //                ,jsonStructure()
         );
     }

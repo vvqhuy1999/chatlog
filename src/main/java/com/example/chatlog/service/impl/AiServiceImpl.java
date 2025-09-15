@@ -238,11 +238,7 @@ public class AiServiceImpl implements AiService {
                 2. NEVER say things like "Trong 5 ngày qua, có 50 kết nối..."
                 3. ALWAYS generate an Elasticsearch query JSON.
                 4. ALWAYS return the exact JSON format below
-                5. If size is not define, Default size = 10.
-                6. Try to use the SchemaHint to get data.
-                
-                6. Try to use the SchemaHint to get data.
-                
+              
                 
                 CRITICAL STRUCTURE RULES:
                 - ALL time range filters MUST be inside the "query" block
@@ -259,12 +255,6 @@ public class AiServiceImpl implements AiService {
                   "sort": [{"@timestamp": {"order": "desc"}}]
                 }
                 
-                For aggregations, add "aggs" at the same level as "query":
-                {
-                  "query": { ... },
-                  "aggs": { ... },
-                  "size": 0
-                }
                 
                 EXAMPLE CORRECT RESPONSES:
                 Question: "Get last 10 logs from yesterday"
@@ -328,22 +318,10 @@ public class AiServiceImpl implements AiService {
 
     private String checkBodyFormat(RequestBody requestBody){
         String body = requestBody.getBody().trim();
-        
-        // Fix JSON formatting by balancing braces
-        body = fixJsonBraces(body);
-        
-        // Update the body in requestBody
-        requestBody.setBody(body);
 
         try {
             JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);
-            
-            // Validate that it's a proper Elasticsearch query
-            if (!jsonNode.has("query") && !jsonNode.has("aggs")) {
-                System.out.println("[AiServiceImpl] ERROR: Missing 'query' or 'aggs' field!");
-                return "❌ AI model trả về query không hợp lệ. Cần có 'query' hoặc 'aggs' field.";
-            }
-            
+
         } catch (Exception e) {
             System.out.println("[AiServiceImpl] ERROR: Invalid JSON format!");
             System.out.println("[AiServiceImpl] Expected: JSON object with 'query' field");
@@ -352,69 +330,6 @@ public class AiServiceImpl implements AiService {
         }
 
         return null;
-    }
-    
-    /**
-     * Fix JSON by balancing opening and closing braces
-     * Remove extra closing braces that don't have matching opening braces
-     */
-    private String fixJsonBraces(String json) {
-        if (json == null || json.trim().isEmpty()) {
-            return json;
-        }
-        
-        int openBraces = 0;
-        int closeBraces = 0;
-        boolean inString = false;
-        boolean escaped = false;
-        
-        // Count braces outside of string literals
-        for (int i = 0; i < json.length(); i++) {
-            char c = json.charAt(i);
-            
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-            
-            if (c == '\\' && inString) {
-                escaped = true;
-                continue;
-            }
-            
-            if (c == '"') {
-                inString = !inString;
-                continue;
-            }
-            
-            if (!inString) {
-                if (c == '{') {
-                    openBraces++;
-                } else if (c == '}') {
-                    closeBraces++;
-                }
-            }
-        }
-        
-        // If we have extra closing braces, remove them from the end
-        if (closeBraces > openBraces) {
-            int extraBraces = closeBraces - openBraces;
-            String result = json;
-            
-            // Remove extra closing braces from the end
-            for (int i = 0; i < extraBraces; i++) {
-                int lastBraceIndex = result.lastIndexOf('}');
-                if (lastBraceIndex > 0) {
-                    result = result.substring(0, lastBraceIndex).trim();
-                }
-            }
-            
-            System.out.println("[AiServiceImpl] Fixed JSON: Removed " + extraBraces + " extra closing braces");
-            System.out.println("[AiServiceImpl] Fixed JSON result: " + result);
-            return result;
-        }
-        
-        return json;
     }
 
     private String getLogData(RequestBody requestBody, ChatRequest chatRequest)
