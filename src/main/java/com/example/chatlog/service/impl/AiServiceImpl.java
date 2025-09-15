@@ -295,7 +295,7 @@ public class AiServiceImpl implements AiService {
             .entity(new ParameterizedTypeReference<>() {
             });
 
-        System.out.println("THong tin quey: "+requestBody.getQuery());
+
         System.out.println("[AiServiceImpl] Generated query body: " + requestBody.getBody());
         System.out.println("[AiServiceImpl] Using current date context: " + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
         // Validation: Kiểm tra xem body có phải là JSON query hay không
