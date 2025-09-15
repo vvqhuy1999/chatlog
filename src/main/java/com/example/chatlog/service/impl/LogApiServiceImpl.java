@@ -25,7 +25,7 @@ public class LogApiServiceImpl implements LogApiService {
     /**
      * Constructor khởi tạo LogApiServiceImpl với cấu hình kết nối Elasticsearch
      * Thiết lập SSL trust-all cho môi trường nội bộ và các header cần thiết
-     * 
+     *
      * @param builder WebClient.Builder từ Spring Boot
      * @param baseUrl URL của Elasticsearch server (từ application.yaml)
      * @param apiKey API key để xác thực với Elasticsearch (từ application.yaml)
@@ -33,7 +33,7 @@ public class LogApiServiceImpl implements LogApiService {
     public LogApiServiceImpl(WebClient.Builder builder,
         @Value("${elastic.api.url}") String baseUrl,
         @Value("${elastic.api.key}") String apiKey) {
-        
+
         // Cấu hình HTTP client với SSL trust-all (chỉ dùng cho môi trường nội bộ)
         HttpClient httpClient = HttpClient.create().secure(ssl -> {
             try {
@@ -60,7 +60,7 @@ public class LogApiServiceImpl implements LogApiService {
     /**
      * Thực hiện tìm kiếm dữ liệu log trong Elasticsearch
      * Gửi query đến endpoint _search của Elasticsearch và trả về kết quả
-     * 
+     *
      * @param index Tên index cần tìm kiếm (ví dụ: "logs-fortinet_fortigate.log-default*")
      * @param body JSON query body theo chuẩn Elasticsearch Query DSL
      * @return Kết quả tìm kiếm dạng JSON string từ Elasticsearch
@@ -79,12 +79,13 @@ public class LogApiServiceImpl implements LogApiService {
     /**
      * Lấy thông tin mapping (cấu trúc field) của Elasticsearch index
      * Mapping chứa thông tin về các field có trong index và kiểu dữ liệu của chúng
-     * 
+     *
      * @param index Tên index cần lấy mapping (ví dụ: "logs-fortinet_fortigate.log-default*")
      * @return Thông tin mapping dạng JSON string từ Elasticsearch
      */
     @Override
     public String getFieldLog(String index) {
+        // Gửi HTTP POST request đến Elasticsearch _mapping endpoint
         // Gửi HTTP POST request đến Elasticsearch _mapping endpoint
         return webClient
                 .method(HttpMethod.GET)
@@ -116,9 +117,11 @@ public class LogApiServiceImpl implements LogApiService {
             }
 
 //            System.out.println("Danh sách field:");
+//            System.out.println("Danh sách field:");
             // fieldNames.forEach(System.out::println);
             return fieldNames.toString();
         } catch (Exception e) {
+            System.out.println("[LogApiServiceImpl] : " +e.getMessage());
             System.out.println("[LogApiServiceImpl] : " +e.getMessage());
         }
         return "";
