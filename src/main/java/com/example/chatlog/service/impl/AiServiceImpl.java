@@ -23,6 +23,8 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.lang.reflect.Type;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -234,18 +236,7 @@ public class AiServiceImpl implements AiService {
                 %s
                 
                 CRITICAL RULES - FOLLOW EXACTLY:
-                1. NEVER give direct answers or summaries
-                2. NEVER say things like "Trong 5 ngày qua, có 50 kết nối..."
-                3. ALWAYS generate an Elasticsearch query JSON.
-                4. ALWAYS return the exact JSON format below
-              
-                
-                CRITICAL STRUCTURE RULES:
-                - ALL time range filters MUST be inside the "query" block
-                - For aggregations, use "aggs" at the same level as "query"
-                - NEVER put "range" outside the "query" block
-                - Use "value_count" aggregation for counting total logs
-                - Use "terms" aggregation for grouping by field values
+                1. ALWAYS return the exact JSON format below, exchange to String do not contain '\\'
                 
                 REQUIRED JSON FORMAT:
                 {
@@ -284,7 +275,7 @@ public class AiServiceImpl implements AiService {
 
         // Cấu hình ChatClient với temperature = 0 để có kết quả ổn định
         ChatOptions chatOptions = ChatOptions.builder()
-                .temperature(0D)
+                .temperature(1D)
                 .build();
 
         // Gọi AI để phân tích và tạo request body
@@ -292,8 +283,7 @@ public class AiServiceImpl implements AiService {
             .prompt(prompt)
             .options(chatOptions)
             .call()
-            .entity(new ParameterizedTypeReference<>() {
-            });
+            .entity(new ParameterizedTypeReference<>() {});
 
 
         System.out.println("[AiServiceImpl] Generated query body: " + requestBody.getBody());
@@ -368,7 +358,7 @@ public class AiServiceImpl implements AiService {
                 );
 
                 ChatOptions chatOptions = ChatOptions.builder()
-                        .temperature(0D)
+                        .temperature(1D)
                         .build();
 
                 requestBody = chatClient.prompt(comparePrompt)
@@ -406,12 +396,22 @@ public class AiServiceImpl implements AiService {
 
         // Tạo system message hướng dẫn AI cách phản hồi
         SystemMessage systemMessage = new SystemMessage(String.format("""
-                You are HPT.AI
-                You should respond in a formal voice.
-                logData : %s
-                query : %s
-                """
-                ,content,query));
+            You are HPT.AI.
+            Your job is to summarize Elasticsearch log results into clear Vietnamese sentences.
+            
+            Rules:
+            - Formal tone, concise.
+            - Highlight counts, usernames, IPs, time ranges.
+            - Do not explain the query DSL itself.
+            - Max 5 sentences.
+            
+            logData: %s
+            query: %s
+            """, content, query));
+
+        ChatOptions chatOptions = ChatOptions.builder()
+                .temperature(0D)
+                .build();
 
         UserMessage userMessage = new UserMessage(chatRequest.message());
         Prompt prompt = new Prompt(systemMessage, userMessage);
@@ -419,6 +419,7 @@ public class AiServiceImpl implements AiService {
         // Gọi AI với ngữ cảnh cuộc trò chuyện để tạo phản hồi
         return chatClient
             .prompt(prompt)
+                .options(chatOptions)
             .advisors(advisorSpec -> advisorSpec.param(
                 ChatMemory.CONVERSATION_ID, conversationId
             ))
@@ -426,34 +427,4 @@ public class AiServiceImpl implements AiService {
             .content();
     }
 
-    /**
-     * Xử lý yêu cầu với file đính kèm (hình ảnh, tài liệu, v.v.)
-     * Cho phép người dùng gửi file cùng với tin nhắn để AI phân tích
-     *
-     * @param sessionId ID phiên chat để duy trì ngữ cảnh
-     * @param file File được upload bởi người dùng
-     * @param request Yêu cầu kèm theo từ người dùng
-     * @param content Nội dung bổ sung (nếu có)
-     * @return Phản hồi của AI sau khi phân tích file và tin nhắn
-     */
-    public String getAiResponse(Long sessionId, MultipartFile file, ChatRequest request, String content) {
-        String conversationId = sessionId.toString();
-
-        // Tạo đối tượng Media từ file upload
-        Media media = Media.builder()
-            .mimeType(MimeTypeUtils.parseMimeType(file.getContentType()))
-            .data(file.getResource())
-            .build();
-
-        // Gọi AI với cả media và text, duy trì ngữ cảnh cuộc trò chuyện
-        return chatClient.prompt()
-            .system("")
-            .user(promptUserSpec ->promptUserSpec.media(media)
-                .text(request.message()))
-            .advisors(advisorSpec -> advisorSpec.param(
-                ChatMemory.CONVERSATION_ID, conversationId
-            ))
-            .call()
-            .content();
-    }
 }
