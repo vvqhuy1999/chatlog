@@ -287,15 +287,9 @@ public class AiServiceImpl implements AiService {
         UserMessage schemaMsg = new UserMessage("Available schema hints:\n" + schemaContext);
 
 
-        List<String> schemaHints = SchemaHint.allSchemas();
-        String schemaContext = String.join("\n\n", schemaHints);
-        UserMessage schemaMsg = new UserMessage("Available schema hints:\n" + schemaContext);
-
-
           UserMessage userMessage = new UserMessage(chatRequest.message());
         System.out.println(userMessage);
         System.out.println("----------------------------------------------------------");
-        Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, userMessage));
         Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, userMessage));
 
         // Cấu hình ChatClient với temperature = 0 để có kết quả ổn định
@@ -449,8 +443,6 @@ public class AiServiceImpl implements AiService {
 
                 String systemMsg = """
                     Re-gen the ElasticSearch query
-                String systemMsg = """
-                    Re-gen the ElasticSearch query
                     that best matches the user request.
                     Correct fields: %s
                     """.formatted(allFields);
@@ -482,7 +474,6 @@ public class AiServiceImpl implements AiService {
         }
 
         return content;
-        return content;
     }
 
     /**
@@ -499,7 +490,6 @@ public class AiServiceImpl implements AiService {
         String conversationId = sessionId.toString();
 
         // Tạo system message hướng dẫn AI cách phản hồi
-        SystemMessage systemMessage = new SystemMessage(String.format("""
         SystemMessage systemMessage = new SystemMessage(String.format("""
                 You are HPT.AI
                 You should respond in a formal voice.
