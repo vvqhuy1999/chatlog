@@ -15,8 +15,16 @@ public class SchemaHint {
         - @timestamp (date)
         - source.user.name (keyword)
         - source.user.roles (keyword, e.g., "Administrator")
+        
+        IMPORTANT ROLE MAPPINGS:
+        - Questions about "admin", "ad", "administrator" should use "Administrator" (capitalized)
+        - Always normalize roles: admin/ad/administrator → Administrator
+        - Example query: {"term": {"source.user.roles": "Administrator"}}
+        
         - source.ip (ip)
         - destination.ip (ip)
+        - destination.as.organization.name (keyword, external organization name, e.g., "Google LLC", "Amazon.com", "Microsoft Corporation")
+        - destination.as.number (long, ASN number)
         - event.action (keyword, e.g., "login", "logout", "accept", "deny", "close", "server-rst", "client-rst", "dns", "timeout", "ssl-anomaly", "logged-on", "signature", "logged-off", "ssh_login", "Health Check")
         - event.outcome (keyword: success/failure)
         - event.module (should be "fortinet")
@@ -32,8 +40,8 @@ public class SchemaHint {
         - process.pid (long)
         
         Default time filter: @timestamp >= NOW() - {hours} HOURS unless the question specifies otherwise.
-        When the question is about successful logins, filter with event.action like *login* and event.outcome == success.
         When counting or grouping, return meaningful columns (e.g., user.name, source.user.roles, source.ip, count, last_seen).
+        IMPORTANT: Only add event.action/event.outcome filters when explicitly mentioned in the question.
         """;
     }
 
@@ -66,5 +74,27 @@ public class SchemaHint {
    */
   public static List<String> allSchemas() {
     return List.of(getSchemaHint());
+  }
+
+  /**
+   * Trả về role normalization rules để sử dụng trong AI prompt
+   */
+  public static String getRoleNormalizationRules() {
+    return """
+        ROLE NORMALIZATION RULES:
+        - "admin", "ad", "administrator" → ALWAYS use "Administrator" (capitalized)
+        - For source.user.roles field, normalize to standard format: "Administrator"
+        - Example: {"term": {"source.user.roles": "Administrator"}} not "admin"
+        """;
+  }
+
+  /**
+   * Trả về example query cho admin roles
+   */
+  public static String getAdminRoleExample() {
+    return """
+        Question: "hôm ngày 11-09 có roles admin nào vào hệ thống hay ko?"
+        Response: {"body":"{\\"query\\":{\\"bool\\":{\\"must\\":[{\\"term\\":{\\"source.user.roles\\":\\"Administrator\\"}},{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-11T00:00:00.000+07:00\\",\\"lte\\":\\"2025-09-11T23:59:59.999+07:00\\"}}}]}},\\"size\\":10}","query":1}
+        """;
   }
 }
