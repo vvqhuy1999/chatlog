@@ -231,7 +231,7 @@ public class AiServiceImpl implements AiService {
         String dateContext = generateDateContext(now);
 //        System.out.println(dateContext);
         SystemMessage systemMessage = new SystemMessage(String.format("""
-                You are an Elasticsearch Query Generator. Your ONLY job is to convert user questions into Elasticsearch queries.
+                You will act as an expert in Elasticsearch and Elastic Stack search; read the question and write a query that precisely captures the question’s intent.
                 
                 %s
                 
@@ -245,6 +245,8 @@ public class AiServiceImpl implements AiService {
                 7. ALWAYS set query = 1 in your response to enable search.
                 8. ALWAYS use '+07:00' timezone format in timestamps (Vietnam timezone).
                 9. ALWAYS return a single-line JSON response without line breaks or string concatenation.
+                10. The current date is %s. Use the REAL-TIME CONTEXT provided above for all time calculations.
+                11. NEVER mention dates in the future or incorrect current time in your reasoning.
                 
                 TIMESTAMP FORMAT RULES:
                 - CORRECT: "2025-09-14T10:55:55.000+07:00"
@@ -257,6 +259,24 @@ public class AiServiceImpl implements AiService {
                 - Return the entire JSON as a single continuous string
                 - When using +07:00 in timestamps, ensure it's properly escaped in JSON strings
                 
+                FIELD MAPPING RULES:
+                - Use exact field names from mapping, don't add .keyword unless confirmed
+                - For terms aggregation, check if field supports aggregation
+                - If unsure about field type, use simple field name without .keyword
+                - Example: use "source.user.name" not "source.user.name.keyword"
+                
+                IMPORTANT FIELD MAPPINGS:
+                - "tổ chức", "organization", "công ty" → use "destination.as.organization.name"
+                - "người dùng", "user" → use "source.user.name"
+                - "địa chỉ IP", "IP address" → use "source.ip" or "destination.ip"
+                - "hành động", "action" → use "event.action"
+                - Always use "must" as array: [{"term": {...}}, {"range": {...}}]
+                
+                %s
+                
+                IMPORTANT: Do NOT add filters like "must_not", "local", "external" unless explicitly mentioned.
+                "bên ngoài" (external) does NOT require must_not filters - all destinations are external by default.
+                
                 
                 CRITICAL STRUCTURE RULES:
                 - ALL time range filters MUST be inside the "query" block
@@ -264,6 +284,13 @@ public class AiServiceImpl implements AiService {
                 - NEVER put "range" outside the "query" block
                 - Use "value_count" aggregation for counting total logs
                 - Use "terms" aggregation for grouping by field values
+                - NEVER use "must_not" unless explicitly asked to exclude something
+                - NEVER add filters for "local", "external", "internal" - stick to what's asked
+                
+                COUNTING QUESTIONS RULES:
+                - Questions with "tổng", "count", "bao nhiêu", "số lượng" ALWAYS need "aggs" with "value_count"
+                - ALWAYS set "size": 0 for counting queries
+                - Example counting keywords: "tổng có bao nhiêu", "có bao nhiêu", "đếm", "count"
                 
                 REQUIRED JSON FORMAT:
                 {
@@ -287,10 +314,21 @@ public class AiServiceImpl implements AiService {
                 
                 EXAMPLE CORRECT RESPONSES:
                 Question: "Get last 10 logs from yesterday"
-                Response: {"body":"{\"query\":{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-11T00:00:00.000+07:00\",\"lte\":\"2025-09-11T23:59:59.999+07:00\"}}},\"size\":10,\"sort\":[{\"@timestamp\":{\"order\":\"desc\"}}],\"_source\":[\"@timestamp\",\"source.ip\",\"destination.ip\",\"event.action\",\"message\"]}","query":1}
+                Response: {"body":"{\"query\":{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-14T00:00:00.000+07:00\",\"lte\":\"2025-09-14T23:59:59.999+07:00\"}}},\"size\":10,\"sort\":[{\"@timestamp\":{\"order\":\"desc\"}}]}","query":1}
                 
                 Question: "Count total logs today"
-                Response: {"body":"{\"query\":{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-12T00:00:00.000+07:00\",\"lte\":\"2025-09-12T23:59:59.999+07:00\"}}},\"aggs\":{\"log_count\":{\"value_count\":{\"field\":\"@timestamp\"}}},\"size\":0}","query":1}
+                Response: {"body":"{\"query\":{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-15T00:00:00.000+07:00\",\"lte\":\"2025-09-15T23:59:59.999+07:00\"}}},\"aggs\":{\"log_count\":{\"value_count\":{\"field\":\"@timestamp\"}}},\"size\":0}","query":1}
+                
+                Question: "danh sách tổ chức đích mà NhuongNT truy cập"
+                Response: {"body":"{\"query\":{\"bool\":{\"must\":[{\"term\":{\"source.user.name\":\"NhuongNT\"}},{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-15T00:00:00.000+07:00\",\"lte\":\"2025-09-15T23:59:59.999+07:00\"}}}]}},\"aggs\":{\"organizations\":{\"terms\":{\"field\":\"destination.as.organization.name\",\"size\":10}}},\"size\":0}","query":1}
+                
+                Question: "tổ chức bên ngoài mà user ABC truy cập"
+                Response: {"body":"{\"query\":{\"bool\":{\"must\":[{\"term\":{\"source.user.name\":\"ABC\"}},{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-15T00:00:00.000+07:00\",\"lte\":\"2025-09-15T23:59:59.999+07:00\"}}}]}},\"aggs\":{\"external_orgs\":{\"terms\":{\"field\":\"destination.as.organization.name\",\"size\":10}}},\"size\":0}","query":1}
+                
+                Question: "tổng có bao nhiêu log ghi nhận từ người dùng TuNM trong ngày hôm nay"
+                Response: {"body":"{\"query\":{\"bool\":{\"must\":[{\"term\":{\"source.user.name\":\"TuNM\"}},{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-15T00:00:00.000+07:00\",\"lte\":\"2025-09-15T23:59:59.999+07:00\"}}}]}},\"aggs\":{\"log_count\":{\"value_count\":{\"field\":\"@timestamp\"}}},\"size\":0}","query":1}
+                
+                %s
                 
                 Available Elasticsearch fields:
                 %s
@@ -298,6 +336,9 @@ public class AiServiceImpl implements AiService {
                 Generate ONLY the JSON response. No explanations, no summaries, just the JSON.
                 """,
             dateContext,
+            now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+            SchemaHint.getRoleNormalizationRules(),
+            SchemaHint.getAdminRoleExample(),
             getFieldLog()));
 
 
@@ -311,9 +352,9 @@ public class AiServiceImpl implements AiService {
         System.out.println("----------------------------------------------------------");
         Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, userMessage));
 
-        // Cấu hình ChatClient với temperature = 0 để có kết quả ổn định
+        // Cấu hình ChatClient với temperature = 0 để có kết quả ổn định và tuân thủ strict
         ChatOptions chatOptions = ChatOptions.builder()
-            .temperature(0.5D)
+            .temperature(0.6D)
             .build();
 
         // Gọi AI để phân tích và tạo request body
@@ -360,6 +401,7 @@ public class AiServiceImpl implements AiService {
         System.out.println("[AiServiceImpl] Generated query body: " + requestBody.getBody());
         System.out.println("[AiServiceImpl] Using current date context: " + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
 
+        String fixedQuery = requestBody.getBody(); // Default value
 
         // Validation: Kiểm tra xem body có phải là JSON query hay không
         if (requestBody.getBody() != null) {
@@ -372,7 +414,9 @@ public class AiServiceImpl implements AiService {
             }
 
 
-            content = getLogData(requestBody, chatRequest);
+            String[] result = getLogData(requestBody, chatRequest);
+            content = result[0];
+            fixedQuery = result[1];
 
             System.out.println("content: " + content);
 
@@ -382,7 +426,7 @@ public class AiServiceImpl implements AiService {
 
 
         // Bước 3: Tóm tắt kết quả và trả lời người dùng
-        return getAiResponse(sessionId,chatRequest,content, requestBody.getBody());
+        return getAiResponse(sessionId,chatRequest,content, fixedQuery);
     }
 
     private String checkBodyFormat(RequestBody requestBody){
@@ -592,6 +636,54 @@ public class AiServiceImpl implements AiService {
     }
 
     /**
+     * Xử lý một term clause và chuẩn hóa roles nếu cần
+     * @param clause JsonNode chứa term clause
+     * @param mapper ObjectMapper để tạo nodes
+     * @param targetArray ArrayNode để thêm kết quả
+     * @param index Index để set trong array
+     * @return true nếu có thay đổi
+     */
+    private boolean processTermClause(JsonNode clause, ObjectMapper mapper, ArrayNode targetArray, int index) {
+        if (!clause.has("term")) {
+            return false;
+        }
+
+        JsonNode termNode = clause.get("term");
+        @SuppressWarnings("deprecation")
+        Iterator<Map.Entry<String, JsonNode>> fieldIterator = termNode.fields();
+
+        boolean modified = false;
+        while (fieldIterator.hasNext()) {
+            Map.Entry<String, JsonNode> field = fieldIterator.next();
+            String fieldName = field.getKey();
+
+            if (fieldName.equals("source.user.roles")) {
+                // Chuẩn hóa roles
+                JsonNode fieldValue = field.getValue();
+                if (fieldValue.isTextual()) {
+                    String originalRole = fieldValue.asText();
+                    String normalizedRole = SchemaHint.normalizeRole(originalRole);
+                    if (!originalRole.equals(normalizedRole)) {
+                        System.out.println("[AiServiceImpl] Normalized role in term query: " + originalRole + " -> " + normalizedRole);
+                        
+                        // Tạo term query mới với role đã chuẩn hóa
+                        ObjectNode termQuery = mapper.createObjectNode();
+                        ObjectNode termField = mapper.createObjectNode();
+                        termField.put(fieldName, normalizedRole);
+                        termQuery.set("term", termField);
+
+                        // Thay thế clause cũ
+                        targetArray.set(index, termQuery);
+                        modified = true;
+                    }
+                }
+            }
+        }
+
+        return modified;
+    }
+
+    /**
      * Sửa các lỗi mapping phổ biến trong Elasticsearch query
      * @param query JSON query gốc
      * @return JSON query đã sửa
@@ -619,12 +711,15 @@ public class AiServiceImpl implements AiService {
                     if (agg.has("terms") && agg.get("terms").has("field")) {
                         String fieldName = agg.get("terms").get("field").asText();
 
-                        // Thêm .keyword cho các field text
+                        // DISABLED: Tự động thêm .keyword có thể sai mapping thực tế
+                        // Để AI tự tạo query đúng thay vì fix
+                        /*
                         if (fieldName.equals("source.user.name") && !fieldName.endsWith(".keyword")) {
                             ((ObjectNode)agg.get("terms"))
                                 .put("field", fieldName + ".keyword");
                             modified[0] = true;
                         }
+                        */
                     }
                 }
             }
@@ -644,23 +739,36 @@ public class AiServiceImpl implements AiService {
                         if (processMatchClause(clause, mapper, (ArrayNode)mustNode, index)) {
                             modified[0] = true;
                         }
+                        if (processTermClause(clause, mapper, (ArrayNode)mustNode, index)) {
+                            modified[0] = true;
+                        }
                     }
                 }
                 // Xử lý trường hợp must là object đơn
                 else if (mustNode.isObject()) {
+                    ArrayNode mustArray = mapper.createArrayNode();
+                    boolean hasChanges = false;
+                    
                     if (mustNode.has("match")) {
-                        // Chuyển đổi must object thành must array
-                        ArrayNode mustArray = mapper.createArrayNode();
-
                         if (processMatchClause(mustNode, mapper, mustArray, 0)) {
-                            // Thay thế must object bằng must array
-                            ((ObjectNode)fixedRoot.get("query").get("bool")).set("must", mustArray);
-                            modified[0] = true;
+                            hasChanges = true;
                         } else {
-                            // Nếu không có thay đổi, vẫn chuyển thành array để chuẩn hóa
                             mustArray.add(mustNode);
-                            ((ObjectNode)fixedRoot.get("query").get("bool")).set("must", mustArray);
                         }
+                    } else if (mustNode.has("term")) {
+                        if (processTermClause(mustNode, mapper, mustArray, 0)) {
+                            hasChanges = true;
+                        } else {
+                            mustArray.add(mustNode);
+                        }
+                    } else {
+                        mustArray.add(mustNode);
+                    }
+                    
+                    // Luôn chuyển thành array để chuẩn hóa
+                    ((ObjectNode)fixedRoot.get("query").get("bool")).set("must", mustArray);
+                    if (hasChanges) {
+                        modified[0] = true;
                     }
                 }
             }
@@ -681,14 +789,15 @@ public class AiServiceImpl implements AiService {
         }
     }
 
-    private String getLogData(RequestBody requestBody, ChatRequest chatRequest)
+    private String[] getLogData(RequestBody requestBody, ChatRequest chatRequest)
     {
         // Bước 2: Luôn thực hiện tìm kiếm Elasticsearch (vì đã bắt buộc query = 1)
         // Cần tìm kiếm: gọi Elasticsearch và lấy dữ liệu log
         String content = "";
+        String fixedQuery = "";
         try{
             // Sửa query trước khi gửi đến Elasticsearch
-            String fixedQuery = fixElasticsearchQuery(requestBody.getBody());
+            fixedQuery = fixElasticsearchQuery(requestBody.getBody());
             System.out.println("[AiServiceImpl] Sending query to Elasticsearch: " + fixedQuery);
 
             content = logApiService.search("logs-fortinet_fortigate.log-default*", fixedQuery);
@@ -790,7 +899,7 @@ public class AiServiceImpl implements AiService {
                     } catch (Exception ex) {
                         System.out.println("[AiServiceImpl] ERROR: Failed to parse regenerated response even after fixing: " + ex.getMessage());
                         content = "Failure to regenerate query";
-                        return content;
+                        return new String[]{content, fixedQuery != null ? fixedQuery : requestBody.getBody()};
                     }
                 }
 
@@ -803,7 +912,7 @@ public class AiServiceImpl implements AiService {
                 System.out.println("[AiServiceImpl] Generated query body2: " + requestBody.getBody());
 
                 // Sửa query trước khi gửi đến Elasticsearch
-                String fixedQuery = fixElasticsearchQuery(requestBody.getBody());
+                fixedQuery = fixElasticsearchQuery(requestBody.getBody());
                 System.out.println("[AiServiceImpl] Sending regenerated query to Elasticsearch: " + fixedQuery);
                 content = logApiService.search("logs-fortinet_fortigate.log-default*", fixedQuery);
             }
@@ -812,9 +921,14 @@ public class AiServiceImpl implements AiService {
         {
             content = "Failure to request data";
             System.out.println("[AiServiceImpl] - getLogData: "+content+ " " +e.getMessage());
+            // Nếu có lỗi và fixedQuery chưa được set, sử dụng query gốc
+            if (fixedQuery == null || fixedQuery.isEmpty()) {
+                fixedQuery = requestBody.getBody();
+            }
         }
 
-        return content;
+        // Trả về mảng: [0] = content, [1] = fixedQuery
+        return new String[]{content, fixedQuery};
     }
 
     /**
@@ -830,14 +944,47 @@ public class AiServiceImpl implements AiService {
     public String getAiResponse(Long sessionId,ChatRequest chatRequest, String content,String query) {
         String conversationId = sessionId.toString();
 
+        // Lấy thời gian thực của máy
+        LocalDateTime currentTime = LocalDateTime.now();
+        String currentDate = currentTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String currentDateTime = currentTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+        // Format JSON query for better display
+        String formattedQuery = query;
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode jsonNode = mapper.readTree(query);
+            formattedQuery = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonNode);
+        } catch (Exception e) {
+            System.out.println("[AiServiceImpl] Could not format query JSON: " + e.getMessage());
+        }
+
         // Tạo system message hướng dẫn AI cách phản hồi
         SystemMessage systemMessage = new SystemMessage(String.format("""
                 You are HPT.AI
                 You should respond in a formal voice.
+                
+                IMPORTANT CONTEXT:
+                - Current date: %s
+                - Current datetime: %s (Vietnam timezone +07:00)
+                - All dates in the query and data are valid and current
+                - NEVER mention that dates are "in the future" or incorrect
+                - NEVER reference 2023 or any other year as current time
+                
+                IMPORTANT: Always include the Elasticsearch query used at the end of your response.
+                
                 logData : %s
                 query : %s
+                
+                Format your response as:
+                [Your analysis and summary of the data based on current date %s]
+                
+                **Elasticsearch Query Used:**
+                ```json
+                %s
+                ```
                 """
-            ,content,query));
+            ,currentDate, currentDateTime, content, query, currentDate, formattedQuery));
 
         UserMessage userMessage = new UserMessage(chatRequest.message());
         Prompt prompt = new Prompt(systemMessage, userMessage);
@@ -845,6 +992,7 @@ public class AiServiceImpl implements AiService {
         // Gọi AI với ngữ cảnh cuộc trò chuyện để tạo phản hồi
         return chatClient
             .prompt(prompt)
+            .options(ChatOptions.builder().temperature(0.1D).build())
             .advisors(advisorSpec -> advisorSpec.param(
                 ChatMemory.CONVERSATION_ID, conversationId
             ))
