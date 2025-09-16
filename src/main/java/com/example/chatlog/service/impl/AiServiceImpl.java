@@ -5,6 +5,7 @@ import com.example.chatlog.dto.RequestBody;
 import com.example.chatlog.service.AiService;
 import com.example.chatlog.service.LogApiService;
 import com.example.chatlog.utils.SchemaHint;
+import com.example.chatlog.utils.PromptTemplate;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -230,117 +231,17 @@ public class AiServiceImpl implements AiService {
 //        System.out.println(now);
         String dateContext = generateDateContext(now);
 //        System.out.println(dateContext);
-        SystemMessage systemMessage = new SystemMessage(String.format("""
-                You will act as an expert in Elasticsearch and Elastic Stack search; read the question and write a query that precisely captures the question’s intent.
-                
-                %s
-                
-                CRITICAL RULES - FOLLOW EXACTLY:
-                1. NEVER give direct answers or summaries
-                2. NEVER say things like "Trong 5 ngày qua, có 50 kết nối..."
-                3. ALWAYS generate an Elasticsearch query JSON.
-                4. ALWAYS return the exact JSON format below
-                5. If size is not define, Default size = 10.
-                6. Try to use the SchemaHint to get data.
-                7. ALWAYS set query = 1 in your response to enable search.
-                8. ALWAYS use '+07:00' timezone format in timestamps (Vietnam timezone).
-                9. ALWAYS return a single-line JSON response without line breaks or string concatenation.
-                10. The current date is %s. Use the REAL-TIME CONTEXT provided above for all time calculations.
-                11. NEVER mention dates in the future or incorrect current time in your reasoning.
-                
-                TIMESTAMP FORMAT RULES:
-                - CORRECT: "2025-09-14T10:55:55.000+07:00"
-                - INCORRECT: "2025-09-14T10:55:55.000Z"
-                - Use Vietnam timezone (+07:00) to match the data in Elasticsearch
-                
-                JSON FORMAT RULES:
-                - NEVER use line breaks in the JSON response
-                - NEVER use string concatenation with '+' operator
-                - Return the entire JSON as a single continuous string
-                - When using +07:00 in timestamps, ensure it's properly escaped in JSON strings
-                
-                FIELD MAPPING RULES:
-                - Use exact field names from mapping, don't add .keyword unless confirmed
-                - For terms aggregation, check if field supports aggregation
-                - If unsure about field type, use simple field name without .keyword
-                - Example: use "source.user.name" not "source.user.name.keyword"
-                
-                IMPORTANT FIELD MAPPINGS:
-                - "tổ chức", "organization", "công ty" → use "destination.as.organization.name"
-                - "người dùng", "user" → use "source.user.name"
-                - "địa chỉ IP", "IP address" → use "source.ip" or "destination.ip"
-                - "hành động", "action" → use "event.action"
-                - Always use "must" as array: [{"term": {...}}, {"range": {...}}]
-                
-                %s
-                
-                IMPORTANT: Do NOT add filters like "must_not", "local", "external" unless explicitly mentioned.
-                "bên ngoài" (external) does NOT require must_not filters - all destinations are external by default.
-                
-                
-                CRITICAL STRUCTURE RULES:
-                - ALL time range filters MUST be inside the "query" block
-                - For aggregations, use "aggs" at the same level as "query"
-                - NEVER put "range" outside the "query" block
-                - Use "value_count" aggregation for counting total logs
-                - Use "terms" aggregation for grouping by field values
-                - NEVER use "must_not" unless explicitly asked to exclude something
-                - NEVER add filters for "local", "external", "internal" - stick to what's asked
-                
-                COUNTING QUESTIONS RULES:
-                - Questions with "tổng", "count", "bao nhiêu", "số lượng" ALWAYS need "aggs" with "value_count"
-                - ALWAYS set "size": 0 for counting queries
-                - Example counting keywords: "tổng có bao nhiêu", "có bao nhiêu", "đếm", "count"
-                
-                REQUIRED JSON FORMAT:
-                {
-                  "query": { ... elasticsearch query ... },
-                  "size": 10,
-                  "_source": ["@timestamp", "source.ip", ...],
-                  "sort": [{"@timestamp": {"order": "desc"}}]
-                }
-                
-                For aggregations, add "aggs" at the same level as "query":
-                {
-                  "query": { ... },
-                  "aggs": { ... },
-                  "size": 0
-                }
-                
-                RESPONSE FORMAT:
-                You must return a RequestBody object with these fields:
-                - body: The JSON query string for Elasticsearch
-                - query: MUST be set to 1 to enable search functionality
-                
-                EXAMPLE CORRECT RESPONSES:
-                Question: "Get last 10 logs from yesterday"
-                Response: {"body":"{\"query\":{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-14T00:00:00.000+07:00\",\"lte\":\"2025-09-14T23:59:59.999+07:00\"}}},\"size\":10,\"sort\":[{\"@timestamp\":{\"order\":\"desc\"}}]}","query":1}
-                
-                Question: "Count total logs today"
-                Response: {"body":"{\"query\":{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-15T00:00:00.000+07:00\",\"lte\":\"2025-09-15T23:59:59.999+07:00\"}}},\"aggs\":{\"log_count\":{\"value_count\":{\"field\":\"@timestamp\"}}},\"size\":0}","query":1}
-                
-                Question: "danh sách tổ chức đích mà NhuongNT truy cập"
-                Response: {"body":"{\"query\":{\"bool\":{\"must\":[{\"term\":{\"source.user.name\":\"NhuongNT\"}},{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-15T00:00:00.000+07:00\",\"lte\":\"2025-09-15T23:59:59.999+07:00\"}}}]}},\"aggs\":{\"organizations\":{\"terms\":{\"field\":\"destination.as.organization.name\",\"size\":10}}},\"size\":0}","query":1}
-                
-                Question: "tổ chức bên ngoài mà user ABC truy cập"
-                Response: {"body":"{\"query\":{\"bool\":{\"must\":[{\"term\":{\"source.user.name\":\"ABC\"}},{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-15T00:00:00.000+07:00\",\"lte\":\"2025-09-15T23:59:59.999+07:00\"}}}]}},\"aggs\":{\"external_orgs\":{\"terms\":{\"field\":\"destination.as.organization.name\",\"size\":10}}},\"size\":0}","query":1}
-                
-                Question: "tổng có bao nhiêu log ghi nhận từ người dùng TuNM trong ngày hôm nay"
-                Response: {"body":"{\"query\":{\"bool\":{\"must\":[{\"term\":{\"source.user.name\":\"TuNM\"}},{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-15T00:00:00.000+07:00\",\"lte\":\"2025-09-15T23:59:59.999+07:00\"}}}]}},\"aggs\":{\"log_count\":{\"value_count\":{\"field\":\"@timestamp\"}}},\"size\":0}","query":1}
-                
-                %s
-                
-                Available Elasticsearch fields:
-                %s
-                
-                Generate ONLY the JSON response. No explanations, no summaries, just the JSON.
-                """,
-            dateContext,
-            now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-            SchemaHint.getRoleNormalizationRules(),
-            SchemaHint.getAdminRoleExample(),
-            getFieldLog()));
-
+        SystemMessage systemMessage = new SystemMessage(
+            PromptTemplate.getSystemPrompt(
+                dateContext,
+                now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                SchemaHint.getRoleNormalizationRules(),
+                SchemaHint.getNetworkTrafficExamples(),
+                SchemaHint.getIPSSecurityExamples(),
+                SchemaHint.getAdminRoleExample(),
+                getFieldLog()
+            )
+        );
 
         List<String> schemaHints = SchemaHint.allSchemas();
         String schemaContext = String.join("\n\n", schemaHints);
@@ -354,7 +255,7 @@ public class AiServiceImpl implements AiService {
 
         // Cấu hình ChatClient với temperature = 0 để có kết quả ổn định và tuân thủ strict
         ChatOptions chatOptions = ChatOptions.builder()
-            .temperature(0.6D)
+            .temperature(0.0D)
             .build();
 
         // Gọi AI để phân tích và tạo request body
@@ -419,11 +320,13 @@ public class AiServiceImpl implements AiService {
             fixedQuery = result[1];
 
             System.out.println("content: " + content);
-
-
+            
+            // Check if content is actually an error message (starts with ❌)
+            if (content != null && content.startsWith("❌")) {
+                // Return error immediately without further processing
+                return content;
+            }
         }
-
-
 
         // Bước 3: Tóm tắt kết quả và trả lời người dùng
         return getAiResponse(sessionId,chatRequest,content, fixedQuery);
@@ -709,11 +612,10 @@ public class AiServiceImpl implements AiService {
 
                     // Kiểm tra nếu đây là terms aggregation
                     if (agg.has("terms") && agg.get("terms").has("field")) {
-                        String fieldName = agg.get("terms").get("field").asText();
-
                         // DISABLED: Tự động thêm .keyword có thể sai mapping thực tế
                         // Để AI tự tạo query đúng thay vì fix
                         /*
+                        String fieldName = agg.get("terms").get("field").asText();
                         if (fieldName.equals("source.user.name") && !fieldName.endsWith(".keyword")) {
                             ((ObjectNode)agg.get("terms"))
                                 .put("field", fieldName + ".keyword");
@@ -773,6 +675,50 @@ public class AiServiceImpl implements AiService {
                 }
             }
 
+            // Sửa lỗi phổ biến #3: Chuyển "interval" thành "calendar_interval" trong date_histogram
+            if (fixedRoot.has("aggs")) {
+                JsonNode aggsNode = fixedRoot.get("aggs");
+                // Duyệt qua các aggregation
+                @SuppressWarnings("deprecation")
+                Iterator<Map.Entry<String, JsonNode>> aggIterator = aggsNode.fields();
+                while (aggIterator.hasNext()) {
+                    Map.Entry<String, JsonNode> entry = aggIterator.next();
+                    JsonNode agg = entry.getValue();
+
+                    // Kiểm tra nếu đây là date_histogram aggregation
+                    if (agg.has("date_histogram")) {
+                        JsonNode dateHistogram = agg.get("date_histogram");
+                        
+                        // Nếu có "interval" thì chuyển thành "calendar_interval"
+                        if (dateHistogram.has("interval") && !dateHistogram.has("calendar_interval")) {
+                            String intervalValue = dateHistogram.get("interval").asText();
+                            
+                            // Tạo node mới với calendar_interval
+                            ObjectNode newDateHistogram = mapper.createObjectNode();
+                            
+                            // Copy tất cả fields cũ trừ "interval"
+                            @SuppressWarnings("deprecation")
+                            Iterator<Map.Entry<String, JsonNode>> fieldIterator = dateHistogram.fields();
+                            while (fieldIterator.hasNext()) {
+                                Map.Entry<String, JsonNode> field = fieldIterator.next();
+                                if (!field.getKey().equals("interval")) {
+                                    newDateHistogram.set(field.getKey(), field.getValue());
+                                }
+                            }
+                            
+                            // Thêm calendar_interval
+                            newDateHistogram.put("calendar_interval", intervalValue);
+                            
+                            // Thay thế date_histogram cũ
+                            ((ObjectNode)agg).set("date_histogram", newDateHistogram);
+                            modified[0] = true;
+                            
+                            System.out.println("[AiServiceImpl] Fixed date_histogram: changed 'interval' to 'calendar_interval' with value: " + intervalValue);
+                        }
+                    }
+                }
+            }
+
             // Trả về query đã sửa nếu có thay đổi
             if (modified[0]) {
                 String fixedQuery = mapper.writeValueAsString(fixedRoot);
@@ -803,10 +749,36 @@ public class AiServiceImpl implements AiService {
             content = logApiService.search("logs-fortinet_fortigate.log-default*", fixedQuery);
             System.out.println("[AiServiceImpl] Elasticsearch response received successfully");
         }catch (Exception e){
-            content="";
             System.out.println("[AiServiceImpl] ERROR: Log API returned an error! " + e.getMessage());
-
-            // Thử với một query đơn giản hơn để kiểm tra kết nối
+            
+            // Format query for better error display
+            String formattedQuery = fixedQuery;
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode jsonNode = mapper.readTree(fixedQuery);
+                formattedQuery = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonNode);
+            } catch (Exception formatEx) {
+                System.out.println("[AiServiceImpl] Could not format error query JSON: " + formatEx.getMessage());
+            }
+            
+            // Check if it's a 400 Bad Request error
+            if (e.getMessage().contains("400") || e.getMessage().contains("Bad Request") || 
+                e.getMessage().contains("parsing_exception") || e.getMessage().contains("illegal_argument_exception")) {
+                
+                // Return error immediately without generating fake data
+                return new String[]{
+                    "❌ **Elasticsearch Query Error (400 Bad Request)**\n\n" +
+                    "Câu query được tạo có lỗi cú pháp hoặc sai mapping field. Vui lòng kiểm tra lại yêu cầu.\n\n" +
+                    "**Chi tiết lỗi:** " + e.getMessage() + "\n\n" +
+                    "**Query được sử dụng:**\n" +
+                    "```json\n" + formattedQuery + "\n```\n\n" +
+                    "💡 **Gợi ý:** Hãy thử đặt câu hỏi khác hoặc kiểm tra tên field trong Elasticsearch.",
+                    fixedQuery
+                };
+            }
+            
+            // For other errors, try simple query to check connection
+            content = "";
             try {
                 String simpleQuery = """
                 {
@@ -822,46 +794,75 @@ public class AiServiceImpl implements AiService {
 
                 if (simpleResult != null && !simpleResult.isEmpty() && !simpleResult.contains("error")) {
                     System.out.println("[AiServiceImpl] Simple query succeeded, there's likely a mapping issue with the original query");
-                    // Lấy mapping từ Elasticsearch để debug
-                    String mappingInfo = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
-                    System.out.println("[AiServiceImpl] Available fields: " + mappingInfo);
+                    // Return error with mapping info
+                    return new String[]{
+                        "❌ **Elasticsearch Mapping Error**\n\n" +
+                        "Có vấn đề với field mapping trong query. Elasticsearch hoạt động bình thường nhưng query có lỗi.\n\n" +
+                        "**Chi tiết lỗi:** " + e.getMessage() + "\n\n" +
+                        "**Query được sử dụng:**\n" +
+                        "```json\n" + formattedQuery + "\n```\n\n" +
+                        "💡 **Gợi ý:** Kiểm tra tên field hoặc thử câu hỏi đơn giản hơn.",
+                        fixedQuery
+                    };
+                } else {
+                    // Connection issue
+                    return new String[]{
+                        "❌ **Elasticsearch Connection Error**\n\n" +
+                        "Không thể kết nối đến Elasticsearch server.\n\n" +
+                        "**Chi tiết lỗi:** " + e.getMessage() + "\n\n" +
+                        "💡 **Gợi ý:** Kiểm tra kết nối mạng hoặc trạng thái Elasticsearch server.",
+                        fixedQuery
+                    };
                 }
             } catch (Exception ex) {
                 System.out.println("[AiServiceImpl] Simple query also failed: " + ex.getMessage());
+                return new String[]{
+                    "❌ **Elasticsearch Server Error**\n\n" +
+                    "Elasticsearch server không phản hồi hoặc có lỗi nghiêm trọng.\n\n" +
+                    "**Chi tiết lỗi:** " + e.getMessage() + "\n\n" +
+                    "**Query gốc:**\n" +
+                    "```json\n" + formattedQuery + "\n```\n\n" +
+                    "💡 **Gợi ý:** Liên hệ admin để kiểm tra trạng thái server.",
+                    fixedQuery
+                };
             }
         }
 
-
+        // Check if we got an error response instead of continuing
+        if (content == null || content.trim().isEmpty()) {
+            // Content is empty, but we should have returned error above
+            // This is a fallback in case the error handling above didn't catch it
+            String formattedQuery = fixedQuery;
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode jsonNode = mapper.readTree(fixedQuery);
+                formattedQuery = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonNode);
+            } catch (Exception formatEx) {
+                // Keep original if formatting fails
+            }
+            
+            return new String[]{
+                "❌ **Elasticsearch Query Failed**\n\n" +
+                "Không nhận được dữ liệu từ Elasticsearch.\n\n" +
+                "**Query được sử dụng:**\n" +
+                "```json\n" + formattedQuery + "\n```\n\n" +
+                "💡 **Gợi ý:** Kiểm tra query syntax hoặc thử câu hỏi khác.",
+                fixedQuery
+            };
+        }
 
         try {
-            JsonNode jsonNode = objectMapper.readTree(content);
-            int totalHits = jsonNode.path("hits").path("total").path("value").asInt();
+            JsonNode responseNode = objectMapper.readTree(content);
+            int totalHits = responseNode.path("hits").path("total").path("value").asInt();
 
             if (totalHits == 0) {
                 String allFields = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
                 String prevQuery = requestBody.getBody();
                 String userMess = chatRequest.message();
 
-                String systemMsg = String.format("""
-                    You are an Elasticsearch Query Generator. Re-generate the query to match the user request better.
-                    
-                    CRITICAL RULES - FOLLOW EXACTLY:
-                    1. ALWAYS return RequestBody with body (JSON string) and query (set to 1)
-                    2. ALWAYS use '+07:00' timezone format in timestamps (Vietnam timezone)
-                    3. ALWAYS return single-line JSON without line breaks or string concatenation
-                    4. NEVER use line breaks in JSON response
-                    5. NEVER use string concatenation with '+' operator
-                    6. Return entire JSON as single continuous string
-                    
-                    TIMESTAMP FORMAT:
-                    - CORRECT: "2025-09-14T11:41:04.000+07:00"
-                    - INCORRECT: "2025-09-14T11:41:04.000Z"
-                    
-                    Available fields: %s
-                    
-                    Return ONLY the RequestBody JSON. No explanations.
-                    Example: {"body":"{\"query\":{\"match_all\":{}},\"size\":10}","query":1}
-                    """, allFields);
+                String systemMsg = PromptTemplate.getComparisonPrompt(
+                    allFields, prevQuery, userMess, generateDateContext(LocalDateTime.now())
+                );
 
                 Prompt comparePrompt = new Prompt(
                     new SystemMessage(systemMsg),
@@ -914,7 +915,33 @@ public class AiServiceImpl implements AiService {
                 // Sửa query trước khi gửi đến Elasticsearch
                 fixedQuery = fixElasticsearchQuery(requestBody.getBody());
                 System.out.println("[AiServiceImpl] Sending regenerated query to Elasticsearch: " + fixedQuery);
-                content = logApiService.search("logs-fortinet_fortigate.log-default*", fixedQuery);
+                
+                try {
+                    content = logApiService.search("logs-fortinet_fortigate.log-default*", fixedQuery);
+                } catch (Exception retryE) {
+                    System.out.println("[AiServiceImpl] ERROR: Regenerated query also failed: " + retryE.getMessage());
+                    
+                    // Format query for error display
+                    String formattedRetryQuery = fixedQuery;
+                    try {
+                        ObjectMapper mapper = new ObjectMapper();
+                        JsonNode jsonNode = mapper.readTree(fixedQuery);
+                        formattedRetryQuery = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonNode);
+                    } catch (Exception formatEx) {
+                        // Keep original if formatting fails
+                    }
+                    
+                    // Return error instead of continuing with fake data
+                    return new String[]{
+                        "❌ **Elasticsearch Query Error (After Retry)**\n\n" +
+                        "Cả query gốc và query được tạo lại đều thất bại.\n\n" +
+                        "**Chi tiết lỗi:** " + retryE.getMessage() + "\n\n" +
+                        "**Query cuối cùng:**\n" +
+                        "```json\n" + formattedRetryQuery + "\n```\n\n" +
+                        "💡 **Gợi ý:** Vui lòng thử câu hỏi khác hoặc kiểm tra cấu trúc dữ liệu Elasticsearch.",
+                        fixedQuery
+                    };
+                }
             }
         }
         catch (Exception e)
@@ -992,7 +1019,7 @@ public class AiServiceImpl implements AiService {
         // Gọi AI với ngữ cảnh cuộc trò chuyện để tạo phản hồi
         return chatClient
             .prompt(prompt)
-            .options(ChatOptions.builder().temperature(0.1D).build())
+            .options(ChatOptions.builder().temperature(0.2D).build())
             .advisors(advisorSpec -> advisorSpec.param(
                 ChatMemory.CONVERSATION_ID, conversationId
             ))
