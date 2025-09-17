@@ -40,15 +40,83 @@ public class SchemaHint {
         - process.pid (long)
         - network.bytes (long, for traffic analysis)
         - network.packets (long, for packet count)
+        - source.mac (keyword, MAC address of source)
+        - source.port (long, source port number)
+        - source.domain (keyword, source domain/hostname)
+        - source.geo.country_name (keyword, country of source IP)
+        - destination.mac (keyword, MAC address of destination)
+        - destination.user.name (keyword, destination user name)
+        - destination.domain (keyword, destination domain/hostname)
+        - destination.geo.country_name (keyword, country of destination IP)
+        - observer.name (keyword, Fortigate device name)
+        - observer.serial_number (keyword, Fortigate serial number)
+        - observer.ingress.interface.name (keyword, ingress interface name)
+        - observer.egress.interface.name (keyword, egress interface name)
+        - user.name (keyword, general user field, not source/destination specific)
+        - network.protocol (keyword, network protocol: TCP/UDP/ICMP)
+        - network.transport (keyword, transport protocol: tcp/udp)
+        - network.direction (keyword, traffic direction: inbound/outbound/internal)
+        - event.type (keyword, event type: connection/denied/configuration)
+        - event.category (keyword, event category group)
+        - event.duration (long, event duration in milliseconds)
+        - log.syslog.severity.code (long, syslog severity code)
+        - log.syslog.facility.code (long, syslog facility code)
+        - fortinet.firewall.action (keyword, firewall action: allow/deny)
+        - fortinet.firewall.type (keyword, log type: traffic/event/utm)
+        - fortinet.firewall.subtype (keyword, log subtype: webfilter/forward/virus)
+        - fortinet.firewall.ruleid (keyword, rule ID number)
+        - fortinet.firewall.policyid (keyword, policy ID number)
+        - fortinet.firewall.shapingpolicyname (keyword, shaping policy name)
+        - fortinet.firewall.trandisp (keyword, NAT translation type: snat/dnat/noop)
+        - fortinet.firewall.srcintfrole (keyword, source interface role: lan/wan/dmz)
+        - fortinet.firewall.dstintfrole (keyword, destination interface role: lan/wan/dmz)
         - fortinet.firewall.crlevel (keyword, IPS risk level: "low", "medium", "high", "critical")
+        - fortinet.firewall.crscore (long, IPS risk score)
+        - fortinet.firewall.sessionid (keyword, session ID)
+        - fortinet.firewall.osname (keyword, endpoint OS name)
+        - fortinet.firewall.devtype (keyword, endpoint device type)
+        - fortinet.firewall.vd (keyword, VDOM name)
         - fortinet.firewall.attack (keyword, attack signature name)
         - fortinet.firewall.attackid (keyword, attack signature ID)
+        - rule.category (keyword, rule category: firewall/p2p/web)
         
+        IMPORTANT FIELD MAPPINGS (Vietnamese → English):
+        - "tổ chức", "organization", "công ty" → use "destination.as.organization.name"
+        - "người dùng", "user" → use "source.user.name"
+        - "địa chỉ IP", "IP address" → use "source.ip" or "destination.ip"
+        - "hành động", "action" → use "event.action"
+        - "bytes", "dung lượng", "traffic" → use "network.bytes"
+        - "packets", "gói tin" → use "network.packets"
+        - "mức rủi ro", "risk level", "crlevel" → use "fortinet.firewall.crlevel"
+        - "tấn công", "attack", "signature" → use "fortinet.firewall.attack"
+
+        GEOGRAPHIC & DIRECTION MAPPINGS (CRITICAL):
+        - "Việt Nam", "Vietnam", "VN" → use "Vietnam" (exact match)
+        - "nước ngoài", "foreign", "international" → use must_not with source/destination country
+        - "từ Việt Nam ra nước ngoài" → source.geo.country_name: "Vietnam" AND must_not destination.geo.country_name: "Vietnam"
+        - "outbound", "ra ngoài", "đi ra" → use "network.direction": "outbound"
+        - "inbound", "vào trong", "đi vào" → use "network.direction": "inbound"
+        - "internal", "nội bộ", "trong mạng" → use "network.direction": "internal"
+        - "source country" → use "source.geo.country_name"
+        - "destination country" → use "destination.geo.country_name"
+
+        FIREWALL ACTION MAPPINGS (CRITICAL):
+        - "chặn", "block", "deny", "từ chối" → use "fortinet.firewall.action": "deny"
+        - "cho phép", "allow", "accept", "thông qua" → use "fortinet.firewall.action": "allow"
+        - "rule chặn nhiều nhất" → filter by action: "deny" + terms agg on "rule.name"
+        - "rule cho phép nhiều nhất" → filter by action: "allow" + terms agg on "rule.name"
+        - "rule name" → use "rule.name" (NOT fortinet.firewall.ruleid)
+        - "policy ID" → use "fortinet.firewall.policyid"
+        - "rule ID" → use "fortinet.firewall.ruleid"
+
         QUERY STRUCTURE BEST PRACTICES:
         - Use "filter" instead of "must" for exact matches and ranges for better performance
         - For time ranges, prefer "gte": "now-24h" over absolute timestamps when possible
         - For aggregations with sorting, use proper order syntax: "order": {"agg_name": "desc"}
         - Example structure: {"bool": {"filter": [{"term": {...}}, {"range": {...}}]}}
+        - For terms aggregation, check if field supports aggregation
+        - If unsure about field type, use simple field name without .keyword
+        - Example: use "source.user.name" not "source.user.name.keyword"
         
         Default time filter: @timestamp >= NOW() - {hours} HOURS unless the question specifies otherwise.
         When counting or grouping, return meaningful columns (e.g., user.name, source.user.roles, source.ip, count, last_seen).
@@ -138,6 +206,33 @@ public class SchemaHint {
           },
           "size": 0
         }
+        
+        2. GEOGRAPHIC OUTBOUND TRAFFIC (CRITICAL EXAMPLE):
+        Question: "Trong 7 ngày qua, các kết nối outbound từ Việt Nam ra nước ngoài (không phải Việt Nam) là gì?"
+        CORRECT Query Structure:
+        {
+          "query": {
+            "bool": {
+              "must": [
+                { "term": { "network.direction": "outbound" } },
+                { "term": { "source.geo.country_name": "Vietnam" } }
+              ],
+              "must_not": [
+                { "term": { "destination.geo.country_name": "Vietnam" } }
+              ],
+              "filter": [
+                { "range": { "@timestamp": { "gte": "now-7d" } } }
+              ]
+            }
+          },
+          "size": 10
+        }
+        
+        IMPORTANT GEOGRAPHIC RULES:
+        - "từ Việt Nam ra nước ngoài" = outbound + source: Vietnam + must_not destination: Vietnam
+        - "vào Việt Nam từ nước ngoài" = inbound + destination: Vietnam + must_not source: Vietnam  
+        - "nội bộ Việt Nam" = internal + source: Vietnam + destination: Vietnam
+        - ALWAYS use must_not for exclusion, NOT conflicting filters
         
         2. Traffic statistics by organization:
         {
@@ -234,6 +329,268 @@ public class SchemaHint {
         - "attack", "tấn công", "signature" → use "fortinet.firewall.attack"
         - "attack ID", "signature ID" → use "fortinet.firewall.attackid"
         - For multiple risk levels, use "terms" filter: {"terms": {"fortinet.firewall.crlevel": ["high", "critical"]}}
+        """;
+  }
+
+  /**
+   * Trả về examples về geographic và direction analysis
+   */
+  public static String getGeographicExamples() {
+    return """
+        GEOGRAPHIC & DIRECTION ANALYSIS EXAMPLES:
+        
+        1. Outbound traffic from Vietnam to foreign countries:
+        Question: "Trong 7 ngày qua, các kết nối outbound từ Việt Nam ra nước ngoài (không phải Việt Nam) là gì?"
+        CORRECT Query Structure:
+        {
+          "query": {
+            "bool": {
+              "must": [
+                { "term": { "network.direction": "outbound" } },
+                { "term": { "source.geo.country_name": "Vietnam" } }
+              ],
+              "must_not": [
+                { "term": { "destination.geo.country_name": "Vietnam" } }
+              ],
+              "filter": [
+                { "range": { "@timestamp": { "gte": "now-7d" } } }
+              ]
+            }
+          },
+          "size": 10
+        }
+        
+        2. Inbound traffic to Vietnam from foreign countries:
+        Question: "Traffic vào Việt Nam từ nước ngoài trong 24 giờ qua"
+        CORRECT Query Structure:
+        {
+          "query": {
+            "bool": {
+              "must": [
+                { "term": { "network.direction": "inbound" } },
+                { "term": { "destination.geo.country_name": "Vietnam" } }
+              ],
+              "must_not": [
+                { "term": { "source.geo.country_name": "Vietnam" } }
+              ],
+              "filter": [
+                { "range": { "@timestamp": { "gte": "now-24h" } } }
+              ]
+            }
+          },
+          "size": 10
+        }
+        
+        3. Internal Vietnam traffic:
+        Question: "Traffic nội bộ trong Việt Nam hôm nay"
+        CORRECT Query Structure:
+        {
+          "query": {
+            "bool": {
+              "must": [
+                { "term": { "network.direction": "internal" } },
+                { "term": { "source.geo.country_name": "Vietnam" } },
+                { "term": { "destination.geo.country_name": "Vietnam" } }
+              ],
+              "filter": [
+                { "range": { "@timestamp": { "gte": "now-24h" } } }
+              ]
+            }
+          },
+          "size": 10
+        }
+        
+        CRITICAL GEOGRAPHIC RULES:
+        - ALWAYS use "Vietnam" (not "Việt Nam") in Elasticsearch queries
+        - "từ X ra nước ngoài" = source: X + must_not destination: X
+        - "vào X từ nước ngoài" = destination: X + must_not source: X  
+        - "nội bộ X" = source: X + destination: X
+        - Use must_not for exclusion, NOT conflicting positive filters
+        - Combine with network.direction when mentioned (outbound/inbound/internal)
+        """;
+  }
+
+  /**
+   * Trả về examples về firewall rule analysis
+   */
+  public static String getFirewallRuleExamples() {
+    return """
+        FIREWALL RULE ANALYSIS EXAMPLES:
+        
+        1. Top blocking rules in last 24 hours:
+        Question: "Những rule nào chặn nhiều nhất trong 24 giờ qua?"
+        CORRECT Query Structure:
+        {
+          "query": {
+            "bool": {
+              "filter": [
+                { "term": { "fortinet.firewall.action": "deny" } },
+                { "range": { "@timestamp": { "gte": "now-24h" } } }
+              ]
+            }
+          },
+          "aggs": {
+            "top_rules": {
+              "terms": { "field": "rule.name", "size": 10 }
+            }
+          },
+          "size": 0
+        }
+        
+        2. Top allowing rules by traffic volume:
+        Question: "Rule nào cho phép traffic nhiều nhất hôm nay?"
+        CORRECT Query Structure:
+        {
+          "query": {
+            "bool": {
+              "filter": [
+                { "term": { "fortinet.firewall.action": "allow" } },
+                { "range": { "@timestamp": { "gte": "now-24h" } } }
+              ]
+            }
+          },
+          "aggs": {
+            "rules_by_traffic": {
+              "terms": { "field": "rule.name", "size": 10, "order": { "total_bytes": "desc" } },
+              "aggs": {
+                "total_bytes": { "sum": { "field": "network.bytes" } }
+              }
+            }
+          },
+          "size": 0
+        }
+        
+        3. Rules with most connections:
+        Question: "Rule nào có nhiều connection nhất trong tuần qua?"
+        CORRECT Query Structure:
+        {
+          "query": {
+            "bool": {
+              "filter": [
+                { "range": { "@timestamp": { "gte": "now-7d" } } }
+              ]
+            }
+          },
+          "aggs": {
+            "rules_by_connections": {
+              "terms": { "field": "rule.name", "size": 10 }
+            }
+          },
+          "size": 0
+        }
+        
+        CRITICAL FIREWALL RULE RULES:
+        - "chặn nhiều nhất" = filter by action: "deny" + terms agg (default sort by doc_count desc)
+        - "cho phép nhiều nhất" = filter by action: "allow" + terms agg
+        - Use "rule.name" for rule names, NOT "fortinet.firewall.ruleid"
+        - For "nhiều nhất" questions, default terms aggregation sorts by count automatically
+        - Don't create complex nested aggregations unless specifically needed
+        - Use simple terms agg: {"terms": {"field": "rule.name", "size": 10}}
+        """;
+  }
+
+  /**
+   * Trả về examples về counting và statistical queries
+   */
+  public static String getCountingExamples() {
+    return """
+        COUNTING & STATISTICAL QUERY EXAMPLES:
+        
+        1. Count total logs in a time period:
+        Question: "Count total logs today"
+        CORRECT Query Structure:
+        {
+          "query": {
+            "range": {
+              "@timestamp": {
+                "gte": "2025-09-16T00:00:00.000+07:00",
+                "lte": "2025-09-16T23:59:59.999+07:00"
+              }
+            }
+          },
+          "aggs": {
+            "total_logs": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            }
+          },
+          "size": 0
+        }
+        
+        2. Count logs by user:
+        Question: "Tổng có bao nhiêu log ghi nhận từ người dùng TuNM trong ngày hôm nay?"
+        CORRECT Query Structure:
+        {
+          "query": {
+            "bool": {
+              "filter": [
+                { "term": { "source.user.name": "TuNM" } },
+                { "range": { "@timestamp": { "gte": "now-24h" } } }
+              ]
+            }
+          },
+          "aggs": {
+            "user_log_count": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            }
+          },
+          "size": 0
+        }
+        
+        3. Daily statistics with date histogram:
+        Question: "Thống kê số log theo ngày trong 1 tuần qua"
+        CORRECT Query Structure:
+        {
+          "query": {
+            "range": {
+              "@timestamp": {
+                "gte": "now-7d"
+              }
+            }
+          },
+          "aggs": {
+            "logs_per_day": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "day"
+              }
+            }
+          },
+          "size": 0
+        }
+        
+        4. Hourly statistics:
+        Question: "Thống kê theo giờ trong ngày hôm nay"
+        CORRECT Query Structure:
+        {
+          "query": {
+            "range": {
+              "@timestamp": {
+                "gte": "now-24h"
+              }
+            }
+          },
+          "aggs": {
+            "logs_per_hour": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "hour"
+              }
+            }
+          },
+          "size": 0
+        }
+        
+        CRITICAL COUNTING RULES:
+        - "count", "tổng", "bao nhiêu", "số lượng" ALWAYS require "aggs" with "value_count"
+        - ALWAYS set "size": 0 for counting queries (we only want aggregation results)
+        - Use "value_count" on "@timestamp" field for counting total documents
+        - For time-based statistics, use "date_histogram" with "calendar_interval"
+        - For grouping and counting, combine "terms" agg with default doc_count sorting
+        - NEVER return just a query without aggregation for counting questions
         """;
   }
 }

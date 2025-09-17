@@ -1,38 +1,40 @@
 package com.example.chatlog.utils;
 
 /**
- * PromptTemplate - Centralized prompt management for AI Elasticsearch Query Generation
- * 
- * This class contains the main system prompt used to guide AI in generating 
- * direct Elasticsearch JSON queries for log analysis.
- * 
- * Key Features:
- * - Direct Elasticsearch JSON format (no RequestBody wrapper)
- * - Vietnam timezone (+07:00) handling
- * - Real-time date/time calculations
- * - Field mapping rules for Fortinet ECS logs
- * - Comprehensive examples and error prevention
- * 
+ * PromptTemplate - Quản lý prompt tập trung để sinh truy vấn Elasticsearch bằng AI
+ *
+ * Lớp này chứa system prompt chính, dùng để hướng dẫn AI tạo
+ * truy vấn JSON Elasticsearch trực tiếp phục vụ phân tích log.
+ *
+ * Tính năng chính:
+ * - Trả về JSON Elasticsearch trực tiếp (không dùng RequestBody wrapper)
+ * - Xử lý múi giờ Việt Nam (+07:00)
+ * - Tính toán ngày/giờ theo thời gian thực
+ * - Quy tắc ánh xạ field cho log Fortinet theo ECS
+ * - Ví dụ toàn diện và quy tắc phòng tránh lỗi
+ *
  * @author ChatLog System
- * @version 2.0 - Updated for direct JSON format
+ * @version 2.0 - Cập nhật cho định dạng JSON trực tiếp
  */
 public class PromptTemplate {
-    
+
     /**
-     * Main system prompt template for AI Elasticsearch query generation
-     * 
-     * This prompt instructs AI to:
-     * 1. Generate direct Elasticsearch JSON queries (no wrapper)
-     * 2. Use proper Vietnam timezone (+07:00) 
-     * 3. Handle real-time date calculations
-     * 4. Follow strict JSON structure rules
-     * 5. Use correct field mappings for log analysis
-     * 
-     * @return String template with placeholders for String.format()
+     * System prompt chính dùng để sinh truy vấn Elasticsearch bằng AI
+     *
+     * Prompt này yêu cầu AI:
+     * 1. Sinh truy vấn JSON Elasticsearch trực tiếp (không dùng wrapper)
+     * 2. Sử dụng đúng múi giờ Việt Nam (+07:00)
+     * 3. Xử lý tính toán thời gian theo thời gian thực
+     * 4. Tuân thủ nghiêm ngặt cấu trúc JSON
+     * 5. Dùng đúng ánh xạ field cho phân tích log
+     *
+     * @return Chuỗi template có placeholder cho String.format()
      */
-    public static String getSystemPrompt(String dateContext, String currentDate, 
-            String roleNormalizationRules, String networkTrafficExamples, 
-            String ipsSecurityExamples, String adminRoleExample, String fieldLog) {
+    public static String getSystemPrompt(String dateContext, String currentDate,
+        String roleNormalizationRules, String networkTrafficExamples,
+        String ipsSecurityExamples, String adminRoleExample,
+        String geographicExamples, String firewallRuleExamples,
+        String countingExamples, String fieldLog) {
         return String.format("""
                 You will act as an expert in Elasticsearch and Elastic Stack search; read the question and write a query that precisely captures the question's intent.
                 
@@ -84,22 +86,7 @@ public class PromptTemplate {
                 - No escaping or wrapper required
                 - Clean, readable JSON format
                 
-                CORRECT RESPONSE EXAMPLES (DIRECT ELASTICSEARCH JSON):
-                
-                Question: "Get last 10 logs from yesterday"
-                Response: {"query":{"range":{"@timestamp":{"gte":"2025-09-15T00:00:00.000+07:00","lte":"2025-09-15T23:59:59.999+07:00"}}},"size":10,"sort":[{"@timestamp":{"order":"desc"}}]}
-                
-                Question: "hôm nay có log của QuynhTX ?"
-                Response: {"query":{"bool":{"filter":[{"term":{"source.user.name":"QuynhTX"}},{"range":{"@timestamp":{"gte":"2025-09-16T00:00:00.000+07:00","lte":"2025-09-16T23:59:59.999+07:00"}}}]}},"size":10}
-                
-                Question: "Từ IP nguồn 10.0.0.25, đích nào nhận nhiều bytes nhất trong 24 giờ qua"
-                Response: {"query":{"bool":{"filter":[{"term":{"source.ip":"10.0.0.25"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"aggs":{"top_destinations":{"terms":{"field":"destination.ip","size":10,"order":{"bytes_sum":"desc"}},"aggs":{"bytes_sum":{"sum":{"field":"network.bytes"}}}}},"size":0}
-                
-                Question: "Liệt kê các phiên có mức rủi ro IPS cao trong 1 ngày qua"
-                Response: {"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}},{"terms":{"fortinet.firewall.crlevel":["high","critical"]}}]}},"sort":[{"@timestamp":{"order":"desc"}}]}
-                
-                Question: "Trong 24 giờ qua, những IP nguồn nào bị chặn (deny) nhiều nhất?"
-                Response: {"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}},{"term":{"event.action":"deny"}}]}},"aggs":{"top_sources":{"terms":{"field":"source.ip","size":10,"order":{"deny_count":"desc"}},"aggs":{"deny_count":{"value_count":{"field":"event.action"}}}}},"size":0}
+                CORRECT RESPONSE FORMAT EXAMPLES:
                 
                 WRONG RESPONSE EXAMPLES:
                 ❌ Multiple JSON objects: {"query":{...}},{"aggs":{...}}
@@ -113,23 +100,7 @@ public class PromptTemplate {
                 - For terms aggregation, check if field supports aggregation
                 - If unsure about field type, use simple field name without .keyword
                 - Example: use "source.user.name" not "source.user.name.keyword"
-                
-                IMPORTANT FIELD MAPPINGS:
-                - "tổ chức", "organization", "công ty" → use "destination.as.organization.name"
-                - "người dùng", "user" → use "source.user.name"
-                - "địa chỉ IP", "IP address" → use "source.ip" or "destination.ip"
-                - "hành động", "action" → use "event.action"
-                - "bytes", "dung lượng", "traffic" → use "network.bytes"
-                - "packets", "gói tin" → use "network.packets"
-                - "mức rủi ro", "risk level", "crlevel" → use "fortinet.firewall.crlevel"
-                - "tấn công", "attack", "signature" → use "fortinet.firewall.attack"
                 - For better performance, use "filter" instead of "must" for exact matches and ranges
-                
-                CRITICAL IPS FIELD MAPPINGS:
-                - "crlevel" ALWAYS maps to "fortinet.firewall.crlevel" (NOT "fortinet.crlevel")
-                - IPS risk levels: "low", "medium", "high", "critical"
-                - For multiple values use "terms": {"fortinet.firewall.crlevel": ["high", "critical"]}
-                - Time range format: use "now-24h" NOT "now-1d/d"
                 
                 CRITICAL RESPONSE FORMAT:
                 - MUST return ONLY direct Elasticsearch JSON query
@@ -140,6 +111,12 @@ public class PromptTemplate {
                 - MUST be a SINGLE valid JSON object
                 - All fields (query, aggs, sort, size) must be in ONE object
                 - NEVER return multiple JSON objects separated by commas
+                
+                %s
+                
+                %s
+                
+                %s
                 
                 %s
                 
@@ -156,9 +133,25 @@ public class PromptTemplate {
                 - Use "value_count" aggregation for counting total logs
                 - Use "terms" aggregation for grouping by field values
                 - For date histograms, ALWAYS use "calendar_interval" (not "interval")
-                - NEVER use "must_not" unless explicitly asked to exclude something
-                - PREFER "filter" over "must" in bool queries for better performance
+                - Use "must_not" for exclusion queries (e.g., "không phải", "ngoại trừ", "exclude")
+                - PREFER "filter" over "must" in bool queries for better performance  
                 - NEVER add filters for "local", "external", "internal" - stick to what's asked
+                
+                GEOGRAPHIC QUERY RULES (CRITICAL):
+                - "từ Việt Nam ra nước ngoài" → must: [network.direction: "outbound", source.geo.country_name: "Vietnam"], must_not: [destination.geo.country_name: "Vietnam"]
+                - "vào Việt Nam từ nước ngoài" → must: [network.direction: "inbound", destination.geo.country_name: "Vietnam"], must_not: [source.geo.country_name: "Vietnam"]
+                - "nội bộ Việt Nam" → must: [network.direction: "internal", source.geo.country_name: "Vietnam", destination.geo.country_name: "Vietnam"]
+                - ALWAYS use "Vietnam" (not "Việt Nam") in queries
+                - For exclusion, use must_not array, NOT conflicting filter conditions
+                
+                FIREWALL RULE QUERY RULES (CRITICAL):
+                - "rule chặn nhiều nhất" → filter: [fortinet.firewall.action: "deny"] + terms agg on "rule.name"
+                - "rule cho phép nhiều nhất" → filter: [fortinet.firewall.action: "allow"] + terms agg on "rule.name"
+                - "chặn", "block", "deny" → use "fortinet.firewall.action": "deny"
+                - "cho phép", "allow", "accept" → use "fortinet.firewall.action": "allow"
+                - Use "rule.name" for rule names, NOT "fortinet.firewall.ruleid"
+                - For "nhiều nhất" questions, simple terms agg sorts by doc_count automatically
+                - Don't create complex nested aggregations for simple counting
                 
                 DATE HISTOGRAM RULES:
                 - ALWAYS use "calendar_interval": "day" (not "interval": "day")
@@ -166,20 +159,27 @@ public class PromptTemplate {
                 - For hourly statistics: {"date_histogram": {"field": "@timestamp", "calendar_interval": "hour"}}
                 - For monthly statistics: {"date_histogram": {"field": "@timestamp", "calendar_interval": "month"}}
                 
-                COUNTING QUESTIONS RULES:
-                - Questions with "tổng", "count", "bao nhiêu", "số lượng" ALWAYS need "aggs" with "value_count"
-                - ALWAYS set "size": 0 for counting queries
-                - Example counting keywords: "tổng có bao nhiêu", "có bao nhiêu", "đếm", "count"
+                COUNTING QUESTIONS RULES (CRITICAL):
+                - Questions with "tổng", "count", "bao nhiêu", "số lượng", "total" ALWAYS need "aggs" with "value_count"
+                - ALWAYS set "size": 0 for counting queries (we only want aggregation results)
+                - Use "value_count" on "@timestamp" field for counting total documents
+                - Example counting keywords: "tổng có bao nhiêu", "có bao nhiêu", "đếm", "count", "total logs"
+                - NEVER return just a query without aggregation for counting questions
+                - Structure: {"query": {...}, "aggs": {"total_count": {"value_count": {"field": "@timestamp"}}}, "size": 0}
                 
                 NETWORK TRAFFIC ANALYSIS RULES:
                 - For bytes analysis, use "network.bytes" field
                 - For packets analysis, use "network.packets" field
                 - Use "sum" aggregation for total bytes/packets
                 - Use "terms" with "order" by sum aggregation for top traffic
-                - Example: {"terms": {"field": "destination.ip", "order": {"bytes_sum": "desc"}}, "aggs": {"bytes_sum": {"sum": {"field": "network.bytes"}}}}
                 - For time-based queries, prefer "filter" over "must" for better performance
                 
-                REQUIRED JSON FORMAT:
+                
+                RESPONSE FORMAT:
+                Return ONLY the Elasticsearch JSON query directly, without any wrapper.
+                Do NOT use RequestBody format with "body" and "query" fields.
+                
+                RESPONSE FORMAT STRUCTURE:
                 {
                   "query": { ... elasticsearch query ... },
                   "size": 10,
@@ -187,197 +187,11 @@ public class PromptTemplate {
                   "sort": [{"@timestamp": {"order": "desc"}}]
                 }
                 
-                For aggregations, add "aggs" at the same level as "query":
+                For aggregations:
                 {
                   "query": { ... },
                   "aggs": { ... },
                   "size": 0
-                }
-                
-                RESPONSE FORMAT:
-                Return ONLY the Elasticsearch JSON query directly, without any wrapper.
-                Do NOT use RequestBody format with "body" and "query" fields.
-                
-                EXAMPLE CORRECT RESPONSES:
-                Question: "Get last 10 logs from yesterday"
-                Response: {
-                  "query": {
-                    "range": {
-                      "@timestamp": {
-                        "gte": "2025-09-14T00:00:00.000+07:00",
-                        "lte": "2025-09-14T23:59:59.999+07:00"
-                      }
-                    }
-                  },
-                  "size": 10,
-                  "sort": [{"@timestamp": {"order": "desc"}}]
-                }
-                
-                Question: "Count total logs today"
-                Response: {
-                  "query": {
-                    "range": {
-                      "@timestamp": {
-                        "gte": "2025-09-15T00:00:00.000+07:00",
-                        "lte": "2025-09-15T23:59:59.999+07:00"
-                      }
-                    }
-                  },
-                  "aggs": {
-                    "log_count": {
-                      "value_count": {
-                        "field": "@timestamp"
-                      }
-                    }
-                  },
-                  "size": 0
-                }
-                
-                Question: "danh sách tổ chức đích mà NhuongNT truy cập"
-                Response: {
-                  "query": {
-                    "bool": {
-                      "must": [
-                        {"term": {"source.user.name": "NhuongNT"}},
-                        {"range": {"@timestamp": {"gte": "2025-09-15T00:00:00.000+07:00", "lte": "2025-09-15T23:59:59.999+07:00"}}}
-                      ]
-                    }
-                  },
-                  "aggs": {
-                    "organizations": {
-                      "terms": {"field": "destination.as.organization.name", "size": 10}
-                    }
-                  },
-                  "size": 0
-                }
-                
-                Question: "tổ chức bên ngoài mà user ABC truy cập"
-                Response: {
-                  "query": {
-                    "bool": {
-                      "must": [
-                        {"term": {"source.user.name": "ABC"}},
-                        {"range": {"@timestamp": {"gte": "2025-09-15T00:00:00.000+07:00", "lte": "2025-09-15T23:59:59.999+07:00"}}}
-                      ]
-                    }
-                  },
-                  "aggs": {
-                    "external_orgs": {
-                      "terms": {"field": "destination.as.organization.name", "size": 10}
-                    }
-                  },
-                  "size": 0
-                }
-                
-                Question: "tổng có bao nhiêu log ghi nhận từ người dùng TuNM trong ngày hôm nay"
-                Response: {
-                  "query": {
-                    "bool": {
-                      "must": [
-                        {"term": {"source.user.name": "TuNM"}},
-                        {"range": {"@timestamp": {"gte": "2025-09-15T00:00:00.000+07:00", "lte": "2025-09-15T23:59:59.999+07:00"}}}
-                      ]
-                    }
-                  },
-                  "aggs": {
-                    "log_count": {
-                      "value_count": {"field": "@timestamp"}
-                    }
-                  },
-                  "size": 0
-                }
-                
-                Question: "thống kê số log theo ngày trong 1 tuần"
-                Response: {
-                  "query": {
-                    "range": {
-                      "@timestamp": {
-                        "gte": "2025-09-08T00:00:00.000+07:00",
-                        "lte": "2025-09-15T23:59:59.999+07:00"
-                      }
-                    }
-                  },
-                  "aggs": {
-                    "logs_per_day": {
-                      "date_histogram": {
-                        "field": "@timestamp",
-                        "calendar_interval": "day"
-                      }
-                    }
-                  },
-                  "size": 0
-                }
-                
-                Question: "thống kê theo giờ trong ngày hôm nay"
-                Response: {
-                  "query": {
-                    "range": {
-                      "@timestamp": {
-                        "gte": "2025-09-15T00:00:00.000+07:00",
-                        "lte": "2025-09-15T23:59:59.999+07:00"
-                      }
-                    }
-                  },
-                  "aggs": {
-                    "logs_per_hour": {
-                      "date_histogram": {
-                        "field": "@timestamp",
-                        "calendar_interval": "hour"
-                      }
-                    }
-                  },
-                  "size": 0
-                }
-                
-                Question: "từ IP nguồn 10.0.0.25, đích nào nhận nhiều bytes nhất trong 24 giờ qua"
-                Response: {
-                  "query": {
-                    "bool": {
-                      "filter": [
-                        {"term": {"source.ip": "10.0.0.25"}},
-                        {"range": {"@timestamp": {"gte": "now-24h"}}}
-                      ]
-                    }
-                  },
-                  "aggs": {
-                    "by_dst": {
-                      "terms": {"field": "destination.ip", "size": 10, "order": {"bytes_sum": "desc"}},
-                      "aggs": {"bytes_sum": {"sum": {"field": "network.bytes"}}}
-                    }
-                  },
-                  "size": 0
-                }
-                
-                Question: "top 5 IP đích nhận traffic nhiều nhất hôm nay"
-                Response: {
-                  "query": {
-                    "range": {
-                      "@timestamp": {
-                        "gte": "2025-09-16T00:00:00.000+07:00",
-                        "lte": "2025-09-16T23:59:59.999+07:00"
-                      }
-                    }
-                  },
-                  "aggs": {
-                    "top_destinations": {
-                      "terms": {"field": "destination.ip", "size": 5, "order": {"total_bytes": "desc"}},
-                      "aggs": {"total_bytes": {"sum": {"field": "network.bytes"}}}
-                    }
-                  },
-                  "size": 0
-                }
-                
-                Question: "Liệt kê các phiên có mức rủi ro IPS cao (crlevel = high/critical) trong 1 ngày qua"
-                Response: {
-                  "query": {
-                    "bool": {
-                      "filter": [
-                        {"range": {"@timestamp": {"gte": "now-24h"}}},
-                        {"terms": {"fortinet.firewall.crlevel": ["high", "critical"]}}
-                      ]
-                    }
-                  },
-                  "sort": [{"@timestamp": {"order": "desc"}}]
                 }
                 
                 %s
@@ -386,39 +200,47 @@ public class PromptTemplate {
                 %s
                 
                 Generate ONLY the JSON response. No explanations, no summaries, just the JSON.
-                """, 
-                dateContext,
-                currentDate,
-                roleNormalizationRules,
-                networkTrafficExamples,
-                ipsSecurityExamples,
-                adminRoleExample,
-                fieldLog);
+                """,
+            dateContext,
+            currentDate,
+            roleNormalizationRules,
+            networkTrafficExamples,
+            ipsSecurityExamples,
+            adminRoleExample,
+            geographicExamples,
+            firewallRuleExamples,
+            countingExamples,
+            fieldLog);
     }
-    
+
     /**
-     * Get placeholders info for the main system prompt
-     * This helps developers understand what parameters are needed for String.format()
-     * 
-     * @return String describing the required parameters
+     * Lấy mô tả các placeholder của system prompt chính
+     * Giúp lập trình viên nắm các tham số cần thiết cho String.format()
+     *
+     * @return Chuỗi mô tả các tham số bắt buộc
      */
     public static String getPromptParameters() {
         return """
                 Required parameters for getSystemPrompt() in order:
                 1. dateContext - String from generateDateContext()
                 2. currentDate - String (yyyy-MM-dd format)
-                3. schemaHint1 - String from SchemaHint.getRoleNormalizationRules()
-                4. schemaHint2 - String from SchemaHint.getNetworkTrafficExamples()
-                5. schemaHint3 - String from SchemaHint.getIPSSecurityExamples()
-                6. schemaHint4 - String from SchemaHint.getAdminRoleExample()
-                7. fieldLog - String from getFieldLog()
+                3. roleNormalizationRules - String from SchemaHint.getRoleNormalizationRules()
+                4. networkTrafficExamples - String from SchemaHint.getNetworkTrafficExamples()
+                5. ipsSecurityExamples - String from SchemaHint.getIPSSecurityExamples()
+                6. adminRoleExample - String from SchemaHint.getAdminRoleExample()
+                7. geographicExamples - String from SchemaHint.getGeographicExamples()
+                8. firewallRuleExamples - String from SchemaHint.getFirewallRuleExamples()
+                9. countingExamples - String from SchemaHint.getCountingExamples()
+                10. fieldLog - String from getFieldLog()
                 
                 Usage example:
-                String prompt = String.format(PromptTemplate.getSystemPrompt(), 
-                    dateContext, currentDate, schema1, schema2, schema3, schema4, fieldLog);
+                String prompt = PromptTemplate.getSystemPrompt(
+                    dateContext, currentDate, roleRules, networkExamples, 
+                    ipsExamples, adminExample, geoExamples, firewallExamples, 
+                    countingExamples, fieldLog);
                 """;
     }
-    
+
     /**
      * Lấy prompt cho việc so sánh và tái tạo query khi không có kết quả
      * @param allFields Danh sách tất cả fields có sẵn
@@ -465,6 +287,6 @@ public class PromptTemplate {
                 Return ONLY the corrected Elasticsearch JSON query, no explanations.
                 Example: {"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
                 """,
-                allFields, previousQuery, userMessage, dateContext);
+            allFields, previousQuery, userMessage, dateContext);
     }
 }

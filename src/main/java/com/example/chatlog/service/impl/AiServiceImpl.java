@@ -235,6 +235,9 @@ public class AiServiceImpl implements AiService {
             SchemaHint.getNetworkTrafficExamples(),
             SchemaHint.getIPSSecurityExamples(),
             SchemaHint.getAdminRoleExample(),
+            SchemaHint.getGeographicExamples(),
+            SchemaHint.getFirewallRuleExamples(),
+            SchemaHint.getCountingExamples(),
             getFieldLog()
         )
     );
@@ -487,7 +490,7 @@ public class AiServiceImpl implements AiService {
     // Gọi AI với ngữ cảnh cuộc trò chuyện để tạo phản hồi
     return chatClient
         .prompt(prompt)
-        .options(ChatOptions.builder().temperature(0.5D).build())
+        .options(ChatOptions.builder().temperature(0.2D).build())
         .advisors(advisorSpec -> advisorSpec.param(
             ChatMemory.CONVERSATION_ID, conversationId
         ))
