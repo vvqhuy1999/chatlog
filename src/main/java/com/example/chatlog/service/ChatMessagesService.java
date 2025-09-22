@@ -12,5 +12,6 @@ public interface ChatMessagesService {
   ChatMessages findById(Long id);
   ChatMessages save(Long sessionId,ChatMessages chatMessages);
   ChatMessages save(ChatMessages chatMessages);
+  ChatMessages saveWithoutAiResponse(Long sessionId, ChatMessages chatMessages);
   void deleteById(Long id);
 }

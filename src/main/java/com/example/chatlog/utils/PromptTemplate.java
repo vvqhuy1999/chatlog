@@ -31,11 +31,11 @@ public class PromptTemplate {
      * @return Chuỗi template có placeholder cho String.format()
      */
     public static String getSystemPrompt(String dateContext,
-        String roleNormalizationRules, String categoryGuides,
+        String roleNormalizationRules,String fieldCatalog, String categoryGuides,
         String networkTrafficExamples, String ipsSecurityExamples,
         String adminRoleExample, String geographicExamples,
         String firewallRuleExamples, String countingExamples,
-        String fieldCatalog, String quickPatterns) {
+        String quickPatterns) {
         return String.format("""
                 Elasticsearch Query Generator - Optimized System Prompt
                 

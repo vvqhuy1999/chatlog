@@ -83,16 +83,18 @@ public class LogApiServiceImpl implements LogApiService {
      * @param index Tên index cần lấy mapping (ví dụ: "logs-fortinet_fortigate.log-default*")
      * @return Thông tin mapping dạng JSON string từ Elasticsearch
      */
-    @Override
-    public String getFieldLog(String index) {
-        // Gửi HTTP GET request đến Elasticsearch _mapping endpoint
-        return webClient
-            .method(HttpMethod.GET)
-            .uri("/"+index+"/_mapping") // Đường dẫn mapping của Elasticsearch
-            .retrieve() // Thực hiện request
-            .bodyToMono(String.class) // Chuyển đổi response thành String
-            .block(); // Chờ kết quả (blocking call)
-    }
+//    @Override
+//    public String getFieldLog(String index) {
+//        // Gửi HTTP GET request đến Elasticsearch _mapping endpoint
+//        return webClient
+//            .method(HttpMethod.GET)
+//            .uri("/"+index+"/_mapping") // Đường dẫn mapping của Elasticsearch
+//            .retrieve() // Thực hiện request
+//            .bodyToMono(String.class) // Chuyển đổi response thành String
+//            .block(); // Chờ kết quả (blocking call)
+//    }
+
+
     /**
      * Lấy danh sách tất cả các field có trong index
      * Sử dụng _field_caps API của Elasticsearch để lấy thông tin

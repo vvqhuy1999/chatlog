@@ -25,12 +25,28 @@ spring:
         options:
           model: gpt-4o-mini
 
+    openrouter:
+      api-key: ${OPENROUTER_API_KEY}
+      base-url: https://openrouter.ai/api/v1
+      referer: ${OPENROUTER_REFERER:https://localhost:8080}
+      chat:
+        options:
+          model: x-ai/grok-4-fast:free
+          temperature: 0.2
+          top-p: 1.0
+          max-tokens: 4000
+
     chat:
       memory:
         repository:
           jdbc:
             initialize-schema: always
 
+    retry:
+      max-attempts: 3
+      initial-interval: 1000
+      max-interval: 5000
+      multiplier: 2.0
 
 elastic:
   api:
