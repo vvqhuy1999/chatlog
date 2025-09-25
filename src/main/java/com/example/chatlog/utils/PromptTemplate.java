@@ -52,7 +52,7 @@ public class PromptTemplate {
                 
                 Relative Time (Preferred):
                 - "5 phút qua/trước" → {"gte": "now-5m"}
-                - "1 giờ qua/trước" → {"gte": "now-1h"}  
+                - "1 giờ qua/trước" → {"gte": "now-1h"}
                 - "24 giờ qua/trước" → {"gte": "now-24h"}
                 - "1 tuần qua/trước" → {"gte": "now-7d"}
                 - "1 tháng qua/trước" → {"gte": "now-30d"}
@@ -188,6 +188,40 @@ public class PromptTemplate {
                 - "firewall rule" → "rule.ruleset": "firewall"
                 - "IPS/AV changes" → "rule.category": ["IPS", "Antivirus"]
                 - "interface changes" → "observer.ingress/egress.interface.name"
+                - "CNHN_ZONE" → thường xuất hiện trong cấu hình; lọc bằng match trên "message"
+                
+                CONFIGURATION ATTRIBUTE ANALYSIS (cfgattr)
+                - Khi câu hỏi nhắc đến "cfgattr" hoặc "CNHN_ZONE":
+                  • Lọc event cấu hình: {"term":{"event.type":"configuration"}}
+                  • Kiểm tra tồn tại: {"exists":{"field":"fortinet.firewall.cfgattr"}}
+                  • CHO CNHN_ZONE: Dùng {"match":{"message":"CNHN_ZONE"}} KHÔNG dùng match_phrase trên cfgattr
+                - Định dạng chuỗi: "<danh_sách_cũ> -> <danh_sách_mới>"
+                  • Tách 2 vế bằng ký hiệu "->"
+                  • Mỗi vế tách tiếp bằng dấu phẩy, trim khoảng trắng
+                - So sánh hai danh sách:
+                  • Giá trị có ở danh sách mới nhưng không có ở danh sách cũ = "Thêm"
+                  • Giá trị có ở danh sách cũ nhưng không có ở danh sách mới = "Xóa"
+                - Yêu cầu xuất kết quả rõ ràng:
+                  • Ban đầu: [...]
+                  • Sau: [...]
+                  • Thêm: [...]
+                  • Xóa: [...]
+                
+                CNHN_ZONE ANALYSIS PATTERN ⭐ CRITICAL
+                - MANDATORY Query pattern: {"query":{"bool":{"filter":[{"term":{"source.user.name":"USER"}},{"match":{"message":"CNHN_ZONE"}},{"exists":{"field":"fortinet.firewall.cfgattr"}}]}},"_source":["@timestamp","source.user.name","source.ip","message","fortinet.firewall.cfgattr"],"sort":[{"@timestamp":"asc"}],"size":200}
+                - NEVER use match_phrase on fortinet.firewall.cfgattr for CNHN_ZONE queries
+                - ALWAYS use match on message field: {"match":{"message":"CNHN_ZONE"}}
+                - Phân tích theo timeline: sắp xếp kết quả theo @timestamp tăng dần
+                - Với mỗi log entry:
+                  • Kiểm tra fortinet.firewall.cfgattr có chứa "->" không
+                  • Nếu có: tách thành 2 danh sách và so sánh
+                  • Nếu không: coi toàn bộ là danh sách hiện tại
+                - Xuất format:
+                  • Thời gian: [@timestamp] (format readable)
+                  • Người dùng: [source.user.name]
+                  • IP: [source.ip]
+                  • Hành động: [message]
+                  • Chi tiết thay đổi: [phân tích cfgattr]
                 
                 APPLICATION CATEGORY MAPPINGS
                 - "P2P/torrent" → "rule.category": "p2p"
@@ -272,7 +306,6 @@ public class PromptTemplate {
             roleNormalizationRules,
             fieldCatalog,
             categoryGuides,
-            roleNormalizationRules,
             networkTrafficExamples,
             ipsSecurityExamples,
             adminRoleExample,

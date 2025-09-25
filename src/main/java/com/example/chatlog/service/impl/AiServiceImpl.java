@@ -7,6 +7,7 @@ import com.example.chatlog.service.AiService;
 import com.example.chatlog.service.LogApiService;
 import com.example.chatlog.service.ModelConfigService;
 import com.example.chatlog.utils.SchemaHint;
+import com.example.chatlog.utils.QueryTemplates;
 import com.example.chatlog.utils.PromptTemplate;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -164,25 +165,78 @@ public class AiServiceImpl implements AiService {
 //        System.out.println(now);
     String dateContext = generateDateContext(now);
 //        System.out.println(dateContext);
-    SystemMessage systemMessage = new SystemMessage(
-        PromptTemplate.getSystemPrompt(
-            dateContext,
-            SchemaHint.getRoleNormalizationRules(),
-            SchemaHint.getCategoryGuides(),
-            SchemaHint.getNetworkTrafficExamples(),
-            SchemaHint.getIPSSecurityExamples(),
-            SchemaHint.getAdminRoleExample(),
-            SchemaHint.getGeographicExamples(),
-            SchemaHint.getFirewallRuleExamples(),
-            SchemaHint.getCountingExamples(),
-            SchemaHint.getSchemaHint(),
-            SchemaHint.getQuickPatterns()
-        )
+    
+    // Cách 1: Sử dụng PromptTemplate truyền thống
+    // SystemMessage systemMessage = new SystemMessage(
+    //     PromptTemplate.getSystemPrompt(
+    //         dateContext,
+    //         SchemaHint.getRoleNormalizationRules(),
+    //         SchemaHint.getCategoryGuides(),
+    //         SchemaHint.getNetworkTrafficExamples(),
+    //         SchemaHint.getIPSSecurityExamples(),
+    //         SchemaHint.getAdminRoleExample(),
+    //         SchemaHint.getGeographicExamples(),
+    //         SchemaHint.getFirewallRuleExamples(),
+    //         SchemaHint.getCountingExamples(),
+    //         SchemaHint.getSchemaHint(),
+    //         SchemaHint.getQuickPatterns()
+    //     )
+    // );
+    
+    // Cách 3: Sử dụng QueryPromptTemplate với các query có sẵn từ QueryTemplates
+    // String queryPrompt = QueryPromptTemplate.createQueryGenerationPrompt(
+    //     chatRequest.message(),
+    //     dateContext,
+    //     SchemaHint.getCategoryGuides(),
+    //     SchemaHint.getRoleNormalizationRules()
+    // );
+    // SystemMessage systemMessage = new SystemMessage(queryPrompt);
+    
+    // Cách 2: Sử dụng SystemPromptTemplate với các placeholder thông qua PromptConverter
+    // Không thể sử dụng Map.of với hơn 10 cặp key-value, chuyển sang sử dụng HashMap
+    Map<String, String> params = new HashMap<>();
+    params.put("name", "ElasticSearch Expert");
+    params.put("role", "chuyên gia");
+    params.put("expertise", "Elasticsearch Query DSL và phân tích log bảo mật");
+    params.put("style", "chuyên nghiệp và chính xác");
+    params.put("constraints", "Chỉ trả về JSON query, không giải thích");
+    params.put("dateContext", dateContext);
+    params.put("fieldMappings", SchemaHint.getSchemaHint());
+    params.put("categoryGuides", SchemaHint.getCategoryGuides());
+    params.put("roleNormalizationRules", SchemaHint.getRoleNormalizationRules());
+    params.put("exampleQueries", String.join("\n\n", 
+        SchemaHint.getNetworkTrafficExamples(),
+        SchemaHint.getIPSSecurityExamples(),
+        SchemaHint.getAdminRoleExample(),
+        SchemaHint.getGeographicExamples(),
+        SchemaHint.getFirewallRuleExamples(),
+        SchemaHint.getCountingExamples(),
+        SchemaHint.getQuickPatterns()
+    ));
+    params.put("currentTime", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+    params.put("indexSchema", SchemaHint.getSchemaHint());
+    params.put("complexityLevel", "Advanced - Hỗ trợ nested aggregations và bucket selectors");
+    params.put("maxSize", "1000");
+    
+    // Sử dụng QueryPromptTemplate: đưa toàn bộ thư viện + ví dụ động (nếu có)
+    Map<String, Object> dynamicInputs = new HashMap<>();
+    String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPromptWithAllTemplates(
+        chatRequest.message(),
+        dateContext,
+        SchemaHint.getSchemaHint(),
+        SchemaHint.getRoleNormalizationRules(),
+        dynamicInputs
     );
+    SystemMessage systemMessage = new SystemMessage(queryPrompt);
+    // Debug: in ra nội dung system prompt để xác minh đã chứa QueryTemplates
+//    System.out.println("[AiServiceImpl] SYSTEM PROMPT (handleRequest) length=" + systemMessage.getContent().length());
+//    System.out.println("[AiServiceImpl] SYSTEM PROMPT (handleRequest) preview:\n" + systemMessage.getContent());
 
     List<String> schemaHints = SchemaHint.allSchemas();
     String schemaContext = String.join("\n\n", schemaHints);
     UserMessage schemaMsg = new UserMessage("Available schema hints:\n" + schemaContext);
+    // Provide a single sample log to help AI infer fields and structure
+    UserMessage sampleLogMsg = new UserMessage("SAMPLE LOG (for inference):\n" + SchemaHint.examplelog());
 
     UserMessage userMessage = new UserMessage(chatRequest.message());
     // System.out.println(systemMessage);
@@ -191,7 +245,7 @@ public class AiServiceImpl implements AiService {
 //    System.out.println("----------------------------------------------------------");
     // System.out.println(userMessage);
     System.out.println("----------------------------------------------------------");
-    Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, userMessage));
+    Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, sampleLogMsg, userMessage));
 
     // Cấu hình ChatClient với temperature = 0 để có kết quả ổn định và tuân thủ strict
     ChatOptions chatOptions = ChatOptions.builder()
@@ -301,6 +355,12 @@ public class AiServiceImpl implements AiService {
         // Return error immediately without further processing
         return content;
       }
+      
+      // Check if Elasticsearch returned empty results
+      if (content != null && isEmptyElasticsearchResult(content)) {
+        System.out.println("[AiServiceImpl] Elasticsearch returned no data, continuing with AI processing");
+        // Không trả về lỗi trực tiếp, để AI xử lý trường hợp không có dữ liệu
+      }
     }
 
     // Bước 3: Tóm tắt kết quả và trả lời người dùng
@@ -404,8 +464,10 @@ public class AiServiceImpl implements AiService {
               new UserMessage("Fix this query error: " + errorDetails + " | User request: " + userMess + " | Failed query: " + prevQuery)
           );
 
+          // Provider for retry flow: default ChatClient (OpenAI)
+          // Giữ temperature = 0.0 để kết quả ổn định và bám sát lỗi cần sửa
           ChatOptions retryChatOptions = ChatOptions.builder()
-              .temperature(0.2D)  // Tăng temperature để có query khác biệt
+              .temperature(0.0D)
               .build();
 
           // Gọi AI để tạo query mới với isolate memory
@@ -510,6 +572,43 @@ public class AiServiceImpl implements AiService {
               "💡 **Gợi ý:** Kiểm tra lại câu hỏi hoặc liên hệ admin.",
           query
       };
+    }
+  }
+
+  /**
+   * Kiểm tra xem kết quả từ Elasticsearch có rỗng không
+   * @param elasticsearchResponse JSON response từ Elasticsearch
+   * @return true nếu không có dữ liệu, false nếu có dữ liệu
+   */
+  private boolean isEmptyElasticsearchResult(String elasticsearchResponse) {
+    try {
+      JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(elasticsearchResponse);
+      
+      boolean hasHits = false;
+      if (jsonNode.has("hits")) {
+        JsonNode hitsNode = jsonNode.get("hits");
+        if (hitsNode.has("total")) {
+          JsonNode totalNode = hitsNode.get("total");
+          if (totalNode.has("value") && totalNode.get("value").asLong() > 0) {
+            hasHits = true;
+          }
+        }
+        if (!hasHits && hitsNode.has("hits")) {
+          JsonNode hitsArrayNode = hitsNode.get("hits");
+          if (hitsArrayNode.isArray() && hitsArrayNode.size() > 0) {
+            hasHits = true;
+          }
+        }
+      }
+      
+      boolean hasAggregations = jsonNode.has("aggregations");
+      
+      // No-data ONLY when there are no hits AND no aggregations at all
+      return !hasHits && !hasAggregations;
+      
+    } catch (Exception e) {
+      System.out.println("[AiServiceImpl] Error parsing Elasticsearch response for empty check: " + e.getMessage());
+      return false; // If parse fails, do not block; let AI format
     }
   }
 
@@ -782,10 +881,13 @@ public class AiServiceImpl implements AiService {
                 CRITICAL: If the user asks for counts (đếm/số lượng) or totals (tổng), you MUST parse Elasticsearch aggregations and state the numeric answer clearly.
                 
                 DATA INTERPRETATION RULES:
+                - CRITICAL: If hits.total.value = 0 and hits.hits = [], respond with "Không tìm thấy dữ liệu" message. DO NOT generate fake data.
                 - If aggregations.total_count.value exists, that is the count of documents.
                 - If aggregations.total_bytes.value (or total_packets.value) exists, that is the total metric.
                 - If size:0 with only aggregations is returned, base your answer on aggregations instead of hits.
                 - If both count and total are present, report both. If only count is present, report count. If no aggregations, use hits.hits length for count (if applicable).
+                
+              
                 
                 LOG DATA EXTRACTION RULES:
                 For each log entry in hits.hits, extract and display these key fields when available:
@@ -803,7 +905,7 @@ public class AiServiceImpl implements AiService {
                 - Quốc gia đích: destination.geo.country_name (if available)
                 - Mức rủi ro: fortinet.firewall.crlevel (if available)
                 - Tấn công: fortinet.firewall.attack (if available)
-                
+
                 logData : %s
                 query : %s
                 
@@ -846,8 +948,10 @@ public class AiServiceImpl implements AiService {
     Prompt prompt = new Prompt(systemMessage, userMessage);
 
     // Gọi AI với ngữ cảnh cuộc trò chuyện để tạo phản hồi
+    // Provider: default ChatClient (OpenAI) for final response generation
     return chatClient
         .prompt(prompt)
+        // OpenAI temperature kept at 0.0 for deterministic responses
         .options(ChatOptions.builder().temperature(0.0D).build())
         .advisors(advisorSpec -> advisorSpec.param(
             ChatMemory.CONVERSATION_ID, conversationId
@@ -899,10 +1003,24 @@ public class AiServiceImpl implements AiService {
                 CRITICAL: If the user asks for counts (đếm/số lượng) or totals (tổng), you MUST parse Elasticsearch aggregations and state the numeric answer clearly.
                 
                 DATA INTERPRETATION RULES:
+                - CRITICAL: If hits.total.value = 0 and hits.hits = [], respond with "Không tìm thấy dữ liệu" message. DO NOT generate fake data.
                 - If aggregations.total_count.value exists, that is the count of documents.
                 - If aggregations.total_bytes.value (or total_packets.value) exists, that is the total metric.
                 - If size:0 with only aggregations is returned, base your answer on aggregations instead of hits.
                 - If both count and total are present, report both. If only count is present, report count. If no aggregations, use hits.hits length for count (if applicable).
+                
+                NO DATA HANDLING:
+                When hits.total.value = 0 or aggregations return empty buckets or zero count:
+                - Inform the user that no data was found matching their criteria
+                - Suggest possible reasons why no data was found
+                - Suggest possible modifications to the query
+                - DO NOT use a fixed format, respond naturally
+                
+                EXAMPLES OF NO DATA SCENARIOS:
+                - {"hits":{"total":{"value":0},"hits":[]}} → No matching documents
+                - {"aggregations":{"total_count":{"value":0}}} → Count is zero
+                - {"aggregations":{"top_users":{"buckets":[]}}} → No aggregation results
+                - Empty aggregation buckets = no matching data found
                 
                 LOG DATA EXTRACTION RULES:
                 For each log entry in hits.hits, extract and display these key fields when available:
@@ -920,7 +1038,40 @@ public class AiServiceImpl implements AiService {
                 - Quốc gia đích: destination.geo.country_name (if available)
                 - Mức rủi ro: fortinet.firewall.crlevel (if available)
                 - Tấn công: fortinet.firewall.attack (if available)
-                
+                - Nếu fortinet.firewall.cfgattr tồn tại hoặc câu hỏi liên quan đến CNHN_ZONE/cfgattr:
+                  • QUERY PATTERN: {"query":{"bool":{"filter":[{"term":{"source.user.name":"tanln"}},{"match":{"message":"CNHN_ZONE"}}]}},"sort":[{"@timestamp":"asc"}],"size":200}
+                  • Phân tích chuỗi cfgattr theo quy tắc:
+                    1) Tách hai phần trước và sau "->" thành hai danh sách
+                    2) Trước khi tách, loại bỏ tiền tố "interface[" (nếu có) và dấu "]" ở cuối (nếu có)
+                    3) Mỗi danh sách tách tiếp bằng dấu phẩy hoặc khoảng trắng, chuẩn hóa và loại bỏ khoảng trắng thừa
+                    4) "Thêm" = các giá trị có trong danh sách mới nhưng không có trong danh sách cũ
+                    5) "Xóa" = các giá trị có trong danh sách cũ nhưng không có trong danh sách mới
+                    
+                    VÍ DỤ PHÂN TÍCH:
+                    Input: "interface[LAB-CNHN MGMT-SW-FW PRINTER-DEVICE SECCAM-CNHN WiFi HPT-GUEST WiFi-HPTVIETNAM WiFi-IoT SERVER_CORE CNHN_Wire_NV CNHN_Wire_Lab->LAB-CNHN MGMT-SW-FW PRINTER-DEVICE SECCAM-CNHN WiFi HPT-GUEST WiFi-HPTVIETNAM WiFi-IoT SERVER_CORE CNHN_Wire_NV]"
+                    
+                    Bước 1: Tách bằng "->"
+                    - Trước: "[LAB-CNHN MGMT-SW-FW PRINTER-DEVICE SECCAM-CNHN WiFi HPT-GUEST WiFi-HPTVIETNAM WiFi-IoT SERVER_CORE CNHN_Wire_NV CNHN_Wire_Lab"
+                    - Sau: "LAB-CNHN MGMT-SW-FW PRINTER-DEVICE SECCAM-CNHN WiFi HPT-GUEST WiFi-HPTVIETNAM WiFi-IoT SERVER_CORE CNHN_Wire_NV]"
+                    
+                    Bước 2: Bỏ tiền tố "interface[" và dấu "]" rồi tách từng danh sách bằng khoảng trắng
+                    - Ban đầu: LAB-CNHN, MGMT-SW-FW, PRINTER-DEVICE, SECCAM-CNHN, WiFi, HPT-GUEST, WiFi-HPTVIETNAM, WiFi-IoT, SERVER_CORE, CNHN_Wire_NV, CNHN_Wire_Lab]
+                    - Sau: LAB-CNHN, MGMT-SW-FW, PRINTER-DEVICE, SECCAM-CNHN, WiFi, HPT-GUEST, WiFi-HPTVIETNAM, WiFi-IoT, SERVER_CORE, CNHN_Wire_NV
+                    
+                    Bước 3: So sánh
+                    - Thêm: [] (không có)
+                    - Xóa: [CNHN_Wire_Lab]
+                  • Xuất theo timeline (sắp xếp theo @timestamp):
+                    - Thời gian: [@timestamp]
+                    - Người dùng: [source.user.name]
+                    - IP: [source.ip]
+                    - Hành động: [message]
+                    - Ban đầu: [...]
+                    - Sau: [...]
+                    - Thêm: [...]
+                    - Xóa: [...]
+                    Luôn luôn hiển thị cả Ban đầu và Sau, ngay cả khi không có sự thay đổi.
+                  • Nếu không có "->" trong cfgattr, coi toàn bộ là danh sách hiện tại
                 logData : %s
                 query : %s
                 
@@ -963,8 +1114,10 @@ public class AiServiceImpl implements AiService {
     Prompt prompt = new Prompt(systemMessage, userMessage);
 
     // Gọi AI với conversation ID tùy chỉnh để tránh memory contamination
+    // Provider: default ChatClient (OpenAI) for comparison response generation
     return chatClient
         .prompt(prompt)
+        // OpenAI temperature kept at 0.0 for deterministic responses
         .options(ChatOptions.builder().temperature(0.0D).build())
         .advisors(advisorSpec -> advisorSpec.param(
             ChatMemory.CONVERSATION_ID, conversationId
@@ -1025,27 +1178,49 @@ public class AiServiceImpl implements AiService {
       // --- BƯỚC 1: So sánh quá trình tạo query ---
       System.out.println("[AiServiceImpl] ===== BƯỚC 1: Tạo Elasticsearch Query =====");
       
-      // Thiết lập system message cho việc tạo query
-      SystemMessage systemMessage = new SystemMessage(
-          PromptTemplate.getSystemPrompt(
-              dateContext,
-              SchemaHint.getRoleNormalizationRules(),
-              SchemaHint.getSchemaHint(),
-              SchemaHint.getCategoryGuides(),
-              SchemaHint.getNetworkTrafficExamples(),
-              SchemaHint.getIPSSecurityExamples(),
-              SchemaHint.getAdminRoleExample(),
-              SchemaHint.getGeographicExamples(),
-              SchemaHint.getFirewallRuleExamples(),
-              SchemaHint.getCountingExamples(),
-              SchemaHint.getQuickPatterns()
-          )
+      // Chuẩn bị schema một lần để dùng lại cho cả hai prompt
+      String fullSchema = SchemaHint.getSchemaHint();
+      
+      // Sử dụng QueryPromptTemplate: đưa toàn bộ thư viện + ví dụ động (nếu có)
+      Map<String, Object> dynamicInputs = new HashMap<>();
+      String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPromptWithAllTemplates(
+          chatRequest.message(),
+          dateContext,
+          fullSchema,
+          SchemaHint.getRoleNormalizationRules(),
+          dynamicInputs
       );
+      // System.out.println("[AiServiceImpl] SYSTEM PROMPT (queryPrompt) length=" + queryPrompt.length());
+      // System.out.println("[AiServiceImpl] SYSTEM PROMPT (queryPrompt) preview:\n" + queryPrompt);
+
+      // Tạo system prompt đầy đủ từ PromptTemplate với toàn bộ SchemaHint để bổ sung ngữ cảnh
+      String fullSystemPrompt = com.example.chatlog.utils.PromptTemplate.getSystemPrompt(
+          dateContext,
+          SchemaHint.getRoleNormalizationRules(),
+          fullSchema,
+          SchemaHint.getCategoryGuides(),
+          SchemaHint.getNetworkTrafficExamples(),
+          SchemaHint.getIPSSecurityExamples(),
+          SchemaHint.getAdminRoleExample(),
+          SchemaHint.getGeographicExamples(),
+          SchemaHint.getFirewallRuleExamples(),
+          SchemaHint.getCountingExamples(),
+          SchemaHint.getQuickPatterns()
+      );
+
+      // Ghép tất cả vào một system message duy nhất để AI có tối đa bối cảnh
+      String combinedPrompt = queryPrompt + "\n\n" + fullSystemPrompt;
+      SystemMessage systemMessage = new SystemMessage(combinedPrompt);
+      // Debug: in ra nội dung system prompt để xác minh đã chứa QueryTemplates
+      // System.out.println("[AiServiceImpl] SYSTEM PROMPT (comparison) length=" + systemMessage.getContent().length());
+      // System.out.println("[AiServiceImpl] SYSTEM PROMPT (comparison) preview:\n" + systemMessage.getContent());
       
       UserMessage userMessage = new UserMessage(chatRequest.message());
       List<String> schemaHints = SchemaHint.allSchemas();
       String schemaContext = String.join("\n\n", schemaHints);
       UserMessage schemaMsg = new UserMessage("Available schema hints:\n" + schemaContext);
+      // Provide a single sample log to help AI infer fields and structure
+      UserMessage sampleLogMsg = new UserMessage("SAMPLE LOG (for inference):\n" + SchemaHint.examplelog());
       
       // System.out.println(systemMessage);
       // System.out.println("---------------------------------------------------------------------------------------");
@@ -1053,7 +1228,9 @@ public class AiServiceImpl implements AiService {
       // System.out.println("---------------------------------------------------------------------------------------");
       // System.out.println(userMessage);
       System.out.println("---------------------------------------------------------------------------------------");
-      Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, userMessage));
+      Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, sampleLogMsg, userMessage));
+      // System.out.println("Promt very long: " + prompt);
+      
       ChatOptions chatOptions = ChatOptions.builder()
           .temperature(0.0D)
           .build();
@@ -1082,16 +1259,17 @@ public class AiServiceImpl implements AiService {
       System.out.println("[AiServiceImpl] 🟠 OPENROUTER - Đang tạo Elasticsearch query...");
       long openrouterStartTime = System.currentTimeMillis();
       
-      // Tạo ChatOptions khác biệt cho OpenRouter (temperature khác để có sự khác biệt)
+      // Provider: OpenRouter (query generation in comparison mode)
+      // Ghi chú: Đây là cấu hình temperature dành cho OpenRouter
       ChatOptions openrouterChatOptions = ChatOptions.builder()
-          .temperature(0.0D)  // Temperature khác để tạo sự khác biệt
+          .temperature(0.5D)
           .build();
       
       RequestBody openrouterQuery;
       String openrouterQueryString;
       
       try {
-        // Gọi trực tiếp ChatClient với options khác để mô phỏng OpenRouter
+        // Gọi trực tiếp ChatClient với options OpenRouter (openrouterChatOptions)
         openrouterQuery = chatClient
             .prompt(prompt)
             .options(openrouterChatOptions)
@@ -1141,23 +1319,41 @@ public class AiServiceImpl implements AiService {
       
       // Tìm kiếm OpenAI
       System.out.println("[AiServiceImpl] 🔵 OPENAI - Đang thực hiện tìm kiếm Elasticsearch...");
-      String[] openaiResults = getLogData(openaiQuery, chatRequest);
+        String[] openaiResults = getLogData(openaiQuery, chatRequest);
       String openaiContent = openaiResults[0];
       String finalOpenaiQuery = openaiResults[1];
-      
+
       // Kiểm tra nếu có lỗi trong quá trình tìm kiếm
       if (openaiContent != null && openaiContent.startsWith("❌")) {
         System.out.println("[AiServiceImpl] ❌ OPENAI - Tìm kiếm Elasticsearch gặp lỗi, đang thử sửa query...");
         System.out.println("[AiServiceImpl] 🔧 OPENAI - Đang tạo lại query với thông tin lỗi...");
       } else {
         System.out.println("[AiServiceImpl] ✅ OPENAI - Tìm kiếm Elasticsearch hoàn thành thành công");
+        // Hiển thị preview dữ liệu trả về
+        System.out.println("[AiServiceImpl] 📊 DỮ LIỆU TRẢ VỀ (OpenAI): " + (openaiContent.length() > 500 ? openaiContent.substring(0, 500) + "..." : openaiContent));
       }
       
       Map<String, Object> openaiElasticsearch = new HashMap<>();
       openaiElasticsearch.put("data", openaiContent);
       openaiElasticsearch.put("success", true);
       openaiElasticsearch.put("query", finalOpenaiQuery);
+
+      System.out.println("OpenaiElasticsearch : "+ openaiElasticsearch);
       
+      // Nếu OpenAI query thất bại hoàn toàn, dùng fallback mẫu gợi ý từ QueryTemplates
+      if (openaiContent != null && openaiContent.startsWith("❌")) {
+        System.out.println("[AiServiceImpl] 🔵 OPENAI - Dùng fallback query mẫu từ QueryTemplates.OUTBOUND_PORT_ANALYSIS");
+        RequestBody fallbackOpenAi = new RequestBody(QueryTemplates.OUTBOUND_PORT_ANALYSIS, 1);
+        String[] fallbackOpenAiResults = getLogData(fallbackOpenAi, chatRequest);
+        if (fallbackOpenAiResults[0] != null && !fallbackOpenAiResults[0].startsWith("❌")) {
+          openaiContent = fallbackOpenAiResults[0];
+          finalOpenaiQuery = fallbackOpenAiResults[1];
+          System.out.println("[AiServiceImpl] 🔵 OPENAI - Fallback query trả về dữ liệu thành công");
+          // Hiển thị preview dữ liệu fallback
+          System.out.println("[AiServiceImpl] 📊 DỮ LIỆU FALLBACK (OpenAI): " + (openaiContent.length() > 500 ? openaiContent.substring(0, 500) + "..." : openaiContent));
+        }
+      }
+
       // Tìm kiếm OpenRouter (sử dụng query riêng từ OpenRouter)
       System.out.println("[AiServiceImpl] 🟠 OPENROUTER - Đang thực hiện tìm kiếm Elasticsearch...");
       RequestBody openrouterRequestBody = new RequestBody(openrouterQueryString, 1);
@@ -1171,13 +1367,31 @@ public class AiServiceImpl implements AiService {
         System.out.println("[AiServiceImpl] 🔧 OPENROUTER - Đang tạo lại query với thông tin lỗi...");
       } else {
         System.out.println("[AiServiceImpl] ✅ OPENROUTER - Tìm kiếm Elasticsearch hoàn thành thành công");
+        // Hiển thị preview dữ liệu trả về
+        System.out.println("[AiServiceImpl] 📊 DỮ LIỆU TRẢ VỀ (OpenRouter): " + (openrouterContent.length() > 500 ? openrouterContent.substring(0, 500) + "..." : openrouterContent));
       }
       
       Map<String, Object> openrouterElasticsearch = new HashMap<>();
       openrouterElasticsearch.put("data", openrouterContent);
       openrouterElasticsearch.put("success", true);
       openrouterElasticsearch.put("query", finalOpenrouterQuery);
-      
+
+      System.out.println("OpenrouterElasticsearch : " + openrouterElasticsearch);
+
+      // Nếu OpenRouter cũng thất bại, thử fallback tương tự
+      if (openrouterContent != null && openrouterContent.startsWith("❌")) {
+        System.out.println("[AiServiceImpl] 🟠 OPENROUTER - Dùng fallback query mẫu từ QueryTemplates.OUTBOUND_PORT_ANALYSIS");
+        RequestBody fallbackOpenrouter = new RequestBody(QueryTemplates.OUTBOUND_PORT_ANALYSIS, 1);
+        String[] fallbackOpenrouterResults = getLogData(fallbackOpenrouter, chatRequest);
+        if (fallbackOpenrouterResults[0] != null && !fallbackOpenrouterResults[0].startsWith("❌")) {
+          openrouterContent = fallbackOpenrouterResults[0];
+          finalOpenrouterQuery = fallbackOpenrouterResults[1];
+          System.out.println("[AiServiceImpl] 🟠 OPENROUTER - Fallback query trả về dữ liệu thành công");
+          // Hiển thị preview dữ liệu fallback
+          System.out.println("[AiServiceImpl] 📊 DỮ LIỆU FALLBACK (OpenRouter): " + (openrouterContent.length() > 500 ? openrouterContent.substring(0, 500) + "..." : openrouterContent));
+        }
+      }
+
       elasticsearchComparison.put("openai", openaiElasticsearch);
       elasticsearchComparison.put("openrouter", openrouterElasticsearch);
       

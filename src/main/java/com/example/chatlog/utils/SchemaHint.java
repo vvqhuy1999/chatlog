@@ -1297,30 +1297,502 @@ public class SchemaHint {
         • Top rules: {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_rules":{"terms":{"field":"rule.name","size":10}}},"size":0}
         
         🌍 GEOGRAPHIC:
-        • Vietnam outbound: {"query":{"bool":{"must":[{"term":{"source.geo.country_name":"Vietnam"}}],"must_not":[{"term":{"destination.geo.country_name":"Vietnam"}}],"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
+        • Vietnam outbound: [Moved to QueryTemplates.OUTBOUND_CONNECTIONS_FROM_VIETNAM]
         
         🔄 NAT QUERIES:
-        • DNAT to server: {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.trandisp":"dnat"}},{"term":{"fortinet.firewall.transip":"10.0.0.10"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
+        • DNAT to server: [See QueryTemplates.getDnatSessionsToInternalServer()]
         • SNAT from IP: {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.trandisp":"snat"}},{"term":{"source.ip":"192.168.1.100"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
         
         🔐 PROTOCOL QUERIES:
-        • RDP from WAN: {"query":{"bool":{"filter":[{"term":{"destination.port":3389}},{"term":{"fortinet.firewall.srcintfrole":"wan"}},{"range":{"@timestamp":{"gte":"now-1h"}}}]}},"size":10}
+        • RDP from WAN: [Moved to QueryTemplates.RDP_TRAFFIC_FROM_WAN]
         • SSH to server: {"query":{"bool":{"filter":[{"term":{"destination.port":22}},{"term":{"destination.ip":"10.0.0.10"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
         
         🚨 SECURITY THREAT DETECTION:
-        • Brute force login: {"query":{"bool":{"must":[{"term":{"event.action":"login"}},{"term":{"event.outcome":"failure"}}],"filter":[{"range":{"@timestamp":{"gte":"now-1h"}}}]}},"aggs":{"by_ip":{"terms":{"field":"source.ip","size":20},"aggs":{"fail_count":{"value_count":{"field":"event.outcome"}},"brute_force":{"bucket_selector":{"buckets_path":{"c":"fail_count"},"script":"params.c > 10"}}}}}},"size":0}
-        • Port scanning: {"query":{"range":{"@timestamp":{"gte":"now-15m"}}},"aggs":{"by_user":{"terms":{"field":"source.user.name","size":20},"aggs":{"unique_ports":{"cardinality":{"field":"destination.port"}},"port_scan":{"bucket_selector":{"buckets_path":{"p":"unique_ports"},"script":"params.p > 10"}}}}}},"size":0}
-        • Data exfiltration: {"query":{"bool":{"must":[{"term":{"network.direction":"outbound"}}],"filter":[{"range":{"@timestamp":{"gte":"now-1h"}}}]}},"aggs":{"by_user":{"terms":{"field":"source.user.name","size":20},"aggs":{"bytes_sent":{"sum":{"field":"network.bytes"}},"big_upload":{"bucket_selector":{"buckets_path":{"b":"bytes_sent"},"script":"params.b > 1073741824"}}}}}},"size":0}
+        • Brute force login: [Moved to QueryTemplates.BRUTE_FORCE_DETECTION]
+        • Port scanning: [Moved to QueryTemplates.PORT_SCAN_DETECTION]
+        • Data exfiltration: [Moved to QueryTemplates.DATA_EXFILTRATION_DETECTION]
+        • Excessive admin port connections 15m: [Moved to QueryTemplates.EXCESSIVE_ADMIN_PORT_CONNECTIONS]
+        • Blocked ICMP by user 1h: [Moved to QueryTemplates.BLOCKED_ICMP_BY_USER]
         
         ⚙️ CONFIGURATION MONITORING:
-        • Policy changes: {"query":{"bool":{"must":[{"term":{"event.type":"configuration"}},{"term":{"rule.ruleset":"firewall"}}],"filter":[{"range":{"@timestamp":{"gte":"now-7d"}}}]}},"size":100}
-        • Interface changes: {"query":{"bool":{"must":[{"term":{"event.type":"configuration"}}],"should":[{"term":{"observer.ingress.interface.name":"wan"}},{"term":{"observer.egress.interface.name":"wan"}}],"minimum_should_match":1,"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
-        • Shaping policy: {"query":{"bool":{"must":[{"term":{"event.type":"configuration"}},{"exists":{"field":"fortinet.firewall.shapingpolicyname"}}],"filter":[{"range":{"@timestamp":{"gte":"now-7d"}}}]}},"aggs":{"by_user":{"terms":{"field":"source.user.name","size":10}}},"size":0}
+        • Policy changes: [Moved to QueryTemplates.FIREWALL_RULE_CHANGES]
+        • Interface changes: [Moved to QueryTemplates.WAN_INTERFACE_CHANGES]
+        • Shaping policy: [Moved to QueryTemplates.SHAPING_POLICY_CHANGES]
+        • CNHN_ZONE changes: {"query":{"bool":{"filter":[{"term":{"source.user.name":"tanln"}},{"match":{"message":"CNHN_ZONE"}},{"exists":{"field":"fortinet.firewall.cfgattr"}}]}},"_source":["@timestamp","source.user.name","source.ip","message","fortinet.firewall.cfgattr"],"sort":[{"@timestamp":"asc"}],"size":200}
+
         
         🚫 BLOCKED ACTIVITIES:
-        • SSH blocked: {"query":{"bool":{"filter":[{"term":{"destination.port":22}},{"term":{"fortinet.firewall.action":"deny"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"aggs":{"blocked_users":{"terms":{"field":"source.user.name","size":10}}},"size":0}
-        • RDP blocked: {"query":{"bool":{"must":[{"term":{"destination.port":3389}},{"term":{"fortinet.firewall.action":"deny"}},{"term":{"fortinet.firewall.srcintfrole":"lan"}}],"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
-        • P2P blocked: {"query":{"bool":{"must":[{"term":{"rule.category":"p2p"}},{"term":{"fortinet.firewall.action":"deny"}}],"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
+        • SSH blocked: [Moved to QueryTemplates.BLOCKED_SSH_CONNECTIONS_BY_USER]
+        • RDP blocked: [Moved to QueryTemplates.BLOCKED_RDP_FROM_LAN]
+        • P2P blocked: [Moved to QueryTemplates.BLOCKED_P2P_TRAFFIC]
+        • Shaping policy drop on device: [See QueryTemplates.getDroppedTrafficByShapingPolicy()]
+
+
+        👤 USER-LEVEL SECURITY QUERIES:
+        • User login failures 48h: [See QueryTemplates.getFailedLoginsByUser()]
+        • Admin login from foreign 48h: [Moved to QueryTemplates.ADMIN_LOGINS_FROM_FOREIGN_COUNTRIES]
+
         """;
+  }
+
+  /**
+   * Returns a single sample log (as JSON string) to help AI infer queries
+   */
+  public static String examplelog() {
+    return """
+    {
+  "took": 214,
+  "timed_out": false,
+  "_shards": {
+    "total": 43,
+    "successful": 41,
+    "skipped": 0,
+    "failed": 2,
+    "failures": [
+      {
+        "shard": 0,
+        "index": "my-index",
+        "node": "vRDOncgnSEWjVd9BhFUpiA",
+        "reason": {
+          "type": "query_shard_exception",
+          "reason": "No mapping found for [@timestamp] in order to sort on",
+          "index_uuid": "bMXi4sUESaqmMy5S4NAdxA",
+          "index": "my-index"
+        }
+      },
+      {
+        "shard": 0,
+        "index": "test-index",
+        "node": "vRDOncgnSEWjVd9BhFUpiA",
+        "reason": {
+          "type": "query_shard_exception",
+          "reason": "No mapping found for [@timestamp] in order to sort on",
+          "index_uuid": "n599wBABRvqCBSyVr-6YFQ",
+          "index": "test-index"
+        }
+      }
+    ]
+  },
+  "hits": {
+    "total": {
+      "value": 10000,
+      "relation": "gte"
+    },
+    "max_score": null,
+    "hits": [
+      {
+        "_index": ".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001",
+        "_id": "hovbepkBWAVxoLH7laLp",
+        "_score": null,
+        "_source": {
+          "agent": {
+            "name": "hpt-logsv-srv",
+            "id": "f4af12e8-c55b-4073-8acd-2fada355eb70",
+            "type": "filebeat",
+            "ephemeral_id": "4c58ec4b-54b7-4030-94a6-65de782ff122",
+            "version": "8.19.3"
+          },
+          "log": {
+            "level": "notice",
+            "source": {
+              "address": "10.254.254.251:14955"
+            },
+            "syslog": {
+              "severity": {
+                "code": 5
+              },
+              "priority": 189,
+              "facility": {
+                "code": 23
+              }
+            }
+          },
+          "elastic_agent": {
+            "id": "f4af12e8-c55b-4073-8acd-2fada355eb70",
+            "version": "8.19.3",
+            "snapshot": false
+          },
+          "destination": {
+            "port": 53,
+            "bytes": 185,
+            "ip": "10.0.0.1",
+            "packets": 1
+          },
+          "rule": {
+            "ruleset": "policy",
+            "name": "AD_SERVICES",
+            "id": "5",
+            "category": "unscanned",
+            "uuid": "b724d8c0-774e-51f0-9f4f-71e4671938ad"
+          },
+          "source": {
+            "port": 62578,
+            "bytes": 68,
+            "ip": "10.4.100.112",
+            "mac": "50-F2-65-E6-61-08",
+            "packets": 1
+          },
+          "tags": [
+            "fortinet-fortigate",
+            "fortinet-firewall",
+            "forwarded"
+          ],
+          "network": {
+            "protocol": "windows ad",
+            "bytes": 253,
+            "transport": "udp",
+            "iana_number": "17",
+            "packets": 2,
+            "direction": "internal"
+          },
+          "input": {
+            "type": "udp"
+          },
+          "observer": {
+            "ingress": {
+              "interface": {
+                "name": "WiFi-HPTVIETNAM"
+              }
+            },
+            "product": "Fortigate",
+            "vendor": "Fortinet",
+            "name": "FTG-CNHN",
+            "serial_number": "FG121GTK25006437",
+            "type": "firewall",
+            "egress": {
+              "interface": {
+                "name": "port3"
+              }
+            }
+          },
+          "@timestamp": "2025-09-24T15:33:54.000+07:00",
+          "ecs": {
+            "version": "8.17.0"
+          },
+          "related": {
+            "hosts": [
+              "4516a5bd-0d2d-41f3-8f3c-fa33015b6e90"
+            ],
+            "ip": [
+              "10.4.100.112",
+              "10.0.0.1"
+            ]
+          },
+          "data_stream": {
+            "namespace": "default",
+            "type": "logs",
+            "dataset": "fortinet_fortigate.log"
+          },
+          "fortinet": {
+            "firewall": {
+              "srcintfrole": "lan",
+              "sessionid": "88029730",
+              "type": "traffic",
+              "srccountry": "Reserved",
+              "subtype": "forward",
+              "mastersrcmac": "50:f2:65:e6:61:08",
+              "action": "accept",
+              "trandisp": "noop",
+              "osname": "macOS",
+              "srcserver": "0",
+              "srcfamily": "Mac",
+              "vd": "root",
+              "dstintfrole": "undefined",
+              "devtype": "Laptop",
+              "srcname": "4516a5bd-0d2d-41f3-8f3c-fa33015b6e90",
+              "srcswversion": "10.15.7",
+              "dstcountry": "Reserved",
+              "srchwversion": "MacBook Pro",
+              "srchwvendor": "Apple"
+            }
+          },
+          "host": {
+            "name": "4516a5bd-0d2d-41f3-8f3c-fa33015b6e90"
+          },
+          "event": {
+            "duration": 180000000000,
+            "agent_id_status": "verified",
+            "ingested": "2025-09-24T08:33:55Z",
+            "code": "0000000013",
+            "timezone": "+0700",
+            "kind": "event",
+            "start": "2025-09-24T15:33:53.219+07:00",
+            "action": "accept",
+            "category": [
+              "network"
+            ],
+            "type": [
+              "connection",
+              "end",
+              "allowed"
+            ],
+            "dataset": "fortinet_fortigate.log",
+            "outcome": "success"
+          }
+        },
+        "fields": {
+          "rule.id": [
+            "5"
+          ],
+          "fortinet.firewall.srchwversion": [
+            "MacBook Pro"
+          ],
+          "fortinet.firewall.srchwvendor": [
+            "Apple"
+          ],
+          "elastic_agent.version": [
+            "8.19.3"
+          ],
+          "event.category": [
+            "network"
+          ],
+          "observer.egress.interface.name": [
+            "port3"
+          ],
+          "observer.ingress.interface.name": [
+            "WiFi-HPTVIETNAM"
+          ],
+          "observer.vendor": [
+            "Fortinet"
+          ],
+          "agent.name.text": [
+            "hpt-logsv-srv"
+          ],
+          "rule.ruleset": [
+            "policy"
+          ],
+          "log.level": [
+            "notice"
+          ],
+          "source.ip": [
+            "10.4.100.112"
+          ],
+          "agent.name": [
+            "hpt-logsv-srv"
+          ],
+          "host.name": [
+            "4516a5bd-0d2d-41f3-8f3c-fa33015b6e90"
+          ],
+          "event.agent_id_status": [
+            "verified"
+          ],
+          "event.kind": [
+            "event"
+          ],
+          "event.outcome": [
+            "success"
+          ],
+          "log.syslog.severity.code": [
+            5
+          ],
+          "source.packets": [
+            1
+          ],
+          "rule.name": [
+            "AD_SERVICES"
+          ],
+          "network.packets": [
+            2
+          ],
+          "input.type": [
+            "udp"
+          ],
+          "data_stream.type": [
+            "logs"
+          ],
+          "fortinet.firewall.type": [
+            "traffic"
+          ],
+          "observer.serial_number": [
+            "FG121GTK25006437"
+          ],
+          "tags": [
+            "fortinet-fortigate",
+            "fortinet-firewall",
+            "forwarded"
+          ],
+          "event.code": [
+            "0000000013"
+          ],
+          "agent.id": [
+            "f4af12e8-c55b-4073-8acd-2fada355eb70"
+          ],
+          "source.port": [
+            62578
+          ],
+          "ecs.version": [
+            "8.17.0"
+          ],
+          "observer.type": [
+            "firewall"
+          ],
+          "log.source.address": [
+            "10.254.254.251:14955"
+          ],
+          "fortinet.firewall.srcswversion": [
+            "10.15.7"
+          ],
+          "network.iana_number": [
+            "17"
+          ],
+          "agent.version": [
+            "8.19.3"
+          ],
+          "related.hosts": [
+            "4516a5bd-0d2d-41f3-8f3c-fa33015b6e90"
+          ],
+          "destination.bytes": [
+            185
+          ],
+          "event.start": [
+            "2025-09-24T08:33:53.219Z"
+          ],
+          "fortinet.firewall.subtype": [
+            "forward"
+          ],
+          "fortinet.firewall.trandisp": [
+            "noop"
+          ],
+          "fortinet.firewall.vd": [
+            "root"
+          ],
+          "fortinet.firewall.srcserver": [
+            0
+          ],
+          "fortinet.firewall.srcname": [
+            "4516a5bd-0d2d-41f3-8f3c-fa33015b6e90"
+          ],
+          "destination.port": [
+            53
+          ],
+          "fortinet.firewall.devtype": [
+            "Laptop"
+          ],
+          "observer.name": [
+            "FTG-CNHN"
+          ],
+          "fortinet.firewall.srccountry": [
+            "Reserved"
+          ],
+          "fortinet.firewall.dstintfrole": [
+            "undefined"
+          ],
+          "destination.packets": [
+            1
+          ],
+          "agent.type": [
+            "filebeat"
+          ],
+          "fortinet.firewall.dstcountry": [
+            "Reserved"
+          ],
+          "source.mac": [
+            "50-F2-65-E6-61-08"
+          ],
+          "event.module": [
+            "fortinet_fortigate"
+          ],
+          "network.protocol": [
+            "windows ad"
+          ],
+          "related.ip": [
+            "10.4.100.112",
+            "10.0.0.1"
+          ],
+          "network.bytes": [
+            253
+          ],
+          "observer.product": [
+            "Fortigate"
+          ],
+          "elastic_agent.snapshot": [
+            false
+          ],
+          "fortinet.firewall.srcintfrole": [
+            "lan"
+          ],
+          "log.syslog.priority": [
+            189
+          ],
+          "network.direction": [
+            "internal"
+          ],
+          "event.timezone": [
+            "+0700"
+          ],
+          "source.bytes": [
+            68
+          ],
+          "fortinet.firewall.srcfamily": [
+            "Mac"
+          ],
+          "elastic_agent.id": [
+            "f4af12e8-c55b-4073-8acd-2fada355eb70"
+          ],
+          "data_stream.namespace": [
+            "default"
+          ],
+          "fortinet.firewall.action": [
+            "accept"
+          ],
+          "fortinet.firewall.mastersrcmac": [
+            "50:f2:65:e6:61:08"
+          ],
+          "destination.ip": [
+            "10.0.0.1"
+          ],
+          "network.transport": [
+            "udp"
+          ],
+          "event.duration": [
+            180000000000
+          ],
+          "fortinet.firewall.sessionid": [
+            88029730
+          ],
+          "rule.uuid": [
+            "b724d8c0-774e-51f0-9f4f-71e4671938ad"
+          ],
+          "event.action": [
+            "accept"
+          ],
+          "event.ingested": [
+            "2025-09-24T08:33:55Z"
+          ],
+          "@timestamp": [
+            "2025-09-24T08:33:54.000Z"
+          ],
+          "data_stream.dataset": [
+            "fortinet_fortigate.log"
+          ],
+          "event.type": [
+            "connection",
+            "end",
+            "allowed"
+          ],
+          "agent.ephemeral_id": [
+            "4c58ec4b-54b7-4030-94a6-65de782ff122"
+          ],
+          "fortinet.firewall.osname": [
+            "macOS"
+          ],
+          "rule.category": [
+            "unscanned"
+          ],
+          "event.dataset": [
+            "fortinet_fortigate.log"
+          ],
+          "log.syslog.facility.code": [
+            23
+          ]
+        },
+        "sort": [
+          1758702834000
+        ]
+      }
+    ]
+  }
+}
+    """;
   }
 }
