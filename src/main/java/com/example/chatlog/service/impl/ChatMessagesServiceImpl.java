@@ -28,7 +28,7 @@ public class ChatMessagesServiceImpl implements ChatMessagesService {
   @Override
   public List<ChatMessages> findAllBySessionId(Long sessionId) {
 
-      return chatMessagesRepository.findAllByChatSessions_SessionId(sessionId);
+    return chatMessagesRepository.findAllByChatSessions_SessionId(sessionId);
   }
 
   @Override
@@ -38,30 +38,37 @@ public class ChatMessagesServiceImpl implements ChatMessagesService {
 
   @Override
   public ChatMessages save(Long sessionId,ChatMessages chatMessages) {
-      ChatSessions chatSessions = chatSessionsRepository.findById(sessionId).orElse(null);
-      chatMessages.setChatSessions(chatSessions);
-      chatMessagesRepository.save(chatMessages);
+    ChatSessions chatSessions = chatSessionsRepository.findById(sessionId).orElse(null);
+    chatMessages.setChatSessions(chatSessions);
+    chatMessagesRepository.save(chatMessages);
 
-      ChatRequest chatRequest = new ChatRequest(chatMessages.getContent());
-      ChatMessages aiMessage = new ChatMessages();
-      aiMessage.setChatSessions(chatSessions);
-      aiMessage.setSender(ChatMessages.SenderType.AI);
-      try{
-          String response = aiService.handleRequest(sessionId,chatRequest);
-          aiMessage.setContent(response);
-          return chatMessagesRepository.save(aiMessage);
-      }
-      catch (Exception e){
-          e.printStackTrace();
-      }
-      aiMessage.setContent("Hệ thống đang gặp sự cố. Mời quay lại sau");
-      return aiMessage;
+    ChatRequest chatRequest = new ChatRequest(chatMessages.getContent());
+    ChatMessages aiMessage = new ChatMessages();
+    aiMessage.setChatSessions(chatSessions);
+    aiMessage.setSender(ChatMessages.SenderType.AI);
+    try{
+      String response = aiService.handleRequest(sessionId,chatRequest);
+      aiMessage.setContent(response);
+      return chatMessagesRepository.save(aiMessage);
+    }
+    catch (Exception e){
+      e.printStackTrace();
+    }
+    aiMessage.setContent("Hệ thống đang gặp sự cố. Mời quay lại sau");
+    return aiMessage;
   }
 
-    @Override
-    public ChatMessages save(ChatMessages chatMessages) {
-        return chatMessagesRepository.save(chatMessages);
-    }
+  @Override
+  public ChatMessages save(ChatMessages chatMessages) {
+    return chatMessagesRepository.save(chatMessages);
+  }
+
+  @Override
+  public ChatMessages saveWithoutAiResponse(Long sessionId, ChatMessages chatMessages) {
+    ChatSessions chatSessions = chatSessionsRepository.findById(sessionId).orElse(null);
+    chatMessages.setChatSessions(chatSessions);
+    return chatMessagesRepository.save(chatMessages);
+  }
 
   @Override
   public void deleteById(Long id) {

@@ -2,16 +2,16 @@ package com.example.chatlog.service.impl;
 
 import com.example.chatlog.dto.ChatRequest;
 import com.example.chatlog.dto.RequestBody;
+import com.example.chatlog.enums.ModelProvider;
 import com.example.chatlog.service.AiService;
 import com.example.chatlog.service.LogApiService;
+import com.example.chatlog.service.ModelConfigService;
 import com.example.chatlog.utils.SchemaHint;
-import com.example.chatlog.utils.SchemaHint;
+import com.example.chatlog.utils.QueryTemplates;
+import com.example.chatlog.utils.PromptTemplate;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.util.Iterator;
-import java.util.Map;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -23,947 +23,849 @@ import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MimeTypeUtils;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.lang.reflect.Type;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
-import java.util.List;
+import java.util.Map;
 
 @Service
 public class AiServiceImpl implements AiService {
-    // Lưu trữ thông tin mapping của Elasticsearch index để tránh gọi lại nhiều lần
-    private static String fieldLog;
+  // Lưu trữ thông tin mapping của Elasticsearch index để tránh gọi lại nhiều lần
+  private static String fieldLog;
 
-    // Client để giao tiếp với AI model (Spring AI)
-    private final ChatClient chatClient;
+  // Client để giao tiếp với AI model (Spring AI)
+  private final ChatClient chatClient;
 
-    @Autowired
-    private LogApiService logApiService;
+  @Autowired
+  private LogApiService logApiService;
+  
+  @Autowired
+  private ModelConfigService modelConfigService;
+  
+  @Autowired
+  @Qualifier("openRouterChatClient")
+  private RestClient openRouterClient;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+  // ObjectMapper đã loại bỏ vì không cần thiết trong phiên bản đơn giản
 
-    /**
-     * Lấy thông tin mapping (cấu trúc field) của Elasticsearch index
-     * Chỉ gọi API một lần và cache kết quả để tối ưu hiệu suất
-     * @return String chứa thông tin mapping dạng JSON
-     */
-    public String getFieldLog()
+  /**
+   * Lấy thông tin mapping (cấu trúc field) của Elasticsearch index
+   * Chỉ gọi API một lần và cache kết quả để tối ưu hiệu suất
+   * @return String chứa thông tin mapping dạng JSON
+   */
+  public String getFieldLog()
+  {
+    if (fieldLog == null)
     {
-        if (fieldLog == null)
-        {
-            fieldLog = logApiService.getFieldLog("logs-fortinet_fortigate.log-default*");
-        }
-        return fieldLog;
+      fieldLog = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
     }
+    return fieldLog;
+  }
 
-    /**
-     * Tạo chuỗi ngày tháng và thời gian cho system message với tính toán chi tiết từ thời gian thực
-     * @param now Thời điểm hiện tại (real-time)
-     * @return Chuỗi chứa thông tin về các ngày và thời gian để sử dụng trong prompt
-     */
-    private String generateDateContext(LocalDateTime now) {
-        // Format thời gian hiện tại chính xác
-        String currentDateTime = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String currentDate = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        String currentTime = now.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-
-        // Tính toán thời gian theo phút (real-time calculation)
-        String fiveMinutesAgo = now.minusMinutes(5).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String tenMinutesAgo = now.minusMinutes(10).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String fifteenMinutesAgo = now.minusMinutes(15).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String thirtyMinutesAgo = now.minusMinutes(30).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String fortyFiveMinutesAgo = now.minusMinutes(45).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-
-        // Tính toán thời gian theo giờ (real-time calculation)
-        String oneHourAgo = now.minusHours(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String twoHoursAgo = now.minusHours(2).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String threeHoursAgo = now.minusHours(3).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String sixHoursAgo = now.minusHours(6).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String twelveHoursAgo = now.minusHours(12).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String twentyFourHoursAgo = now.minusHours(24).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-
-        // Các mốc ngày
-        String yesterday = now.minusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        String twoDaysAgo = now.minusDays(2).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        String threeDaysAgo = now.minusDays(3).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        String fourDaysAgo = now.minusDays(4).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        String fiveDaysAgo = now.minusDays(5).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        String oneWeekAgo = now.minusDays(7).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-
-        // Thời gian buổi trong ngày với ngày hiện tại
-        String todayMorning = now.withHour(6).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String todayAfternoon = now.withHour(12).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String todayEvening = now.withHour(18).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String todayNight = now.withHour(22).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-
-        // Thời gian buổi của ngày hôm qua
-        String yesterdayMorning = now.minusDays(1).withHour(6).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String yesterdayAfternoon = now.minusDays(1).withHour(12).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String yesterdayEvening = now.minusDays(1).withHour(18).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String yesterdayNight = now.minusDays(1).withHour(22).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-
-        return String.format("""
-                REAL-TIME CONTEXT (Vietnam timezone +07:00):
-                Current exact time: %s (+07:00)
-                Current date: %s
-                Current time: %s
+  /**
+   * Tạo chuỗi thông tin ngày tháng cho system message với các biểu thức thời gian tương đối của Elasticsearch
+   * @param now Thời điểm hiện tại (real-time)
+   * @return Chuỗi chứa thông tin về cách sử dụng biểu thức thời gian tương đối của Elasticsearch
+   */
+  private String generateDateContext(LocalDateTime now) {
+    return String.format("""
+                CURRENT TIME CONTEXT (Vietnam timezone +07:00):
+                - Current exact time: %s (+07:00)
+                - Current date: %s
                 
-                MINUTE-BASED RANGES (real-time calculation):
-                - "5 phút qua", "last 5 minutes" → from %s+07:00 to %s+07:00
-                - "10 phút qua", "last 10 minutes" → from %s+07:00 to %s+07:00
-                - "15 phút qua", "last 15 minutes" → from %s+07:00 to %s+07:00
-                - "30 phút qua", "last 30 minutes" → from %s+07:00 to %s+07:00
-                - "45 phút qua", "last 45 minutes" → from %s+07:00 to %s+07:00
+                PREFERRED TIME QUERY METHOD - Use Elasticsearch relative time expressions:
+                - "5 phút qua, 5 phút trước, 5 minutes ago", "last 5 minutes" → {"gte": "now-5m"}
+                - "1 giờ qua, 1 giờ trước, 1 hour ago", "last 1 hour" → {"gte": "now-1h"}
+                - "24 giờ qua, 24 giờ trước, 24 hours ago", "last 24 hours" → {"gte": "now-24h"}
+                - "1 tuần qua, 1 tuần trước, 1 week ago", "7 ngày qua, 7 ngày trước, 7 days ago", "last week" → {"gte": "now-7d"}
+                - "1 tháng qua, 1 tháng trước, 1 month ago", "last month" → {"gte": "now-30d"}
                 
-                HOUR-BASED RANGES (real-time calculation):
-                - "1 giờ qua", "last 1 hour" → from %s+07:00 to %s+07:00
-                - "2 giờ qua", "last 2 hours" → from %s+07:00 to %s+07:00
-                - "3 giờ qua", "last 3 hours" → from %s+07:00 to %s+07:00
-                - "6 giờ qua", "last 6 hours" → from %s+07:00 to %s+07:00
-                - "12 giờ qua", "last 12 hours" → from %s+07:00 to %s+07:00
-                - "24 giờ qua", "last 24 hours" → from %s+07:00 to %s+07:00
+                SPECIFIC DATE RANGES (when exact dates mentioned):
+                - "hôm nay, hôm nay, today" → {"gte": "now/d"}
+                - "hôm qua, hôm qua, yesterday" → {"gte": "now-1d/d"}
+                - Specific date like "ngày 15-09" → {"gte": "2025-09-15T00:00:00.000+07:00", "lte": "2025-09-15T23:59:59.999+07:00"}
                 
-                TIME-OF-DAY RANGES (exact calculation):
-                - "sáng nay", "this morning" → from %s+07:00 to %s+07:00 (if current time > 12:00), otherwise from %s+07:00 to %s+07:00
-                - "chiều nay", "this afternoon" → from %s+07:00 to %s+07:00 (if current time > 18:00), otherwise from %s+07:00 to %s+07:00
-                - "tối nay", "this evening" → from %s+07:00 to %s+07:00 (if current time > 22:00), otherwise from %s+07:00 to %s+07:00
-                - "đêm nay", "tonight" → from %s+07:00 to %s+07:00
-                
-                YESTERDAY TIME RANGES:
-                - "sáng hôm qua", "yesterday morning" → from %s+07:00 to %s+07:00
-                - "chiều hôm qua", "yesterday afternoon" → from %s+07:00 to %s+07:00
-                - "tối hôm qua", "yesterday evening" → from %s+07:00 to %s+07:00
-                - "đêm qua", "last night" → from %s+07:00 to %s+07:00
-                
-                DAY-BASED RANGES:
-                - "hôm nay", "today" → from %sT00:00:00+07:00 to %sT23:59:59+07:00
-                - "hôm qua", "yesterday" → from %sT00:00:00+07:00 to %sT23:59:59+07:00
-                - "2 ngày qua", "last 2 days" → from %sT00:00:00+07:00 to %sT23:59:59+07:00
-                - "3 ngày qua", "last 3 days" → from %sT00:00:00+07:00 to %sT23:59:59+07:00
-                - "4 ngày qua", "last 4 days" → from %sT00:00:00+07:00 to %sT23:59:59+07:00
-                - "5 ngày qua", "last 5 days" → from %sT00:00:00+07:00 to %sT23:59:59+07:00
-                - "1 tuần qua", "last week" → from %sT00:00:00+07:00 to %sT23:59:59+07:00
-                
-                RECENT/GENERAL TERMS:
-                - "gần đây", "recent", "mới nhất" → from %s+07:00 to %s+07:00 (last 30 minutes)
-                - "vừa rồi", "just now" → from %s+07:00 to %s+07:00 (last 5 minutes)
-                
-                IMPORTANT NOTES:
-                - All timestamps use Vietnam timezone (+07:00)
-                - Use 'gte' for start time and 'lte' for end time in Elasticsearch queries
-                - For current time-based queries, calculate from exact current moment: %s
-                - For "gần đây" without specific time, default to last 30 minutes
+                ADVANTAGES of "now-Xh/d/m" format:
+                - More efficient than absolute timestamps
+                - Automatically handles timezone
+                - Elasticsearch native time calculations
+                - Always relative to query execution time
                 """,
-            currentDateTime, currentDate, currentTime,
-            fiveMinutesAgo, currentDateTime,
-            tenMinutesAgo, currentDateTime,
-            fifteenMinutesAgo, currentDateTime,
-            thirtyMinutesAgo, currentDateTime,
-            fortyFiveMinutesAgo, currentDateTime,
-            oneHourAgo, currentDateTime,
-            twoHoursAgo, currentDateTime,
-            threeHoursAgo, currentDateTime,
-            sixHoursAgo, currentDateTime,
-            twelveHoursAgo, currentDateTime,
-            twentyFourHoursAgo, currentDateTime,
-            todayMorning, currentDateTime, todayMorning, currentDateTime,
-            todayAfternoon, currentDateTime, todayAfternoon, currentDateTime,
-            todayEvening, currentDateTime, todayEvening, currentDateTime,
-            todayNight, currentDateTime,
-            yesterdayMorning, yesterdayMorning.substring(0,10) + " 11:59:59",
-            yesterdayAfternoon, yesterdayAfternoon.substring(0,10) + " 17:59:59",
-            yesterdayEvening, yesterdayEvening.substring(0,10) + " 21:59:59",
-            yesterdayNight, currentDate + " 05:59:59",
-            currentDate, currentDate,
-            yesterday, yesterday,
-            twoDaysAgo, currentDate,
-            threeDaysAgo, currentDate,
-            fourDaysAgo, currentDate,
-            fiveDaysAgo, currentDate,
-            oneWeekAgo, currentDate,
-            thirtyMinutesAgo, currentDateTime,
-            fiveMinutesAgo, currentDateTime,
-            currentDateTime);
+        now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
+        now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+    );
+  }
+
+  /**
+   * Constructor khởi tạo AiServiceImpl với ChatClient và memory
+   * @param builder ChatClient.Builder để xây dựng client AI
+   * @param jdbcChatMemoryRepository Repository lưu trữ lịch sử chat
+   */
+  public AiServiceImpl(ChatClient.Builder builder,  JdbcChatMemoryRepository jdbcChatMemoryRepository) {
+
+    // Khởi tạo memory để lưu trữ lịch sử chat của người dùng (tối đa 50 tin nhắn)
+    ChatMemory chatMemory = MessageWindowChatMemory.builder()
+        .chatMemoryRepository(jdbcChatMemoryRepository)
+        .maxMessages(50)
+        .build();
+
+    // Xây dựng ChatClient với memory advisor để duy trì ngữ cảnh cuộc trò chuyện
+    this.chatClient = builder
+        .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+        .build();
+
+  }
+
+  /**
+   * Hàm chính xử lý yêu cầu của người dùng
+   * Quy trình 3 bước:
+   * 1. Phân tích câu hỏi và tạo Elasticsearch query (bắt buộc cho tất cả request)
+   * 2. Thực hiện tìm kiếm Elasticsearch và lấy dữ liệu log
+   * 3. Tóm tắt và trả lời bằng ngôn ngữ tự nhiên
+   *
+   * @param sessionId ID phiên chat để duy trì ngữ cảnh
+   * @param chatRequest Yêu cầu từ người dùng
+   * @return Câu trả lời đã được xử lý
+   */
+  @Override
+  public String handleRequest(Long sessionId, ChatRequest chatRequest) {
+
+  String content = "";
+  RequestBody requestBody;
+
+    // In ra thông tin cấu hình OpenAI trước khi gọi
+    String openaiUrl = System.getenv("OPENAI_API_URL");
+    String openaiApiKey = System.getenv("OPENAI_API_KEY");
+    String model = "gpt-4o-mini";
+    // System.out.println("[SpringAI] OpenAI URL (from env): " + openaiUrl);
+    // System.out.println("[SpringAI] OpenAI API Key (from env): " + openaiApiKey);
+    // System.out.println("[SpringAI] Model: " + model);
+    // System.out.println("[SpringAI] Request body: " + (chatRequest != null ? chatRequest.message() : "null"));
+    // Nếu có cấu hình từ application.yaml thì log ra luôn
+    try {
+      String baseUrl = System.getProperty("spring.ai.openai.base-url");
+      String apiKey = System.getProperty("spring.ai.openai.api-key");
+      // System.out.println("[SpringAI] OpenAI base-url (from properties): " + baseUrl);
+      // System.out.println("[SpringAI] OpenAI api-key (from properties): " + apiKey);
+    } catch (Exception ex) {
+//      System.out.println("[SpringAI] Không lấy được base-url/api-key từ properties: " + ex.getMessage());
+      System.out.println("[SpringAI] Không lấy được base-url/api-key ");
     }
 
-    /**
-     * Constructor khởi tạo AiServiceImpl với ChatClient và memory
-     * @param builder ChatClient.Builder để xây dựng client AI
-     * @param jdbcChatMemoryRepository Repository lưu trữ lịch sử chat
-     */
-    public AiServiceImpl(ChatClient.Builder builder,  JdbcChatMemoryRepository jdbcChatMemoryRepository) {
-
-        // Khởi tạo memory để lưu trữ lịch sử chat của người dùng (tối đa 50 tin nhắn)
-        ChatMemory chatMemory = MessageWindowChatMemory.builder()
-            .chatMemoryRepository(jdbcChatMemoryRepository)
-            .maxMessages(50)
-            .build();
-
-        // Xây dựng ChatClient với memory advisor để duy trì ngữ cảnh cuộc trò chuyện
-        this.chatClient = builder
-            .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
-            .build();
-
-    }
-
-    /**
-     * Hàm chính xử lý yêu cầu của người dùng
-     * Quy trình 3 bước:
-     * 1. Phân tích câu hỏi và tạo Elasticsearch query (bắt buộc cho tất cả request)
-     * 2. Thực hiện tìm kiếm Elasticsearch và lấy dữ liệu log
-     * 3. Tóm tắt và trả lời bằng ngôn ngữ tự nhiên
-     *
-     * @param sessionId ID phiên chat để duy trì ngữ cảnh
-     * @param chatRequest Yêu cầu từ người dùng
-     * @return Câu trả lời đã được xử lý
-     */
-    @Override
-    public String handleRequest(Long sessionId, ChatRequest chatRequest) {
-
-        String content = "";
-        RequestBody requestBody;
-
-        // Bước 1: Tạo system message hướng dẫn AI phân tích yêu cầu
-        // Lấy ngày hiện tại để AI có thể xử lý các yêu cầu về thời gian chính xác
-        LocalDateTime now = LocalDateTime.now();
+    // Bước 1: Tạo system message hướng dẫn AI phân tích yêu cầu
+    // Lấy ngày hiện tại để AI có thể xử lý các yêu cầu về thời gian chính xác
+    LocalDateTime now = LocalDateTime.now();
 //        System.out.println(now);
-        String dateContext = generateDateContext(now);
+    String dateContext = generateDateContext(now);
 //        System.out.println(dateContext);
-        SystemMessage systemMessage = new SystemMessage(String.format("""
-                You will act as an expert in Elasticsearch and Elastic Stack search; read the question and write a query that precisely captures the question’s intent.
-                
-                %s
-                
-                CRITICAL RULES - FOLLOW EXACTLY:
-                1. NEVER give direct answers or summaries
-                2. NEVER say things like "Trong 5 ngày qua, có 50 kết nối..."
-                3. ALWAYS generate an Elasticsearch query JSON.
-                4. ALWAYS return the exact JSON format below
-                5. If size is not define, Default size = 10.
-                6. Try to use the SchemaHint to get data.
-                7. ALWAYS set query = 1 in your response to enable search.
-                8. ALWAYS use '+07:00' timezone format in timestamps (Vietnam timezone).
-                9. ALWAYS return a single-line JSON response without line breaks or string concatenation.
-                10. The current date is %s. Use the REAL-TIME CONTEXT provided above for all time calculations.
-                11. NEVER mention dates in the future or incorrect current time in your reasoning.
-                
-                TIMESTAMP FORMAT RULES:
-                - CORRECT: "2025-09-14T10:55:55.000+07:00"
-                - INCORRECT: "2025-09-14T10:55:55.000Z"
-                - Use Vietnam timezone (+07:00) to match the data in Elasticsearch
-                
-                JSON FORMAT RULES:
-                - NEVER use line breaks in the JSON response
-                - NEVER use string concatenation with '+' operator
-                - Return the entire JSON as a single continuous string
-                - When using +07:00 in timestamps, ensure it's properly escaped in JSON strings
-                
-                FIELD MAPPING RULES:
-                - Use exact field names from mapping, don't add .keyword unless confirmed
-                - For terms aggregation, check if field supports aggregation
-                - If unsure about field type, use simple field name without .keyword
-                - Example: use "source.user.name" not "source.user.name.keyword"
-                
-                IMPORTANT FIELD MAPPINGS:
-                - "tổ chức", "organization", "công ty" → use "destination.as.organization.name"
-                - "người dùng", "user" → use "source.user.name"
-                - "địa chỉ IP", "IP address" → use "source.ip" or "destination.ip"
-                - "hành động", "action" → use "event.action"
-                - Always use "must" as array: [{"term": {...}}, {"range": {...}}]
-                
-                %s
-                
-                IMPORTANT: Do NOT add filters like "must_not", "local", "external" unless explicitly mentioned.
-                "bên ngoài" (external) does NOT require must_not filters - all destinations are external by default.
-                
-                
-                CRITICAL STRUCTURE RULES:
-                - ALL time range filters MUST be inside the "query" block
-                - For aggregations, use "aggs" at the same level as "query"
-                - NEVER put "range" outside the "query" block
-                - Use "value_count" aggregation for counting total logs
-                - Use "terms" aggregation for grouping by field values
-                - NEVER use "must_not" unless explicitly asked to exclude something
-                - NEVER add filters for "local", "external", "internal" - stick to what's asked
-                
-                COUNTING QUESTIONS RULES:
-                - Questions with "tổng", "count", "bao nhiêu", "số lượng" ALWAYS need "aggs" with "value_count"
-                - ALWAYS set "size": 0 for counting queries
-                - Example counting keywords: "tổng có bao nhiêu", "có bao nhiêu", "đếm", "count"
-                
-                REQUIRED JSON FORMAT:
-                {
-                  "query": { ... elasticsearch query ... },
-                  "size": 10,
-                  "_source": ["@timestamp", "source.ip", ...],
-                  "sort": [{"@timestamp": {"order": "desc"}}]
-                }
-                
-                For aggregations, add "aggs" at the same level as "query":
-                {
-                  "query": { ... },
-                  "aggs": { ... },
-                  "size": 0
-                }
-                
-                RESPONSE FORMAT:
-                You must return a RequestBody object with these fields:
-                - body: The JSON query string for Elasticsearch
-                - query: MUST be set to 1 to enable search functionality
-                
-                EXAMPLE CORRECT RESPONSES:
-                Question: "Get last 10 logs from yesterday"
-                Response: {"body":"{\"query\":{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-14T00:00:00.000+07:00\",\"lte\":\"2025-09-14T23:59:59.999+07:00\"}}},\"size\":10,\"sort\":[{\"@timestamp\":{\"order\":\"desc\"}}]}","query":1}
-                
-                Question: "Count total logs today"
-                Response: {"body":"{\"query\":{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-15T00:00:00.000+07:00\",\"lte\":\"2025-09-15T23:59:59.999+07:00\"}}},\"aggs\":{\"log_count\":{\"value_count\":{\"field\":\"@timestamp\"}}},\"size\":0}","query":1}
-                
-                Question: "danh sách tổ chức đích mà NhuongNT truy cập"
-                Response: {"body":"{\"query\":{\"bool\":{\"must\":[{\"term\":{\"source.user.name\":\"NhuongNT\"}},{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-15T00:00:00.000+07:00\",\"lte\":\"2025-09-15T23:59:59.999+07:00\"}}}]}},\"aggs\":{\"organizations\":{\"terms\":{\"field\":\"destination.as.organization.name\",\"size\":10}}},\"size\":0}","query":1}
-                
-                Question: "tổ chức bên ngoài mà user ABC truy cập"
-                Response: {"body":"{\"query\":{\"bool\":{\"must\":[{\"term\":{\"source.user.name\":\"ABC\"}},{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-15T00:00:00.000+07:00\",\"lte\":\"2025-09-15T23:59:59.999+07:00\"}}}]}},\"aggs\":{\"external_orgs\":{\"terms\":{\"field\":\"destination.as.organization.name\",\"size\":10}}},\"size\":0}","query":1}
-                
-                Question: "tổng có bao nhiêu log ghi nhận từ người dùng TuNM trong ngày hôm nay"
-                Response: {"body":"{\"query\":{\"bool\":{\"must\":[{\"term\":{\"source.user.name\":\"TuNM\"}},{\"range\":{\"@timestamp\":{\"gte\":\"2025-09-15T00:00:00.000+07:00\",\"lte\":\"2025-09-15T23:59:59.999+07:00\"}}}]}},\"aggs\":{\"log_count\":{\"value_count\":{\"field\":\"@timestamp\"}}},\"size\":0}","query":1}
-                
-                %s
-                
-                Available Elasticsearch fields:
-                %s
-                
-                Generate ONLY the JSON response. No explanations, no summaries, just the JSON.
-                """,
-            dateContext,
-            now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-            SchemaHint.getRoleNormalizationRules(),
-            SchemaHint.getAdminRoleExample(),
-            getFieldLog()));
+    
+    // Cách 1: Sử dụng PromptTemplate truyền thống
+    // SystemMessage systemMessage = new SystemMessage(
+    //     PromptTemplate.getSystemPrompt(
+    //         dateContext,
+    //         SchemaHint.getRoleNormalizationRules(),
+    //         SchemaHint.getCategoryGuides(),
+    //         SchemaHint.getNetworkTrafficExamples(),
+    //         SchemaHint.getIPSSecurityExamples(),
+    //         SchemaHint.getAdminRoleExample(),
+    //         SchemaHint.getGeographicExamples(),
+    //         SchemaHint.getFirewallRuleExamples(),
+    //         SchemaHint.getCountingExamples(),
+    //         SchemaHint.getSchemaHint(),
+    //         SchemaHint.getQuickPatterns()
+    //     )
+    // );
+    
+    // Cách 3: Sử dụng QueryPromptTemplate với các query có sẵn từ QueryTemplates
+    // String queryPrompt = QueryPromptTemplate.createQueryGenerationPrompt(
+    //     chatRequest.message(),
+    //     dateContext,
+    //     SchemaHint.getCategoryGuides(),
+    //     SchemaHint.getRoleNormalizationRules()
+    // );
+    // SystemMessage systemMessage = new SystemMessage(queryPrompt);
+    
+    // Cách 2: Sử dụng SystemPromptTemplate với các placeholder thông qua PromptConverter
+    // Không thể sử dụng Map.of với hơn 10 cặp key-value, chuyển sang sử dụng HashMap
+    Map<String, String> params = new HashMap<>();
+    params.put("name", "ElasticSearch Expert");
+    params.put("role", "chuyên gia");
+    params.put("expertise", "Elasticsearch Query DSL và phân tích log bảo mật");
+    params.put("style", "chuyên nghiệp và chính xác");
+    params.put("constraints", "Chỉ trả về JSON query, không giải thích");
+    params.put("dateContext", dateContext);
+    params.put("fieldMappings", SchemaHint.getSchemaHint());
+    params.put("categoryGuides", SchemaHint.getCategoryGuides());
+    params.put("roleNormalizationRules", SchemaHint.getRoleNormalizationRules());
+    params.put("exampleQueries", String.join("\n\n", 
+        SchemaHint.getNetworkTrafficExamples(),
+        SchemaHint.getIPSSecurityExamples(),
+        SchemaHint.getAdminRoleExample(),
+        SchemaHint.getGeographicExamples(),
+        SchemaHint.getFirewallRuleExamples(),
+        SchemaHint.getCountingExamples(),
+        SchemaHint.getQuickPatterns()
+    ));
+    params.put("currentTime", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+    params.put("indexSchema", SchemaHint.getSchemaHint());
+    params.put("complexityLevel", "Advanced - Hỗ trợ nested aggregations và bucket selectors");
+    params.put("maxSize", "1000");
+    
+    // Sử dụng QueryPromptTemplate: đưa toàn bộ thư viện + ví dụ động (nếu có)
+    Map<String, Object> dynamicInputs = new HashMap<>();
+    String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPromptWithAllTemplates(
+        chatRequest.message(),
+        dateContext,
+        SchemaHint.getSchemaHint(),
+        SchemaHint.getRoleNormalizationRules(),
+        dynamicInputs
+    );
+    SystemMessage systemMessage = new SystemMessage(queryPrompt);
+    // Debug: in ra nội dung system prompt để xác minh đã chứa QueryTemplates
+//    System.out.println("[AiServiceImpl] SYSTEM PROMPT (handleRequest) length=" + systemMessage.getContent().length());
+//    System.out.println("[AiServiceImpl] SYSTEM PROMPT (handleRequest) preview:\n" + systemMessage.getContent());
+
+    List<String> schemaHints = SchemaHint.allSchemas();
+    String schemaContext = String.join("\n\n", schemaHints);
+    UserMessage schemaMsg = new UserMessage("Available schema hints:\n" + schemaContext);
+    // Provide a single sample log to help AI infer fields and structure
+    UserMessage sampleLogMsg = new UserMessage("SAMPLE LOG (for inference):\n" + SchemaHint.examplelog());
+
+    UserMessage userMessage = new UserMessage(chatRequest.message());
+    // System.out.println(systemMessage);
+//    System.out.println("----------------------------------------------------------");
+    // System.out.println(schemaMsg);
+//    System.out.println("----------------------------------------------------------");
+    // System.out.println(userMessage);
+    System.out.println("----------------------------------------------------------");
+    Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, sampleLogMsg, userMessage));
+
+    // Cấu hình ChatClient với temperature = 0 để có kết quả ổn định và tuân thủ strict
+    ChatOptions chatOptions = ChatOptions.builder()
+        .temperature(0.0D)
+        .build();
+
+    // Gọi AI để phân tích và tạo request body
+    try {
+      // Log thông tin request gửi tới OpenAI
+      // System.out.println("[SpringAI] Prompt: " + prompt);
+      // System.out.println("[SpringAI] ChatOptions: " + chatOptions);
+
+      // Nếu muốn log chi tiết HTTP, có thể bật debug cho WebClient/RestTemplate hoặc log thủ công
+      // Log giả lập: headers, endpoint, body
+//      System.out.println("[SpringAI] --- HTTP REQUEST ---");
+//      System.out.println("POST " + (openaiUrl != null ? openaiUrl : "https://api.openai.com/v1/chat/completions"));
+//      System.out.println("Headers:");
+//      System.out.println("Authorization: Bearer " + (openaiApiKey != null ? openaiApiKey : "(from config)"));
+//      System.out.println("Content-Type: application/json");
+//      System.out.println("Body:");
+//      System.out.println(prompt);
+//      System.out.println("---------------------------");
+
+      // SỬA: Sử dụng conversationId riêng cho query generation để tránh memory contamination
+      String queryConversationId = sessionId + "_query_generation";
+      
+      System.out.println("[AiServiceImpl] 🤖 Đang gọi AI để tạo Elasticsearch query...");
+      requestBody =  chatClient
+          .prompt(prompt)
+          .options(chatOptions)
+          .advisors(advisorSpec -> advisorSpec.param(
+              ChatMemory.CONVERSATION_ID, queryConversationId
+          ))
+          .call()
+          .entity(new ParameterizedTypeReference<>() {
+          });
+
+      // Log response trả về từ OpenAI
+      System.out.println("[SpringAI] --- HTTP RESPONSE ---");
+      // Không lấy được status code và header trực tiếp, chỉ log body
+      System.out.println("Body:");
+      System.out.println(requestBody);
+//      System.out.println("---------------------------");
+    } catch (Exception e) {
+      // Kiểm tra loại lỗi và xử lý phù hợp
+      if (e.getMessage() != null) {
+        if (e.getMessage().contains("503") || e.getMessage().contains("upstream connect error")) {
+          System.out.println("[AiServiceImpl] ⚠️ AI Service tạm thời không khả dụng (HTTP 503). Đang thử lại...");
+          return "⚠️ **AI Service tạm thời không khả dụng**\n\n" +
+                 "Lỗi kết nối tạm thời với AI service. Vui lòng thử lại sau vài giây.\n\n" +
+                 "**Chi tiết:** " + e.getMessage() + "\n\n" +
+                 "💡 **Gợi ý:** Hệ thống sẽ tự động retry. Nếu vấn đề tiếp tục, vui lòng liên hệ admin.";
+        } else if (e.getMessage().contains("401") || e.getMessage().contains("Unauthorized")) {
+          System.out.println("[AiServiceImpl] ❌ Lỗi xác thực API key: " + e.getMessage());
+          return "❌ **Lỗi xác thực API**\n\n" +
+                 "API key không hợp lệ hoặc đã hết hạn.\n\n" +
+                 "**Chi tiết:** " + e.getMessage() + "\n\n" +
+                 "💡 **Gợi ý:** Vui lòng kiểm tra lại cấu hình API key.";
+        } else if (e.getMessage().contains("429") || e.getMessage().contains("rate limit")) {
+          System.out.println("[AiServiceImpl] ⚠️ Rate limit exceeded: " + e.getMessage());
+          return "⚠️ **Rate Limit Exceeded**\n\n" +
+                 "Đã vượt quá giới hạn số lượng request. Vui lòng chờ vài phút trước khi thử lại.\n\n" +
+                 "**Chi tiết:** " + e.getMessage() + "\n\n" +
+                 "💡 **Gợi ý:** Hệ thống sẽ tự động retry sau một khoảng thời gian.";
+        }
+      }
+      
+      System.out.println("[AiServiceImpl] ❌ ERROR: Failed to parse AI response: " + e.getMessage());
+      return "❌ **AI Service Error**\n\n" +
+             "Không thể kết nối tới AI service hoặc phản hồi không hợp lệ.\n\n" +
+             "**Chi tiết:** " + e.getMessage() + "\n\n" +
+             "💡 **Gợi ý:** Vui lòng thử lại sau hoặc liên hệ admin nếu vấn đề tiếp tục.";
+    }
+
+    // Đảm bảo query luôn là 1 (bắt buộc tìm kiếm)
+    if (requestBody.getQuery() != 1) {
+      System.out.println("[AiServiceImpl] Setting query=1 (was " + requestBody.getQuery() + ")");
+      requestBody.setQuery(1);
+    }
+
+    System.out.println("THong tin quey: "+requestBody.getQuery());
+    System.out.println("[AiServiceImpl] Generated query body: " + requestBody.getBody());
+    System.out.println("[AiServiceImpl] Using current date context: " + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+
+    String fixedQuery = requestBody.getBody(); // Giá trị mặc định
+
+    // Validation: Kiểm tra xem body có phải là JSON query hay không
+    if (requestBody.getBody() != null) {
+
+      String flg = checkBodyFormat(requestBody);
+      System.out.println("flg: " + flg);
+      if (flg != null)
+      {
+        return flg;
+      }
+
+      System.out.println("requestBody: " + requestBody);
+      System.out.println("chatRequest: " + chatRequest);
+      String[] result = getLogData(requestBody, chatRequest);
+      content = result[0];
+      fixedQuery = result[1];
+
+      System.out.println("content: " + content);
+
+      // Check if content is actually an error message (starts with ❌)
+      if (content != null && content.startsWith("❌")) {
+        // Return error immediately without further processing
+        return content;
+      }
+      
+      // Check if Elasticsearch returned empty results
+      if (content != null && isEmptyElasticsearchResult(content)) {
+        System.out.println("[AiServiceImpl] Elasticsearch returned no data, continuing with AI processing");
+        // Không trả về lỗi trực tiếp, để AI xử lý trường hợp không có dữ liệu
+      }
+    }
+
+    // Bước 3: Tóm tắt kết quả và trả lời người dùng
+    return getAiResponse(sessionId,chatRequest,content, fixedQuery);
+  }
+
+  /**
+   * Kiểm tra và sửa định dạng phần thân (body) JSON của truy vấn
+   * - Cân bằng dấu ngoặc nhọn nếu bị lệch
+   * - Xác thực phải có ít nhất một trong hai trường: "query" hoặc "aggs"
+   * - Tạo lại RequestBody nếu JSON đã được tự động sửa để đảm bảo nhất quán
+   *
+   * @param requestBody Đối tượng chứa JSON truy vấn do AI tạo ra
+   * @return null nếu hợp lệ; trả về chuỗi thông báo lỗi nếu không hợp lệ
+   */
+  private String checkBodyFormat(RequestBody requestBody){
+    // Chỉ kiểm tra hợp lệ, không tự sửa JSON
+
+    try {
+      JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(requestBody.getBody());
+
+      // Validate that it's a proper Elasticsearch query
+      if (!jsonNode.has("query") && !jsonNode.has("aggs")) {
+        System.out.println("[AiServiceImpl] ERROR: Missing 'query' or 'aggs' field!");
+        return "❌ AI model trả về query không hợp lệ. Cần có 'query' hoặc 'aggs' field.";
+      }
+
+    } catch (Exception e) {
+      System.out.println("[AiServiceImpl] ERROR: Invalid JSON format from AI!");
+      System.out.println("[AiServiceImpl] Expected: JSON object with 'query' or 'aggs' field");
+      System.out.println("[AiServiceImpl] Received: " + requestBody.getBody());
+      System.out.println("[AiServiceImpl] Error details: " + e.getMessage());
+      return "❌ AI model trả về format không đúng. Cần JSON query (một object duy nhất), nhận được: " + requestBody.getBody();
+    }
+
+    return null;
+  }
 
 
-        List<String> schemaHints = SchemaHint.allSchemas();
-        String schemaContext = String.join("\n\n", schemaHints);
-        UserMessage schemaMsg = new UserMessage("Available schema hints:\n" + schemaContext);
+  /**
+   * Phiên bản đơn giản của getLogData với retry khi gặp lỗi 400
+   * @param requestBody Chứa JSON query từ AI
+   * @param chatRequest Yêu cầu gốc của user
+   * @return [content, query] - nội dung từ ES và query đã sử dụng
+   */
+  private String[] getLogData(RequestBody requestBody, ChatRequest chatRequest) {
+    String query = requestBody.getBody();
 
+    // First try to fix common query structure issues
+    String fixedQuery = fixQueryStructure(query);
+    if (!fixedQuery.equals(query)) {
+      System.out.println("[AiServiceImpl] 🔧 Query structure was automatically fixed");
+      query = fixedQuery; // Use the fixed query
+    }
 
-          UserMessage userMessage = new UserMessage(chatRequest.message());
-        System.out.println(userMessage);
-        System.out.println("----------------------------------------------------------");
-        Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, userMessage));
+    // Validate query syntax before sending to Elasticsearch
+    String validationError = validateQuerySyntax(query);
+    if (validationError != null) {
+      System.out.println("[AiServiceImpl] Query validation failed: " + validationError);
+      return new String[]{
+          "❌ **Query Validation Error**\n\n" +
+              "Query có cú pháp không hợp lệ trước khi gửi đến Elasticsearch.\n\n" +
+              "**Lỗi validation:** " + validationError + "\n\n" +
+              "💡 **Gợi ý:** Vui lòng thử câu hỏi khác hoặc kiểm tra lại cấu trúc query.",
+          query
+      };
+    }
 
-        // Cấu hình ChatClient với temperature = 0 để có kết quả ổn định và tuân thủ strict
-        ChatOptions chatOptions = ChatOptions.builder()
-            .temperature(0.6D)
-            .build();
+    try {
+      System.out.println("[AiServiceImpl] Sending query to Elasticsearch: " + query);
+      String content = logApiService.search("logs-fortinet_fortigate.log-default*", query);
+      System.out.println("[AiServiceImpl] Elasticsearch response received successfully");
+      return new String[]{content, query};
+    } catch (Exception e) {
+      System.out.println("[AiServiceImpl] ERROR: Log API returned an error! " + e.getMessage());
 
-        // Gọi AI để phân tích và tạo request body
+      // Parse error details từ Elasticsearch
+      String errorDetails = extractElasticsearchError(e.getMessage());
+      System.out.println("[AiServiceImpl] Parsed error details: " + errorDetails);
+
+      // Nếu là lỗi 400 Bad Request, thử sửa query bằng AI và retry một lần
+      if (e.getMessage().contains("400") || e.getMessage().contains("Bad Request") ||
+          e.getMessage().contains("parsing_exception") || e.getMessage().contains("illegal_argument_exception")) {
+
+        System.out.println("[AiServiceImpl] 🔄 Đang thử sửa query với AI và retry...");
+
         try {
-            requestBody =  chatClient
-                .prompt(prompt)
-                .options(chatOptions)
-                .call()
-                .entity(new ParameterizedTypeReference<>() {
-                });
-        } catch (Exception e) {
-            System.out.println("[AiServiceImpl] ERROR: Failed to parse AI response: " + e.getMessage());
+          // Lấy field mapping và tạo comparison prompt với error details
+          String allFields = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
+          String prevQuery = requestBody.getBody();
+          String userMess = chatRequest.message();
 
-            // Thử lấy raw response và fix manually
-            String rawResponse = chatClient
-                .prompt(prompt)
-                .options(chatOptions)
+          // Cải thiện prompt với error details cụ thể
+          String enhancedPrompt = PromptTemplate.getComparisonPrompt(
+              allFields, prevQuery, userMess, generateDateContext(LocalDateTime.now())
+          ) + "\n\nIMPORTANT: The previous query failed with this error:\n" + errorDetails + 
+              "\nPlease fix the specific issue mentioned in the error and generate a corrected Elasticsearch query.";
+
+          Prompt comparePrompt = new Prompt(
+              new SystemMessage(enhancedPrompt),
+              new UserMessage("Fix this query error: " + errorDetails + " | User request: " + userMess + " | Failed query: " + prevQuery)
+          );
+
+          // Provider for retry flow: default ChatClient (OpenAI)
+          // Giữ temperature = 0.0 để kết quả ổn định và bám sát lỗi cần sửa
+          ChatOptions retryChatOptions = ChatOptions.builder()
+              .temperature(0.0D)
+              .build();
+
+          // Gọi AI để tạo query mới với isolate memory
+          String retryConversationId = "retry_" + System.currentTimeMillis();
+          String newQuery;
+          
+          try {
+            // First try to get as RequestBody (normal flow)
+            RequestBody newRequestBody = chatClient.prompt(comparePrompt)
+                .options(retryChatOptions)
+                .advisors(advisorSpec -> advisorSpec.param(
+                    ChatMemory.CONVERSATION_ID, retryConversationId
+                ))
+                .call()
+                .entity(new ParameterizedTypeReference<>() {});
+
+            // Đảm bảo query luôn là 1
+            if (newRequestBody.getQuery() != 1) {
+              newRequestBody.setQuery(1);
+            }
+            newQuery = newRequestBody.getBody();
+          } catch (Exception parseException) {
+            System.out.println("[AiServiceImpl] Failed to parse as RequestBody, trying raw JSON: " + parseException.getMessage());
+            
+            // If RequestBody parsing fails, try to get raw JSON response
+            String rawResponse = chatClient.prompt(comparePrompt)
+                .options(retryChatOptions)
+                .advisors(advisorSpec -> advisorSpec.param(
+                    ChatMemory.CONVERSATION_ID, retryConversationId
+                ))
                 .call()
                 .content();
-
-            System.out.println("[AiServiceImpl] Raw AI response: " + rawResponse);
-
-            // Fix JSON format issues
-            String fixedResponse = fixAiJsonResponse(rawResponse);
-            System.out.println("[AiServiceImpl] Fixed AI response: " + fixedResponse);
-
+            
+            // Clean and validate the raw JSON response
+            newQuery = rawResponse.trim();
+            
+            // Remove any markdown code blocks if present
+            if (newQuery.startsWith("```json")) {
+              newQuery = newQuery.substring(7);
+            }
+            if (newQuery.endsWith("```")) {
+              newQuery = newQuery.substring(0, newQuery.length() - 3);
+            }
+            newQuery = newQuery.trim();
+            
+            // Validate that it's valid JSON
             try {
-                ObjectMapper mapper = new ObjectMapper();
-                requestBody = mapper.readValue(fixedResponse, RequestBody.class);
-                System.out.println("[AiServiceImpl] Successfully parsed fixed response");
-            } catch (Exception ex) {
-                System.out.println("[AiServiceImpl] ERROR: Still failed to parse after fixing: " + ex.getMessage());
-                return "❌ AI model trả về format không hợp lệ và không thể sửa được: " + ex.getMessage();
+              new com.fasterxml.jackson.databind.ObjectMapper().readTree(newQuery);
+              System.out.println("[AiServiceImpl] Successfully parsed raw JSON response");
+            } catch (Exception jsonException) {
+              System.out.println("[AiServiceImpl] Raw response is not valid JSON: " + jsonException.getMessage());
+              throw new RuntimeException("AI returned invalid JSON: " + newQuery, jsonException);
             }
+          }
+          System.out.println("[AiServiceImpl] 🔧 Generated new query with error fix: " + newQuery);
+
+          // Kiểm tra xem query mới có khác query cũ không
+          if (newQuery.equals(prevQuery)) {
+            System.out.println("[AiServiceImpl] WARNING: New query is identical to failed query");
+            return new String[]{
+                "❌ **Elasticsearch Error (Same Query Generated)**\n\n" +
+                    "AI tạo ra query giống hệt với query đã lỗi.\n\n" +
+                    "**Lỗi gốc:** " + errorDetails + "\n\n" +
+                    "💡 **Gợi ý:** Vui lòng thử câu hỏi khác với cách diễn đạt khác.",
+                query
+            };
+          }
+
+          // Retry với query mới
+          System.out.println("[AiServiceImpl] 🔄 Đang thử lại với query đã sửa...");
+          String retryContent = logApiService.search("logs-fortinet_fortigate.log-default*", newQuery);
+          System.out.println("[AiServiceImpl] ✅ Retry successful with corrected query");
+          return new String[]{retryContent, newQuery};
+
+        } catch (Exception retryE) {
+          System.out.println("[AiServiceImpl] Retry also failed: " + retryE.getMessage());
+          
+          // Determine if it's a parsing error or Elasticsearch error
+          String retryErrorDetails;
+          if (retryE.getMessage().contains("Cannot deserialize") || retryE.getMessage().contains("MismatchedInputException")) {
+            retryErrorDetails = "AI Response Parsing Error - AI returned invalid format";
+          } else {
+            retryErrorDetails = extractElasticsearchError(retryE.getMessage());
+          }
+          
+          return new String[]{
+              "❌ **Elasticsearch Error (After Retry)**\n\n" +
+                  "Query ban đầu lỗi và query được sửa cũng không thành công.\n\n" +
+                  "**Lỗi ban đầu:** " + errorDetails + "\n\n" +
+                  "**Lỗi sau retry:** " + retryErrorDetails + "\n\n" +
+                  "💡 **Gợi ý:** Vui lòng thử câu hỏi khác hoặc kiểm tra cấu trúc dữ liệu.",
+              query
+          };
         }
+      }
 
-        // Đảm bảo query luôn là 1 (bắt buộc tìm kiếm)
-        if (requestBody.getQuery() != 1) {
-            System.out.println("[AiServiceImpl] Setting query=1 (was " + requestBody.getQuery() + ")");
-            requestBody.setQuery(1);
+      // Với các lỗi khác (không phải 400), trả lỗi trực tiếp
+      return new String[]{
+          "❌ **Elasticsearch Error**\n\n" +
+              "Không thể thực hiện truy vấn Elasticsearch.\n\n" +
+              "**Chi tiết lỗi:** " + errorDetails + "\n\n" +
+              "💡 **Gợi ý:** Kiểm tra lại câu hỏi hoặc liên hệ admin.",
+          query
+      };
+    }
+  }
+
+  /**
+   * Kiểm tra xem kết quả từ Elasticsearch có rỗng không
+   * @param elasticsearchResponse JSON response từ Elasticsearch
+   * @return true nếu không có dữ liệu, false nếu có dữ liệu
+   */
+  private boolean isEmptyElasticsearchResult(String elasticsearchResponse) {
+    try {
+      JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(elasticsearchResponse);
+      
+      boolean hasHits = false;
+      if (jsonNode.has("hits")) {
+        JsonNode hitsNode = jsonNode.get("hits");
+        if (hitsNode.has("total")) {
+          JsonNode totalNode = hitsNode.get("total");
+          if (totalNode.has("value") && totalNode.get("value").asLong() > 0) {
+            hasHits = true;
+          }
         }
+        if (!hasHits && hitsNode.has("hits")) {
+          JsonNode hitsArrayNode = hitsNode.get("hits");
+          if (hitsArrayNode.isArray() && hitsArrayNode.size() > 0) {
+            hasHits = true;
+          }
+        }
+      }
+      
+      boolean hasAggregations = jsonNode.has("aggregations");
+      
+      // No-data ONLY when there are no hits AND no aggregations at all
+      return !hasHits && !hasAggregations;
+      
+    } catch (Exception e) {
+      System.out.println("[AiServiceImpl] Error parsing Elasticsearch response for empty check: " + e.getMessage());
+      return false; // If parse fails, do not block; let AI format
+    }
+  }
 
-        System.out.println("[AiServiceImpl] Generated query body: " + requestBody.getBody());
-        System.out.println("[AiServiceImpl] Using current date context: " + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+  /**
+   * Parse error message từ Elasticsearch để lấy thông tin chi tiết
+   * @param errorMessage Raw error message
+   * @return Parsed error details
+   */
+  private String extractElasticsearchError(String errorMessage) {
+    // Extract common Elasticsearch error patterns
+    if (errorMessage.contains("parsing_exception")) {
+      return "Query syntax error - Invalid JSON structure or field mapping";
+    } else if (errorMessage.contains("illegal_argument_exception")) {
+      return "Invalid argument - Check field names and aggregation syntax";
+    } else if (errorMessage.contains("No mapping found")) {
+      return "Field mapping error - Field does not exist in index";
+    } else if (errorMessage.contains("400 Bad Request")) {
+      return "Bad Request - Query structure or field validation failed";
+    } else if (errorMessage.contains("index_not_found_exception")) {
+      return "Index not found - Check index name and existence";
+    } else {
+      // Return first 200 characters của error message
+      return errorMessage.length() > 200 ? errorMessage.substring(0, 200) + "..." : errorMessage;
+    }
+  }
 
-        String fixedQuery = requestBody.getBody(); // Default value
-
-        // Validation: Kiểm tra xem body có phải là JSON query hay không
-        if (requestBody.getBody() != null) {
-
-            String flg = checkBodyFormat(requestBody);
-            System.out.println("flg: " + flg);
-            if (flg != null)
-            {
-                return flg;
+  /**
+   * Validate Elasticsearch query syntax before sending to Elasticsearch
+   * @param query JSON query string
+   * @return null if valid, error message if invalid
+   */
+  private String validateQuerySyntax(String query) {
+    try {
+      // Parse JSON to check syntax
+      JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(query);
+      
+      // Check for required fields
+      if (!jsonNode.has("query") && !jsonNode.has("aggs")) {
+        return "Query must contain either 'query' or 'aggs' field";
+      }
+      
+      // Check for common syntax issues
+      if (jsonNode.has("query")) {
+        JsonNode queryNode = jsonNode.get("query");
+        
+        // Check if aggs is incorrectly placed inside query instead of at root level
+        if (queryNode.has("aggs")) {
+          return "Aggregations must be at root level, not inside query. Move 'aggs' outside of 'query'.";
+        }
+        
+        if (queryNode.has("bool")) {
+          JsonNode boolNode = queryNode.get("bool");
+          
+          // Check if aggs is incorrectly placed inside bool
+          if (boolNode.has("aggs")) {
+            return "Aggregations must be at root level, not inside bool query. Move 'aggs' outside of 'query'.";
+          }
+          
+          if (boolNode.has("filter")) {
+            JsonNode filterNode = boolNode.get("filter");
+            if (!filterNode.isArray()) {
+              return "Bool filter must be an array";
             }
-
-
-            String[] result = getLogData(requestBody, chatRequest);
-            content = result[0];
-            fixedQuery = result[1];
-
-            System.out.println("content: " + content);
-
-
+            
+            // Check each filter element
+            for (JsonNode filter : filterNode) {
+              if (filter.has("aggs")) {
+                return "Aggregations cannot be inside filter. Move 'aggs' to root level.";
+              }
+            }
+          }
+          
+          if (boolNode.has("must")) {
+            JsonNode mustNode = boolNode.get("must");
+            if (!mustNode.isArray()) {
+              return "Bool must must be an array";
+            }
+          }
+          
+          if (boolNode.has("should")) {
+            JsonNode shouldNode = boolNode.get("should");
+            if (!shouldNode.isArray()) {
+              return "Bool should must be an array";
+            }
+          }
         }
+      }
+      
+      // Check aggregations structure
+      if (jsonNode.has("aggs")) {
+        JsonNode aggsNode = jsonNode.get("aggs");
+        if (!aggsNode.isObject()) {
+          return "Aggregations must be an object";
+        }
+      }
+      
+      // Check for size parameter
+      if (jsonNode.has("size")) {
+        JsonNode sizeNode = jsonNode.get("size");
+        if (!sizeNode.isNumber()) {
+          return "Size parameter must be a number";
+        }
+      }
+      
+      return null; // Valid query
+      
+    } catch (Exception e) {
+      return "Invalid JSON syntax: " + e.getMessage();
+    }
+  }
 
+  /**
+   * Attempt to fix common Elasticsearch query structure issues
+   * @param query JSON query string
+   * @return Fixed query string or original if no fixes needed
+   */
+  private String fixQueryStructure(String query) {
+    try {
+      ObjectMapper mapper = new ObjectMapper();
+      JsonNode jsonNode = mapper.readTree(query);
+      
+      // Check if aggs is incorrectly placed inside query
+      if (jsonNode.has("query")) {
+        JsonNode queryNode = jsonNode.get("query");
+        
+        // Fix: Move aggs from inside query to root level
+        if (queryNode.has("aggs")) {
+          JsonNode aggsNode = queryNode.get("aggs");
+          
+          // Create a new root object with aggs moved out
+          ObjectNode fixedQuery = mapper.createObjectNode();
+          fixedQuery.set("query", queryNode.deepCopy());
+          fixedQuery.remove("aggs"); // Remove aggs from query
+          fixedQuery.set("aggs", aggsNode);
+          
+          // Copy other root-level fields
+          jsonNode.fieldNames().forEachRemaining(fieldName -> {
+            if (!fieldName.equals("query") && !fieldName.equals("aggs")) {
+              fixedQuery.set(fieldName, jsonNode.get(fieldName));
+            }
+          });
+          
+          String fixedQueryString = mapper.writeValueAsString(fixedQuery);
+          System.out.println("[AiServiceImpl] Fixed query structure - moved aggs to root level");
+          return fixedQueryString;
+        }
+        
+        // Fix: Move aggs from inside bool to root level
+        if (queryNode.has("bool")) {
+          JsonNode boolNode = queryNode.get("bool");
+          if (boolNode.has("aggs")) {
+            JsonNode aggsNode = boolNode.get("aggs");
+            
+            // Create a new root object with aggs moved out
+            ObjectNode fixedQuery = mapper.createObjectNode();
+            ObjectNode newQueryNode = queryNode.deepCopy();
+            ObjectNode newBoolNode = boolNode.deepCopy();
+            newBoolNode.remove("aggs");
+            newQueryNode.set("bool", newBoolNode);
+            fixedQuery.set("query", newQueryNode);
+            fixedQuery.set("aggs", aggsNode);
+            
+            // Copy other root-level fields
+            jsonNode.fieldNames().forEachRemaining(fieldName -> {
+              if (!fieldName.equals("query") && !fieldName.equals("aggs")) {
+                fixedQuery.set(fieldName, jsonNode.get(fieldName));
+              }
+            });
+            
+            String fixedQueryString = mapper.writeValueAsString(fixedQuery);
+            System.out.println("[AiServiceImpl] Fixed query structure - moved aggs from bool to root level");
+            return fixedQueryString;
+          }
+        }
+      }
+      
+      return query; // No fixes needed
+      
+    } catch (Exception e) {
+      System.out.println("[AiServiceImpl] Failed to fix query structure: " + e.getMessage());
+      return query; // Return original query if fix fails
+    }
+  }
 
+  /**
+   * Create and validate an Elasticsearch DSL query
+   * @param queryBody JSON query string
+   * @return Map containing validation result and formatted query
+   */
+  public Map<String, Object> createAndValidateQuery(String queryBody) {
+    Map<String, Object> result = new HashMap<>();
+    
+    try {
+      // First try to fix common structure issues
+      String fixedQuery = fixQueryStructure(queryBody);
+      
+      // Validate the query syntax
+      String validationError = validateQuerySyntax(fixedQuery);
+      
+      if (validationError != null) {
+        result.put("success", false);
+        result.put("error", validationError);
+        result.put("query", queryBody);
+        result.put("fixed_query", fixedQuery);
+        return result;
+      }
+      
+      // Format the query for better readability
+      ObjectMapper mapper = new ObjectMapper();
+      JsonNode jsonNode = mapper.readTree(fixedQuery);
+      String formattedQuery = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonNode);
+      
+      result.put("success", true);
+      result.put("query", fixedQuery);
+      result.put("formatted_query", formattedQuery);
+      result.put("validation_message", "Query syntax is valid");
+      result.put("was_fixed", !fixedQuery.equals(queryBody));
+      
+    } catch (Exception e) {
+      result.put("success", false);
+      result.put("error", "Failed to process query: " + e.getMessage());
+      result.put("query", queryBody);
+    }
+    
+    return result;
+  }
 
-        // Bước 3: Tóm tắt kết quả và trả lời người dùng
-        return getAiResponse(sessionId,chatRequest,content, fixedQuery);
+  /**
+   * Tóm tắt và diễn giải dữ liệu log thành ngôn ngữ tự nhiên
+   * Sử dụng AI để phân tích kết quả từ Elasticsearch và tạo câu trả lời dễ hiểu
+   *
+   * @param sessionId ID phiên chat để duy trì ngữ cảnh
+   * @param chatRequest Yêu cầu gốc từ người dùng
+   * @param content Dữ liệu log từ Elasticsearch hoặc câu trả lời trực tiếp
+   * @param query Query đã được sử dụng để tìm kiếm
+   * @return Câu trả lời bằng ngôn ngữ tự nhiên
+   */
+  public String getAiResponse(Long sessionId,ChatRequest chatRequest, String content,String query) {
+    String conversationId = sessionId.toString();
+
+    // Lấy thời gian thực của máy
+    LocalDateTime currentTime = LocalDateTime.now();
+    String currentDate = currentTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    String currentDateTime = currentTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+    // Định dạng JSON query để hiển thị tốt hơn
+    String formattedQuery = query;
+    try {
+      ObjectMapper mapper = new ObjectMapper();
+      JsonNode jsonNode = mapper.readTree(query);
+      formattedQuery = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonNode);
+    } catch (Exception e) {
+      System.out.println("[AiServiceImpl] Could not format query JSON: " + e.getMessage());
     }
 
-    private String checkBodyFormat(RequestBody requestBody){
-        String originalBody = requestBody.getBody().trim();
-        String body = originalBody;
-
-        // Fix JSON formatting by balancing braces
-        body = fixJsonBraces(body);
-
-        // Log if JSON was fixed
-        if (!body.equals(originalBody)) {
-            System.out.println("[AiServiceImpl] JSON was automatically fixed:");
-            System.out.println("[AiServiceImpl] Original: " + originalBody);
-            System.out.println("[AiServiceImpl] Fixed:    " + body);
-
-            // When JSON is fixed, we should regenerate the query field to ensure consistency
-            // For now, we'll keep the original query but log a warning
-            System.out.println("[AiServiceImpl] WARNING: JSON was fixed but query field may be inconsistent");
-            System.out.println("[AiServiceImpl] Current query field: " + requestBody.getQuery());
-
-            // Regenerate RequestBody to ensure consistency between body and query fields
-            requestBody = regenerateRequestBodyWithFixedJson(body, requestBody.getQuery());
-        }
-
-        try {
-            JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(requestBody.getBody());
-
-            // Validate that it's a proper Elasticsearch query
-            if (!jsonNode.has("query") && !jsonNode.has("aggs")) {
-                System.out.println("[AiServiceImpl] ERROR: Missing 'query' or 'aggs' field!");
-                return "❌ AI model trả về query không hợp lệ. Cần có 'query' hoặc 'aggs' field.";
-            }
-
-        } catch (Exception e) {
-            System.out.println("[AiServiceImpl] ERROR: Invalid JSON format even after auto-fix!");
-            System.out.println("[AiServiceImpl] Expected: JSON object with 'query' field");
-            System.out.println("[AiServiceImpl] Received: " + requestBody.getBody());
-            System.out.println("[AiServiceImpl] Error details: " + e.getMessage());
-            return "❌ AI model trả về format không đúng. Đã cố gắng sửa tự động nhưng vẫn không hợp lệ. Cần JSON query, nhận được: " + requestBody.getBody();
-        }
-
-        return null;
-    }
-
-    /**
-     * Fix JSON by balancing opening and closing braces
-     * Remove extra closing braces that don't have matching opening braces
-     */
-    private String fixJsonBraces(String json) {
-        if (json == null || json.trim().isEmpty()) {
-            return json;
-        }
-
-        int openBraces = 0;
-        int closeBraces = 0;
-        boolean inString = false;
-        boolean escaped = false;
-
-        // Count braces outside of string literals
-        for (int i = 0; i < json.length(); i++) {
-            char c = json.charAt(i);
-
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-
-            if (c == '\\' && inString) {
-                escaped = true;
-                continue;
-            }
-
-            if (c == '"') {
-                inString = !inString;
-                continue;
-            }
-
-            if (!inString) {
-                if (c == '{') {
-                    openBraces++;
-                } else if (c == '}') {
-                    closeBraces++;
-                }
-            }
-        }
-
-        // If we have extra closing braces, remove them from the end
-        if (closeBraces > openBraces) {
-            int extraBraces = closeBraces - openBraces;
-            String result = json;
-
-            // Remove extra closing braces from the end
-            for (int i = 0; i < extraBraces; i++) {
-                int lastBraceIndex = result.lastIndexOf('}');
-                if (lastBraceIndex > 0) {
-                    result = result.substring(0, lastBraceIndex).trim();
-                }
-            }
-
-            System.out.println("[AiServiceImpl] Fixed JSON: Removed " + extraBraces + " extra closing braces");
-            System.out.println("[AiServiceImpl] Fixed JSON result: " + result);
-            return result;
-        }
-
-        return json;
-    }
-
-    /**
-     * Regenerate RequestBody with fixed JSON to ensure consistency
-     * This creates a new RequestBody with the fixed JSON and preserves the query field
-     */
-    private RequestBody regenerateRequestBodyWithFixedJson(String fixedJson, int originalQuery) {
-        System.out.println("[AiServiceImpl] Regenerating RequestBody with fixed JSON");
-        // Đảm bảo query luôn là 1, bất kể giá trị originalQuery
-        return new RequestBody(fixedJson, 1);
-    }
-
-    /**
-     * Fix AI JSON response by removing line breaks and string concatenation
-     * @param rawResponse Raw response from AI
-     * @return Fixed JSON string
-     */
-    private String fixAiJsonResponse(String rawResponse) {
-        if (rawResponse == null || rawResponse.trim().isEmpty()) {
-            return rawResponse;
-        }
-
-        String fixed = rawResponse;
-
-        // Remove line breaks and extra whitespace
-        fixed = fixed.replaceAll("\\n", "").replaceAll("\\r", "").trim();
-
-        // Fix string concatenation with + operator
-        // Pattern: "text1" + "text2" -> "text1text2"
-        fixed = fixed.replaceAll("\"\\s*\\+\\s*\"", "");
-
-        // Fix cases where there are spaces around +
-        fixed = fixed.replaceAll("\"\\s*\\+\\s*\\n\\s*\"", "");
-
-        // Remove extra spaces
-        fixed = fixed.replaceAll("\\s+", " ");
-
-        System.out.println("[AiServiceImpl] Fixed JSON concatenation issues");
-        return fixed;
-    }
-
-    /**
-     * Xử lý một match clause và chuyển đổi thành term nếu cần
-     * @param clause JsonNode chứa match clause
-     * @param mapper ObjectMapper để tạo nodes
-     * @param targetArray ArrayNode để thêm kết quả
-     * @param index Index để set trong array
-     * @return true nếu có thay đổi
-     */
-    private boolean processMatchClause(JsonNode clause, ObjectMapper mapper, ArrayNode targetArray, int index) {
-        if (!clause.has("match")) {
-            return false;
-        }
-
-        JsonNode matchNode = clause.get("match");
-        @SuppressWarnings("deprecation")
-        Iterator<Map.Entry<String, JsonNode>> fieldIterator = matchNode.fields();
-
-        boolean modified = false;
-        while (fieldIterator.hasNext()) {
-            Map.Entry<String, JsonNode> field = fieldIterator.next();
-            String fieldName = field.getKey();
-
-            if (fieldName.equals("event.action") ||
-                fieldName.equals("event.outcome") ||
-                fieldName.equals("source.user.name") ||
-                fieldName.equals("source.user.roles")) {
-
-                // Chuẩn hóa roles nếu là trường source.user.roles
-                JsonNode fieldValue = field.getValue();
-                if (fieldName.equals("source.user.roles") && fieldValue.isTextual()) {
-                    String originalRole = fieldValue.asText();
-                    String normalizedRole = SchemaHint.normalizeRole(originalRole);
-                    if (!originalRole.equals(normalizedRole)) {
-                        System.out.println("[AiServiceImpl] Normalized role: " + originalRole + " -> " + normalizedRole);
-                        fieldValue = mapper.valueToTree(normalizedRole);
-                    }
-                }
-
-                // Tạo term query mới
-                ObjectNode termQuery = mapper.createObjectNode();
-                ObjectNode termField = mapper.createObjectNode();
-                termField.set(fieldName, fieldValue);
-                termQuery.set("term", termField);
-
-                // Thêm vào array tại vị trí index
-                if (targetArray.size() <= index) {
-                    targetArray.add(termQuery);
-                } else {
-                    targetArray.set(index, termQuery);
-                }
-                modified = true;
-            }
-        }
-
-        // Nếu không có thay đổi, thêm clause gốc vào array
-        if (!modified && targetArray.size() <= index) {
-            targetArray.add(clause);
-        }
-
-        return modified;
-    }
-
-    /**
-     * Xử lý một term clause và chuẩn hóa roles nếu cần
-     * @param clause JsonNode chứa term clause
-     * @param mapper ObjectMapper để tạo nodes
-     * @param targetArray ArrayNode để thêm kết quả
-     * @param index Index để set trong array
-     * @return true nếu có thay đổi
-     */
-    private boolean processTermClause(JsonNode clause, ObjectMapper mapper, ArrayNode targetArray, int index) {
-        if (!clause.has("term")) {
-            return false;
-        }
-
-        JsonNode termNode = clause.get("term");
-        @SuppressWarnings("deprecation")
-        Iterator<Map.Entry<String, JsonNode>> fieldIterator = termNode.fields();
-
-        boolean modified = false;
-        while (fieldIterator.hasNext()) {
-            Map.Entry<String, JsonNode> field = fieldIterator.next();
-            String fieldName = field.getKey();
-
-            if (fieldName.equals("source.user.roles")) {
-                // Chuẩn hóa roles
-                JsonNode fieldValue = field.getValue();
-                if (fieldValue.isTextual()) {
-                    String originalRole = fieldValue.asText();
-                    String normalizedRole = SchemaHint.normalizeRole(originalRole);
-                    if (!originalRole.equals(normalizedRole)) {
-                        System.out.println("[AiServiceImpl] Normalized role in term query: " + originalRole + " -> " + normalizedRole);
-                        
-                        // Tạo term query mới với role đã chuẩn hóa
-                        ObjectNode termQuery = mapper.createObjectNode();
-                        ObjectNode termField = mapper.createObjectNode();
-                        termField.put(fieldName, normalizedRole);
-                        termQuery.set("term", termField);
-
-                        // Thay thế clause cũ
-                        targetArray.set(index, termQuery);
-                        modified = true;
-                    }
-                }
-            }
-        }
-
-        return modified;
-    }
-
-    /**
-     * Sửa các lỗi mapping phổ biến trong Elasticsearch query
-     * @param query JSON query gốc
-     * @return JSON query đã sửa
-     */
-    private String fixElasticsearchQuery(String query) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode rootNode = mapper.readTree(query);
-
-            // Tạo một bản sao để sửa
-            JsonNode fixedRoot = rootNode.deepCopy();
-            final boolean[] modified = {false};  // Sử dụng array để có thể thay đổi từ lambda
-
-            // Sửa lỗi phổ biến #1: Thêm .keyword cho aggregation fields
-            if (fixedRoot.has("aggs")) {
-                JsonNode aggsNode = fixedRoot.get("aggs");
-                // Duyệt qua các aggregation
-                @SuppressWarnings("deprecation")
-                Iterator<Map.Entry<String, JsonNode>> aggIterator = aggsNode.fields();
-                while (aggIterator.hasNext()) {
-                    Map.Entry<String, JsonNode> entry = aggIterator.next();
-                    JsonNode agg = entry.getValue();
-
-                    // Kiểm tra nếu đây là terms aggregation
-                    if (agg.has("terms") && agg.get("terms").has("field")) {
-                        String fieldName = agg.get("terms").get("field").asText();
-
-                        // DISABLED: Tự động thêm .keyword có thể sai mapping thực tế
-                        // Để AI tự tạo query đúng thay vì fix
-                        /*
-                        if (fieldName.equals("source.user.name") && !fieldName.endsWith(".keyword")) {
-                            ((ObjectNode)agg.get("terms"))
-                                .put("field", fieldName + ".keyword");
-                            modified[0] = true;
-                        }
-                        */
-                    }
-                }
-            }
-
-            // Sửa lỗi phổ biến #2: Chuyển match thành term cho keyword fields
-            if (fixedRoot.has("query") && fixedRoot.get("query").has("bool") &&
-                fixedRoot.get("query").get("bool").has("must")) {
-
-                JsonNode mustNode = fixedRoot.get("query").get("bool").get("must");
-
-                // Xử lý trường hợp must là array
-                if (mustNode.isArray()) {
-                    for (int j = 0; j < mustNode.size(); j++) {
-                        final int index = j;  // Tạo biến final cho lambda
-                        JsonNode clause = mustNode.get(index);
-
-                        if (processMatchClause(clause, mapper, (ArrayNode)mustNode, index)) {
-                            modified[0] = true;
-                        }
-                        if (processTermClause(clause, mapper, (ArrayNode)mustNode, index)) {
-                            modified[0] = true;
-                        }
-                    }
-                }
-                // Xử lý trường hợp must là object đơn
-                else if (mustNode.isObject()) {
-                    ArrayNode mustArray = mapper.createArrayNode();
-                    boolean hasChanges = false;
-                    
-                    if (mustNode.has("match")) {
-                        if (processMatchClause(mustNode, mapper, mustArray, 0)) {
-                            hasChanges = true;
-                        } else {
-                            mustArray.add(mustNode);
-                        }
-                    } else if (mustNode.has("term")) {
-                        if (processTermClause(mustNode, mapper, mustArray, 0)) {
-                            hasChanges = true;
-                        } else {
-                            mustArray.add(mustNode);
-                        }
-                    } else {
-                        mustArray.add(mustNode);
-                    }
-                    
-                    // Luôn chuyển thành array để chuẩn hóa
-                    ((ObjectNode)fixedRoot.get("query").get("bool")).set("must", mustArray);
-                    if (hasChanges) {
-                        modified[0] = true;
-                    }
-                }
-            }
-
-            // Trả về query đã sửa nếu có thay đổi
-            if (modified[0]) {
-                String fixedQuery = mapper.writeValueAsString(fixedRoot);
-                System.out.println("[AiServiceImpl] Fixed Elasticsearch query mapping issues:");
-                System.out.println("[AiServiceImpl] Original: " + query);
-                System.out.println("[AiServiceImpl] Fixed: " + fixedQuery);
-                return fixedQuery;
-            }
-
-            return query;
-        } catch (Exception e) {
-            System.out.println("[AiServiceImpl] Error in fixElasticsearchQuery: " + e.getMessage());
-            return query;
-        }
-    }
-
-    private String[] getLogData(RequestBody requestBody, ChatRequest chatRequest)
-    {
-        // Bước 2: Luôn thực hiện tìm kiếm Elasticsearch (vì đã bắt buộc query = 1)
-        // Cần tìm kiếm: gọi Elasticsearch và lấy dữ liệu log
-        String content = "";
-        String fixedQuery = "";
-        try{
-            // Sửa query trước khi gửi đến Elasticsearch
-            fixedQuery = fixElasticsearchQuery(requestBody.getBody());
-            System.out.println("[AiServiceImpl] Sending query to Elasticsearch: " + fixedQuery);
-
-            content = logApiService.search("logs-fortinet_fortigate.log-default*", fixedQuery);
-            System.out.println("[AiServiceImpl] Elasticsearch response received successfully");
-        }catch (Exception e){
-            content="";
-            System.out.println("[AiServiceImpl] ERROR: Log API returned an error! " + e.getMessage());
-
-            // Thử với một query đơn giản hơn để kiểm tra kết nối
-            try {
-                String simpleQuery = """
-                {
-                  "size": 1,
-                  "query": {
-                    "match_all": {}
-                  },
-                  "sort": [{"@timestamp": {"order": "desc"}}]
-                }
-                """;
-                System.out.println("[AiServiceImpl] Trying with a simple query: " + simpleQuery);
-                String simpleResult = logApiService.search("logs-fortinet_fortigate.log-default*", simpleQuery);
-
-                if (simpleResult != null && !simpleResult.isEmpty() && !simpleResult.contains("error")) {
-                    System.out.println("[AiServiceImpl] Simple query succeeded, there's likely a mapping issue with the original query");
-                    // Lấy mapping từ Elasticsearch để debug
-                    String mappingInfo = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
-                    System.out.println("[AiServiceImpl] Available fields: " + mappingInfo);
-                }
-            } catch (Exception ex) {
-                System.out.println("[AiServiceImpl] Simple query also failed: " + ex.getMessage());
-            }
-        }
-
-
-
-        try {
-            JsonNode jsonNode = objectMapper.readTree(content);
-            int totalHits = jsonNode.path("hits").path("total").path("value").asInt();
-
-            if (totalHits == 0) {
-                String allFields = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
-                String prevQuery = requestBody.getBody();
-                String userMess = chatRequest.message();
-
-                String systemMsg = String.format("""
-                    You are an Elasticsearch Query Generator. Re-generate the query to match the user request better.
-                    
-                    CRITICAL RULES - FOLLOW EXACTLY:
-                    1. ALWAYS return RequestBody with body (JSON string) and query (set to 1)
-                    2. ALWAYS use '+07:00' timezone format in timestamps (Vietnam timezone)
-                    3. ALWAYS return single-line JSON without line breaks or string concatenation
-                    4. NEVER use line breaks in JSON response
-                    5. NEVER use string concatenation with '+' operator
-                    6. Return entire JSON as single continuous string
-                    
-                    TIMESTAMP FORMAT:
-                    - CORRECT: "2025-09-14T11:41:04.000+07:00"
-                    - INCORRECT: "2025-09-14T11:41:04.000Z"
-                    
-                    Available fields: %s
-                    
-                    Return ONLY the RequestBody JSON. No explanations.
-                    Example: {"body":"{\"query\":{\"match_all\":{}},\"size\":10}","query":1}
-                    """, allFields);
-
-                Prompt comparePrompt = new Prompt(
-                        new SystemMessage(systemMsg),
-                        new UserMessage("User request: " + userMess + " | Previous query: " + prevQuery)
-                );
-
-                ChatOptions chatOptions = ChatOptions.builder()
-                        .temperature(1D)
-                        .build();
-
-                try {
-                    requestBody = chatClient.prompt(comparePrompt)
-                        .options(chatOptions)
-                        .call()
-                        .entity(new ParameterizedTypeReference<>() {});
-                } catch (Exception e) {
-                    System.out.println("[AiServiceImpl] ERROR: Failed to parse regenerated AI response: " + e.getMessage());
-
-                    // Thử lấy raw response và fix manually
-                    String rawResponse = chatClient.prompt(comparePrompt)
-                        .options(chatOptions)
-                        .call()
-                        .content();
-
-                    System.out.println("[AiServiceImpl] Raw regenerated AI response: " + rawResponse);
-
-                    // Fix JSON format issues
-                    String fixedResponse = fixAiJsonResponse(rawResponse);
-                    System.out.println("[AiServiceImpl] Fixed regenerated AI response: " + fixedResponse);
-
-                    try {
-                        ObjectMapper mapper = new ObjectMapper();
-                        requestBody = mapper.readValue(fixedResponse, RequestBody.class);
-                        System.out.println("[AiServiceImpl] Successfully parsed fixed regenerated response");
-                    } catch (Exception ex) {
-                        System.out.println("[AiServiceImpl] ERROR: Failed to parse regenerated response even after fixing: " + ex.getMessage());
-                        content = "Failure to regenerate query";
-                        return new String[]{content, fixedQuery != null ? fixedQuery : requestBody.getBody()};
-                    }
-                }
-
-                // Đảm bảo query luôn là 1 cho query được tạo lại
-                if (requestBody.getQuery() != 1) {
-                    System.out.println("[AiServiceImpl] Setting query=1 for regenerated query (was " + requestBody.getQuery() + ")");
-                    requestBody.setQuery(1);
-                }
-
-                System.out.println("[AiServiceImpl] Generated query body2: " + requestBody.getBody());
-
-                // Sửa query trước khi gửi đến Elasticsearch
-                fixedQuery = fixElasticsearchQuery(requestBody.getBody());
-                System.out.println("[AiServiceImpl] Sending regenerated query to Elasticsearch: " + fixedQuery);
-                content = logApiService.search("logs-fortinet_fortigate.log-default*", fixedQuery);
-            }
-        }
-        catch (Exception e)
-        {
-            content = "Failure to request data";
-            System.out.println("[AiServiceImpl] - getLogData: "+content+ " " +e.getMessage());
-            // Nếu có lỗi và fixedQuery chưa được set, sử dụng query gốc
-            if (fixedQuery == null || fixedQuery.isEmpty()) {
-                fixedQuery = requestBody.getBody();
-            }
-        }
-
-        // Trả về mảng: [0] = content, [1] = fixedQuery
-        return new String[]{content, fixedQuery};
-    }
-
-    /**
-     * Tóm tắt và diễn giải dữ liệu log thành ngôn ngữ tự nhiên
-     * Sử dụng AI để phân tích kết quả từ Elasticsearch và tạo câu trả lời dễ hiểu
-     *
-     * @param sessionId ID phiên chat để duy trì ngữ cảnh
-     * @param chatRequest Yêu cầu gốc từ người dùng
-     * @param content Dữ liệu log từ Elasticsearch hoặc câu trả lời trực tiếp
-     * @param query Query đã được sử dụng để tìm kiếm
-     * @return Câu trả lời bằng ngôn ngữ tự nhiên
-     */
-    public String getAiResponse(Long sessionId,ChatRequest chatRequest, String content,String query) {
-        String conversationId = sessionId.toString();
-
-        // Lấy thời gian thực của máy
-        LocalDateTime currentTime = LocalDateTime.now();
-        String currentDate = currentTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        String currentDateTime = currentTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-
-        // Format JSON query for better display
-        String formattedQuery = query;
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode jsonNode = mapper.readTree(query);
-            formattedQuery = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonNode);
-        } catch (Exception e) {
-            System.out.println("[AiServiceImpl] Could not format query JSON: " + e.getMessage());
-        }
-
-        // Tạo system message hướng dẫn AI cách phản hồi
-        SystemMessage systemMessage = new SystemMessage(String.format("""
+    // Tạo system message hướng dẫn AI cách phản hồi
+    SystemMessage systemMessage = new SystemMessage(String.format("""
                 You are HPT.AI
                 You should respond in a formal voice.
                 
@@ -975,32 +877,587 @@ public class AiServiceImpl implements AiService {
                 - NEVER reference 2023 or any other year as current time
                 
                 IMPORTANT: Always include the Elasticsearch query used at the end of your response.
+                Also include a short justification for key field choices.
+                CRITICAL: If the user asks for counts (đếm/số lượng) or totals (tổng), you MUST parse Elasticsearch aggregations and state the numeric answer clearly.
                 
+                DATA INTERPRETATION RULES:
+                - CRITICAL: If hits.total.value = 0 and hits.hits = [], respond with "Không tìm thấy dữ liệu" message. DO NOT generate fake data.
+                - If aggregations.total_count.value exists, that is the count of documents.
+                - If aggregations.total_bytes.value (or total_packets.value) exists, that is the total metric.
+                - If size:0 with only aggregations is returned, base your answer on aggregations instead of hits.
+                - If both count and total are present, report both. If only count is present, report count. If no aggregations, use hits.hits length for count (if applicable).
+                
+              
+                
+                LOG DATA EXTRACTION RULES:
+                For each log entry in hits.hits, extract and display these key fields when available:
+                - Người dùng: source.user.name (if available)
+                - Địa chỉ nguồn: source.ip 
+                - Địa chỉ đích: destination.ip
+                - Hành động: fortinet.firewall.action (allow/deny) or event.action
+                - Nội dung: event.message or log.message or message
+                - Thời gian: @timestamp (format as readable date)
+                - Rule: rule.name (if available)
+                - Port đích: destination.port (if available)
+                - Protocol: network.protocol (if available)
+                - Bytes: network.bytes (if available)
+                - Quốc gia nguồn: source.geo.country_name (if available)
+                - Quốc gia đích: destination.geo.country_name (if available)
+                - Mức rủi ro: fortinet.firewall.crlevel (if available)
+                - Tấn công: fortinet.firewall.attack (if available)
+
                 logData : %s
                 query : %s
                 
                 Format your response as:
                 [Your analysis and summary of the data based on current date %s]
                 
+                LOG INFORMATION PRESENTATION:
+                Present log information in a natural, descriptive format. For each log entry, write a clear description that includes the key details:
+                
+                Format each log entry as a natural description like:
+                "Vào lúc [time], từ địa chỉ [source.ip] đã [action] kết nối đến [destination.ip]:[port] sử dụng giao thức [protocol]. Rule được áp dụng: [rule.name]. Dữ liệu truyền tải: [bytes] bytes."
+                
+                Include additional details when available:
+                - If source.user.name exists: "Người dùng: [source.user.name]"
+                - If event.message exists: "Mô tả: [event.message]"
+                - If geo information exists: "Từ quốc gia [source.geo.country_name] đến [destination.geo.country_name]"
+                - If risk level exists: "Mức rủi ro: [fortinet.firewall.crlevel]"
+                - If attack signature exists: "Cảnh báo tấn công: [fortinet.firewall.attack]"
+                
+                Present multiple entries in a flowing narrative style, grouping similar activities when appropriate.
+                
+                When the question requests:
+                - "đếm số log ..." → Output: "Số log: <number>" (derived from aggregations.total_count.value)
+                - "tổng log ..." (tổng số bản ghi) → Output: "Tổng log: <number>" (also aggregations.total_count.value)
+                - "tổng bytes/packets ..." → Output: "Tổng bytes/packets: <number>" (from aggregations.total_bytes/total_packets.value)
+                
+                Field Selection Rationale (concise):
+                - Explain why the chosen fields best match the intent, referencing categories when relevant
+                - Prefer reasons like: action semantics (fortinet.firewall.action vs event.outcome), traffic volume (network.bytes/packets), direction (network.direction), geo (source/destination.geo.country_name), rule grouping (rule.name vs ruleid), user specificity (source.user.* vs user.*)
+                - 3-6 bullets max
+                
                 **Elasticsearch Query Used:**
                 ```json
                 %s
                 ```
                 """
-            ,currentDate, currentDateTime, content, query, currentDate, formattedQuery));
+        ,currentDate, currentDateTime, content, query, currentDate, formattedQuery));
 
-        UserMessage userMessage = new UserMessage(chatRequest.message());
-        Prompt prompt = new Prompt(systemMessage, userMessage);
+    UserMessage userMessage = new UserMessage(chatRequest.message());
+    Prompt prompt = new Prompt(systemMessage, userMessage);
 
-        // Gọi AI với ngữ cảnh cuộc trò chuyện để tạo phản hồi
-        return chatClient
-            .prompt(prompt)
-            .options(ChatOptions.builder().temperature(0.1D).build())
-            .advisors(advisorSpec -> advisorSpec.param(
-                ChatMemory.CONVERSATION_ID, conversationId
-            ))
-            .call()
-            .content();
+    // Gọi AI với ngữ cảnh cuộc trò chuyện để tạo phản hồi
+    // Provider: default ChatClient (OpenAI) for final response generation
+    return chatClient
+        .prompt(prompt)
+        // OpenAI temperature kept at 0.0 for deterministic responses
+        .options(ChatOptions.builder().temperature(0.0D).build())
+        .advisors(advisorSpec -> advisorSpec.param(
+            ChatMemory.CONVERSATION_ID, conversationId
+        ))
+        .call()
+        .content();
+  }
+
+  /**
+   * Phiên bản đặc biệt của getAiResponse dành cho comparison mode
+   * Sử dụng conversationId tùy chỉnh để tránh memory contamination giữa các model
+   * 
+   * @param conversationId Conversation ID tùy chỉnh (ví dụ: "39_openai", "39_openrouter")
+   * @param chatRequest Yêu cầu gốc từ user
+   * @param content Dữ liệu từ Elasticsearch
+   * @param query Query Elasticsearch đã sử dụng
+   * @return Phản hồi từ AI
+   */
+  public String getAiResponseForComparison(String conversationId, ChatRequest chatRequest, String content, String query) {
+    // Lấy thời gian thực của máy
+    LocalDateTime currentTime = LocalDateTime.now();
+    String currentDate = currentTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    String currentDateTime = currentTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+    // Định dạng JSON query để hiển thị tốt hơn
+    String formattedQuery = query;
+    try {
+      ObjectMapper mapper = new ObjectMapper();
+      JsonNode jsonNode = mapper.readTree(query);
+      formattedQuery = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonNode);
+    } catch (Exception e) {
+      System.out.println("[AiServiceImpl] Could not format query JSON: " + e.getMessage());
     }
 
+    // Tạo system message hướng dẫn AI cách phản hồi
+    SystemMessage systemMessage = new SystemMessage(String.format("""
+                You are HPT.AI
+                You should respond in a formal voice.
+                
+                IMPORTANT CONTEXT:
+                - Current date: %s
+                - Current datetime: %s (Vietnam timezone +07:00)
+                - All dates in the query and data are valid and current
+                - NEVER mention that dates are "in the future" or incorrect
+                - NEVER reference 2023 or any other year as current time
+                
+                IMPORTANT: Always include the Elasticsearch query used at the end of your response.
+                Also include a short justification for key field choices.
+                CRITICAL: If the user asks for counts (đếm/số lượng) or totals (tổng), you MUST parse Elasticsearch aggregations and state the numeric answer clearly.
+                
+                DATA INTERPRETATION RULES:
+                - CRITICAL: If hits.total.value = 0 and hits.hits = [], respond with "Không tìm thấy dữ liệu" message. DO NOT generate fake data.
+                - If aggregations.total_count.value exists, that is the count of documents.
+                - If aggregations.total_bytes.value (or total_packets.value) exists, that is the total metric.
+                - If size:0 with only aggregations is returned, base your answer on aggregations instead of hits.
+                - If both count and total are present, report both. If only count is present, report count. If no aggregations, use hits.hits length for count (if applicable).
+                
+                NO DATA HANDLING:
+                When hits.total.value = 0 or aggregations return empty buckets or zero count:
+                - Inform the user that no data was found matching their criteria
+                - Suggest possible reasons why no data was found
+                - Suggest possible modifications to the query
+                - DO NOT use a fixed format, respond naturally
+                
+                EXAMPLES OF NO DATA SCENARIOS:
+                - {"hits":{"total":{"value":0},"hits":[]}} → No matching documents
+                - {"aggregations":{"total_count":{"value":0}}} → Count is zero
+                - {"aggregations":{"top_users":{"buckets":[]}}} → No aggregation results
+                - Empty aggregation buckets = no matching data found
+                
+                LOG DATA EXTRACTION RULES:
+                For each log entry in hits.hits, extract and display these key fields when available:
+                - Người dùng: source.user.name (if available)
+                - Địa chỉ nguồn: source.ip 
+                - Địa chỉ đích: destination.ip
+                - Hành động: fortinet.firewall.action (allow/deny) or event.action
+                - Nội dung: event.message or log.message or message
+                - Thời gian: @timestamp (format as readable date)
+                - Rule: rule.name (if available)
+                - Port đích: destination.port (if available)
+                - Protocol: network.protocol (if available)
+                - Bytes: network.bytes (if available)
+                - Quốc gia nguồn: source.geo.country_name (if available)
+                - Quốc gia đích: destination.geo.country_name (if available)
+                - Mức rủi ro: fortinet.firewall.crlevel (if available)
+                - Tấn công: fortinet.firewall.attack (if available)
+                - Nếu fortinet.firewall.cfgattr tồn tại hoặc câu hỏi liên quan đến CNHN_ZONE/cfgattr:
+                  • QUERY PATTERN: {"query":{"bool":{"filter":[{"term":{"source.user.name":"tanln"}},{"match":{"message":"CNHN_ZONE"}}]}},"sort":[{"@timestamp":"asc"}],"size":200}
+                  • Phân tích chuỗi cfgattr theo quy tắc:
+                    1) Tách hai phần trước và sau "->" thành hai danh sách
+                    2) Trước khi tách, loại bỏ tiền tố "interface[" (nếu có) và dấu "]" ở cuối (nếu có)
+                    3) Mỗi danh sách tách tiếp bằng dấu phẩy hoặc khoảng trắng, chuẩn hóa và loại bỏ khoảng trắng thừa
+                    4) "Thêm" = các giá trị có trong danh sách mới nhưng không có trong danh sách cũ
+                    5) "Xóa" = các giá trị có trong danh sách cũ nhưng không có trong danh sách mới
+                    
+                    VÍ DỤ PHÂN TÍCH:
+                    Input: "interface[LAB-CNHN MGMT-SW-FW PRINTER-DEVICE SECCAM-CNHN WiFi HPT-GUEST WiFi-HPTVIETNAM WiFi-IoT SERVER_CORE CNHN_Wire_NV CNHN_Wire_Lab->LAB-CNHN MGMT-SW-FW PRINTER-DEVICE SECCAM-CNHN WiFi HPT-GUEST WiFi-HPTVIETNAM WiFi-IoT SERVER_CORE CNHN_Wire_NV]"
+                    
+                    Bước 1: Tách bằng "->"
+                    - Trước: "[LAB-CNHN MGMT-SW-FW PRINTER-DEVICE SECCAM-CNHN WiFi HPT-GUEST WiFi-HPTVIETNAM WiFi-IoT SERVER_CORE CNHN_Wire_NV CNHN_Wire_Lab"
+                    - Sau: "LAB-CNHN MGMT-SW-FW PRINTER-DEVICE SECCAM-CNHN WiFi HPT-GUEST WiFi-HPTVIETNAM WiFi-IoT SERVER_CORE CNHN_Wire_NV]"
+                    
+                    Bước 2: Bỏ tiền tố "interface[" và dấu "]" rồi tách từng danh sách bằng khoảng trắng
+                    - Ban đầu: LAB-CNHN, MGMT-SW-FW, PRINTER-DEVICE, SECCAM-CNHN, WiFi, HPT-GUEST, WiFi-HPTVIETNAM, WiFi-IoT, SERVER_CORE, CNHN_Wire_NV, CNHN_Wire_Lab]
+                    - Sau: LAB-CNHN, MGMT-SW-FW, PRINTER-DEVICE, SECCAM-CNHN, WiFi, HPT-GUEST, WiFi-HPTVIETNAM, WiFi-IoT, SERVER_CORE, CNHN_Wire_NV
+                    
+                    Bước 3: So sánh
+                    - Thêm: [] (không có)
+                    - Xóa: [CNHN_Wire_Lab]
+                  • Xuất theo timeline (sắp xếp theo @timestamp):
+                    - Thời gian: [@timestamp]
+                    - Người dùng: [source.user.name]
+                    - IP: [source.ip]
+                    - Hành động: [message]
+                    - Ban đầu: [...]
+                    - Sau: [...]
+                    - Thêm: [...]
+                    - Xóa: [...]
+                    Luôn luôn hiển thị cả Ban đầu và Sau, ngay cả khi không có sự thay đổi.
+                  • Nếu không có "->" trong cfgattr, coi toàn bộ là danh sách hiện tại
+                logData : %s
+                query : %s
+                
+                Format your response as:
+                [Your analysis and summary of the data based on current date %s]
+                
+                LOG INFORMATION PRESENTATION:
+                Present log information in a natural, descriptive format. For each log entry, write a clear description that includes the key details:
+                
+                Format each log entry as a natural description like:
+                "Vào lúc [time], từ địa chỉ [source.ip] đã [action] kết nối đến [destination.ip]:[port] sử dụng giao thức [protocol]. Rule được áp dụng: [rule.name]. Dữ liệu truyền tải: [bytes] bytes."
+                
+                Include additional details when available:
+                - If source.user.name exists: "Người dùng: [source.user.name]"
+                - If event.message exists: "Mô tả: [event.message]"
+                - If geo information exists: "Từ quốc gia [source.geo.country_name] đến [destination.geo.country_name]"
+                - If risk level exists: "Mức rủi ro: [fortinet.firewall.crlevel]"
+                - If attack signature exists: "Cảnh báo tấn công: [fortinet.firewall.attack]"
+                
+                Present multiple entries in a flowing narrative style, grouping similar activities when appropriate.
+                
+                When the question requests:
+                - "đếm số log ..." → Output: "Số log: <number>" (derived from aggregations.total_count.value)
+                - "tổng log ..." (tổng số bản ghi) → Output: "Tổng log: <number>" (also aggregations.total_count.value)
+                - "tổng bytes/packets ..." → Output: "Tổng bytes/packets: <number>" (from aggregations.total_bytes/total_packets.value)
+                
+                Field Selection Rationale (concise):
+                - Explain why the chosen fields best match the intent, referencing categories when relevant
+                - Prefer reasons like: action semantics (fortinet.firewall.action vs event.outcome), traffic volume (network.bytes/packets), direction (network.direction), geo (source/destination.geo.country_name), rule grouping (rule.name vs ruleid), user specificity (source.user.* vs user.*)
+                - 3-6 bullets max
+                
+                **Elasticsearch Query Used:**
+                ```json
+                %s
+                ```
+                """
+        ,currentDate, currentDateTime, content, query, currentDate, formattedQuery));
+
+    UserMessage userMessage = new UserMessage(chatRequest.message());
+    Prompt prompt = new Prompt(systemMessage, userMessage);
+
+    // Gọi AI với conversation ID tùy chỉnh để tránh memory contamination
+    // Provider: default ChatClient (OpenAI) for comparison response generation
+    return chatClient
+        .prompt(prompt)
+        // OpenAI temperature kept at 0.0 for deterministic responses
+        .options(ChatOptions.builder().temperature(0.0D).build())
+        .advisors(advisorSpec -> advisorSpec.param(
+            ChatMemory.CONVERSATION_ID, conversationId
+        ))
+        .call()
+        .content();
+  }
+
+  /**
+   * Xử lý yêu cầu với file đính kèm (hình ảnh, tài liệu, v.v.)
+   * Cho phép người dùng gửi file cùng với tin nhắn để AI phân tích
+   *
+   * @param sessionId ID phiên chat để duy trì ngữ cảnh
+   * @param file File được upload bởi người dùng
+   * @param request Yêu cầu kèm theo từ người dùng
+   * @param content Nội dung bổ sung (nếu có)
+   * @return Phản hồi của AI sau khi phân tích file và tin nhắn
+   */
+  public String getAiResponse(Long sessionId, MultipartFile file, ChatRequest request, String content) {
+    String conversationId = sessionId.toString();
+
+    // Tạo đối tượng Media từ file upload
+    Media media = Media.builder()
+        .mimeType(MimeTypeUtils.parseMimeType(file.getContentType()))
+        .data(file.getResource())
+        .build();
+
+    // Gọi AI với cả media và text, duy trì ngữ cảnh cuộc trò chuyện
+    return chatClient.prompt()
+        .system("")
+        .user(promptUserSpec ->promptUserSpec.media(media)
+            .text(request.message()))
+        .advisors(advisorSpec -> advisorSpec.param(
+            ChatMemory.CONVERSATION_ID, conversationId
+        ))
+        .call()
+        .content();
+  }
+  
+  /**
+   * Xử lý yêu cầu của người dùng trong chế độ so sánh, sử dụng cả OpenAI và OpenRouter
+   * @param sessionId ID phiên chat để duy trì ngữ cảnh
+   * @param chatRequest Yêu cầu từ người dùng
+   * @return Kết quả so sánh giữa hai provider
+   */
+  @Override
+  public Map<String, Object> handleRequestWithComparison(Long sessionId, ChatRequest chatRequest) {
+    Map<String, Object> result = new HashMap<>();
+    LocalDateTime now = LocalDateTime.now();
+    String dateContext = generateDateContext(now);
+    
+    try {
+      System.out.println("[AiServiceImpl] ===== BẮT ĐẦU CHẾ ĐỘ SO SÁNH =====");
+      System.out.println("[AiServiceImpl] Bắt đầu chế độ so sánh cho phiên: " + sessionId);
+      System.out.println("[AiServiceImpl] Tin nhắn người dùng: " + chatRequest.message());
+      System.out.println("[AiServiceImpl] Sử dụng ngữ cảnh ngày tháng: " + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+      
+      // --- BƯỚC 1: So sánh quá trình tạo query ---
+      System.out.println("[AiServiceImpl] ===== BƯỚC 1: Tạo Elasticsearch Query =====");
+      
+      // Chuẩn bị schema một lần để dùng lại cho cả hai prompt
+      String fullSchema = SchemaHint.getSchemaHint();
+      
+      // Sử dụng QueryPromptTemplate: đưa toàn bộ thư viện + ví dụ động (nếu có)
+      Map<String, Object> dynamicInputs = new HashMap<>();
+      String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPromptWithAllTemplates(
+          chatRequest.message(),
+          dateContext,
+          fullSchema,
+          SchemaHint.getRoleNormalizationRules(),
+          dynamicInputs
+      );
+      // System.out.println("[AiServiceImpl] SYSTEM PROMPT (queryPrompt) length=" + queryPrompt.length());
+      // System.out.println("[AiServiceImpl] SYSTEM PROMPT (queryPrompt) preview:\n" + queryPrompt);
+
+      // Tạo system prompt đầy đủ từ PromptTemplate với toàn bộ SchemaHint để bổ sung ngữ cảnh
+      String fullSystemPrompt = com.example.chatlog.utils.PromptTemplate.getSystemPrompt(
+          dateContext,
+          SchemaHint.getRoleNormalizationRules(),
+          fullSchema,
+          SchemaHint.getCategoryGuides(),
+          SchemaHint.getNetworkTrafficExamples(),
+          SchemaHint.getIPSSecurityExamples(),
+          SchemaHint.getAdminRoleExample(),
+          SchemaHint.getGeographicExamples(),
+          SchemaHint.getFirewallRuleExamples(),
+          SchemaHint.getCountingExamples(),
+          SchemaHint.getQuickPatterns()
+      );
+
+      // Ghép tất cả vào một system message duy nhất để AI có tối đa bối cảnh
+      String combinedPrompt = queryPrompt + "\n\n" + fullSystemPrompt;
+      SystemMessage systemMessage = new SystemMessage(combinedPrompt);
+      // Debug: in ra nội dung system prompt để xác minh đã chứa QueryTemplates
+      // System.out.println("[AiServiceImpl] SYSTEM PROMPT (comparison) length=" + systemMessage.getContent().length());
+      // System.out.println("[AiServiceImpl] SYSTEM PROMPT (comparison) preview:\n" + systemMessage.getContent());
+      
+      UserMessage userMessage = new UserMessage(chatRequest.message());
+      List<String> schemaHints = SchemaHint.allSchemas();
+      String schemaContext = String.join("\n\n", schemaHints);
+      UserMessage schemaMsg = new UserMessage("Available schema hints:\n" + schemaContext);
+      // Provide a single sample log to help AI infer fields and structure
+      UserMessage sampleLogMsg = new UserMessage("SAMPLE LOG (for inference):\n" + SchemaHint.examplelog());
+      
+      // System.out.println(systemMessage);
+      // System.out.println("---------------------------------------------------------------------------------------");
+      // System.out.println(schemaMsg);
+      // System.out.println("---------------------------------------------------------------------------------------");
+      // System.out.println(userMessage);
+      System.out.println("---------------------------------------------------------------------------------------");
+      Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, sampleLogMsg, userMessage));
+      // System.out.println("Promt very long: " + prompt);
+      
+      ChatOptions chatOptions = ChatOptions.builder()
+          .temperature(0.0D)
+          .build();
+      
+      // Theo dõi thời gian tạo query của OpenAI
+      System.out.println("[AiServiceImpl] 🔵 OPENAI - Đang tạo Elasticsearch query...");
+      long openaiStartTime = System.currentTimeMillis();
+      RequestBody openaiQuery = chatClient
+          .prompt(prompt)
+          .options(chatOptions)
+          .call()
+          .entity(new ParameterizedTypeReference<>() {});
+      long openaiEndTime = System.currentTimeMillis();
+      
+      // Đảm bảo giá trị query được đặt là 1
+      if (openaiQuery.getQuery() != 1) {
+        openaiQuery.setQuery(1);
+      }
+      
+      // Sửa query OpenAI nếu cần
+      String openaiQueryString = openaiQuery.getBody();
+      System.out.println("[AiServiceImpl] ✅ OPENAI - Query được tạo thành công trong " + (openaiEndTime - openaiStartTime) + "ms");
+      System.out.println("[AiServiceImpl] 📝 OPENAI - Query: " + openaiQueryString);
+      
+      // Theo dõi thời gian tạo query của OpenRouter (thực sự gọi OpenRouter với temperature khác)
+      System.out.println("[AiServiceImpl] 🟠 OPENROUTER - Đang tạo Elasticsearch query...");
+      long openrouterStartTime = System.currentTimeMillis();
+      
+      // Provider: OpenRouter (query generation in comparison mode)
+      // Ghi chú: Đây là cấu hình temperature dành cho OpenRouter
+      ChatOptions openrouterChatOptions = ChatOptions.builder()
+          .temperature(0.5D)
+          .build();
+      
+      RequestBody openrouterQuery;
+      String openrouterQueryString;
+      
+      try {
+        // Gọi trực tiếp ChatClient với options OpenRouter (openrouterChatOptions)
+        openrouterQuery = chatClient
+            .prompt(prompt)
+            .options(openrouterChatOptions)
+            .call()
+            .entity(new ParameterizedTypeReference<>() {});
+            
+        if (openrouterQuery.getQuery() != 1) {
+          openrouterQuery.setQuery(1);
+        }
+        openrouterQueryString = openrouterQuery.getBody();
+        
+        System.out.println("[AiServiceImpl] ✅ OPENROUTER - Query được tạo thành công với temperature khác biệt");
+      } catch (Exception e) {
+        if (e.getMessage() != null && (e.getMessage().contains("503") || e.getMessage().contains("upstream connect error"))) {
+          System.out.println("[AiServiceImpl] ⚠️ OPENROUTER - Service tạm thời không khả dụng (HTTP 503), dùng lại query OpenAI: " + e.getMessage());
+        } else {
+          System.out.println("[AiServiceImpl] ❌ OPENROUTER - Tạo query thất bại, dùng lại query OpenAI: " + e.getMessage());
+        }
+        openrouterQueryString = openaiQueryString; // Fallback to OpenAI query
+      }
+      
+      long openrouterEndTime = System.currentTimeMillis();
+      System.out.println("[AiServiceImpl] ✅ OPENROUTER - Query được tạo trong " + (openrouterEndTime - openrouterStartTime) + "ms");
+      System.out.println("[AiServiceImpl] 📝 OPENROUTER - Query: " + openrouterQueryString);
+      
+      // Lưu trữ kết quả tạo query
+      Map<String, Object> queryGenerationComparison = new HashMap<>();
+      
+      Map<String, Object> openaiGeneration = new HashMap<>();
+      openaiGeneration.put("response_time_ms", openaiEndTime - openaiStartTime);
+      openaiGeneration.put("model", ModelProvider.OPENAI.getModelName());
+      openaiGeneration.put("query", openaiQueryString);
+      
+      Map<String, Object> openrouterGeneration = new HashMap<>();
+      openrouterGeneration.put("response_time_ms", openrouterEndTime - openrouterStartTime);
+      openrouterGeneration.put("model", ModelProvider.OPENROUTER.getModelName());
+      openrouterGeneration.put("query", openrouterQueryString);
+      
+      queryGenerationComparison.put("openai", openaiGeneration);
+      queryGenerationComparison.put("openrouter", openrouterGeneration);
+      
+      // --- BƯỚC 2: Tìm kiếm Elasticsearch ---
+      System.out.println("[AiServiceImpl] ===== BƯỚC 2: Tìm kiếm Elasticsearch =====");
+      
+      // Thực hiện tìm kiếm Elasticsearch với cả hai query
+      Map<String, Object> elasticsearchComparison = new HashMap<>();
+      
+      // Tìm kiếm OpenAI
+      System.out.println("[AiServiceImpl] 🔵 OPENAI - Đang thực hiện tìm kiếm Elasticsearch...");
+        String[] openaiResults = getLogData(openaiQuery, chatRequest);
+      String openaiContent = openaiResults[0];
+      String finalOpenaiQuery = openaiResults[1];
+
+      // Kiểm tra nếu có lỗi trong quá trình tìm kiếm
+      if (openaiContent != null && openaiContent.startsWith("❌")) {
+        System.out.println("[AiServiceImpl] ❌ OPENAI - Tìm kiếm Elasticsearch gặp lỗi, đang thử sửa query...");
+        System.out.println("[AiServiceImpl] 🔧 OPENAI - Đang tạo lại query với thông tin lỗi...");
+      } else {
+        System.out.println("[AiServiceImpl] ✅ OPENAI - Tìm kiếm Elasticsearch hoàn thành thành công");
+        // Hiển thị preview dữ liệu trả về
+        System.out.println("[AiServiceImpl] 📊 DỮ LIỆU TRẢ VỀ (OpenAI): " + (openaiContent.length() > 500 ? openaiContent.substring(0, 500) + "..." : openaiContent));
+      }
+      
+      Map<String, Object> openaiElasticsearch = new HashMap<>();
+      openaiElasticsearch.put("data", openaiContent);
+      openaiElasticsearch.put("success", true);
+      openaiElasticsearch.put("query", finalOpenaiQuery);
+
+      System.out.println("OpenaiElasticsearch : "+ openaiElasticsearch);
+      
+      // Nếu OpenAI query thất bại hoàn toàn, dùng fallback mẫu gợi ý từ QueryTemplates
+      if (openaiContent != null && openaiContent.startsWith("❌")) {
+        System.out.println("[AiServiceImpl] 🔵 OPENAI - Dùng fallback query mẫu từ QueryTemplates.OUTBOUND_PORT_ANALYSIS");
+        RequestBody fallbackOpenAi = new RequestBody(QueryTemplates.OUTBOUND_PORT_ANALYSIS, 1);
+        String[] fallbackOpenAiResults = getLogData(fallbackOpenAi, chatRequest);
+        if (fallbackOpenAiResults[0] != null && !fallbackOpenAiResults[0].startsWith("❌")) {
+          openaiContent = fallbackOpenAiResults[0];
+          finalOpenaiQuery = fallbackOpenAiResults[1];
+          System.out.println("[AiServiceImpl] 🔵 OPENAI - Fallback query trả về dữ liệu thành công");
+          // Hiển thị preview dữ liệu fallback
+          System.out.println("[AiServiceImpl] 📊 DỮ LIỆU FALLBACK (OpenAI): " + (openaiContent.length() > 500 ? openaiContent.substring(0, 500) + "..." : openaiContent));
+        }
+      }
+
+      // Tìm kiếm OpenRouter (sử dụng query riêng từ OpenRouter)
+      System.out.println("[AiServiceImpl] 🟠 OPENROUTER - Đang thực hiện tìm kiếm Elasticsearch...");
+      RequestBody openrouterRequestBody = new RequestBody(openrouterQueryString, 1);
+      String[] openrouterResults = getLogData(openrouterRequestBody, chatRequest);
+      String openrouterContent = openrouterResults[0];
+      String finalOpenrouterQuery = openrouterResults[1];
+      
+      // Kiểm tra nếu có lỗi trong quá trình tìm kiếm
+      if (openrouterContent != null && openrouterContent.startsWith("❌")) {
+        System.out.println("[AiServiceImpl] ❌ OPENROUTER - Tìm kiếm Elasticsearch gặp lỗi, đang thử sửa query...");
+        System.out.println("[AiServiceImpl] 🔧 OPENROUTER - Đang tạo lại query với thông tin lỗi...");
+      } else {
+        System.out.println("[AiServiceImpl] ✅ OPENROUTER - Tìm kiếm Elasticsearch hoàn thành thành công");
+        // Hiển thị preview dữ liệu trả về
+        System.out.println("[AiServiceImpl] 📊 DỮ LIỆU TRẢ VỀ (OpenRouter): " + (openrouterContent.length() > 500 ? openrouterContent.substring(0, 500) + "..." : openrouterContent));
+      }
+      
+      Map<String, Object> openrouterElasticsearch = new HashMap<>();
+      openrouterElasticsearch.put("data", openrouterContent);
+      openrouterElasticsearch.put("success", true);
+      openrouterElasticsearch.put("query", finalOpenrouterQuery);
+
+      System.out.println("OpenrouterElasticsearch : " + openrouterElasticsearch);
+
+      // Nếu OpenRouter cũng thất bại, thử fallback tương tự
+      if (openrouterContent != null && openrouterContent.startsWith("❌")) {
+        System.out.println("[AiServiceImpl] 🟠 OPENROUTER - Dùng fallback query mẫu từ QueryTemplates.OUTBOUND_PORT_ANALYSIS");
+        RequestBody fallbackOpenrouter = new RequestBody(QueryTemplates.OUTBOUND_PORT_ANALYSIS, 1);
+        String[] fallbackOpenrouterResults = getLogData(fallbackOpenrouter, chatRequest);
+        if (fallbackOpenrouterResults[0] != null && !fallbackOpenrouterResults[0].startsWith("❌")) {
+          openrouterContent = fallbackOpenrouterResults[0];
+          finalOpenrouterQuery = fallbackOpenrouterResults[1];
+          System.out.println("[AiServiceImpl] 🟠 OPENROUTER - Fallback query trả về dữ liệu thành công");
+          // Hiển thị preview dữ liệu fallback
+          System.out.println("[AiServiceImpl] 📊 DỮ LIỆU FALLBACK (OpenRouter): " + (openrouterContent.length() > 500 ? openrouterContent.substring(0, 500) + "..." : openrouterContent));
+        }
+      }
+
+      elasticsearchComparison.put("openai", openaiElasticsearch);
+      elasticsearchComparison.put("openrouter", openrouterElasticsearch);
+      
+      // --- BƯỚC 3: Tạo câu trả lời ---
+      System.out.println("[AiServiceImpl] ===== BƯỚC 3: Tạo câu trả lời AI =====");
+      
+      // Tạo câu trả lời từ cả hai model
+      Map<String, Object> responseGenerationComparison = new HashMap<>();
+      
+      // Câu trả lời từ OpenAI
+      System.out.println("[AiServiceImpl] 🔵 OPENAI - Đang tạo phản hồi từ dữ liệu Elasticsearch...");
+      long openaiResponseStartTime = System.currentTimeMillis();
+      String openaiResponse = getAiResponseForComparison(sessionId + "_openai", chatRequest, openaiContent, finalOpenaiQuery);
+      long openaiResponseEndTime = System.currentTimeMillis();
+      System.out.println("[AiServiceImpl] ✅ OPENAI - Phản hồi được tạo thành công trong " + (openaiResponseEndTime - openaiResponseStartTime) + "ms");
+      
+      Map<String, Object> openaiResponseData = new HashMap<>();
+      openaiResponseData.put("elasticsearch_query", finalOpenaiQuery);
+      openaiResponseData.put("response", openaiResponse);
+      openaiResponseData.put("model", ModelProvider.OPENAI.getModelName());
+      openaiResponseData.put("elasticsearch_data", openaiContent);
+      openaiResponseData.put("response_time_ms", openaiResponseEndTime - openaiResponseStartTime);
+      
+      // Câu trả lời từ OpenRouter (sử dụng dữ liệu riêng từ OpenRouter query)
+      System.out.println("[AiServiceImpl] 🟠 OPENROUTER - Đang tạo phản hồi từ dữ liệu Elasticsearch...");
+      long openrouterResponseStartTime = System.currentTimeMillis();
+      String openrouterResponse = getAiResponseForComparison(sessionId + "_openrouter", chatRequest, openrouterContent, finalOpenrouterQuery);
+      long openrouterResponseEndTime = System.currentTimeMillis();
+      System.out.println("[AiServiceImpl] ✅ OPENROUTER - Phản hồi được tạo thành công trong " + (openrouterResponseEndTime - openrouterResponseStartTime) + "ms");
+      
+      Map<String, Object> openrouterResponseData = new HashMap<>();
+      openrouterResponseData.put("elasticsearch_query", finalOpenrouterQuery);
+      openrouterResponseData.put("response", openrouterResponse);
+      openrouterResponseData.put("model", ModelProvider.OPENROUTER.getModelName());
+      openrouterResponseData.put("elasticsearch_data", openrouterContent);
+      openrouterResponseData.put("response_time_ms", openrouterResponseEndTime - openrouterResponseStartTime);
+      
+      responseGenerationComparison.put("openai", openaiResponseData);
+      responseGenerationComparison.put("openrouter", openrouterResponseData);
+      
+      // --- Tổng hợp kết quả cuối cùng ---
+      System.out.println("[AiServiceImpl] ===== TỔNG HỢP KẾT QUẢ =====");
+      
+      result.put("elasticsearch_comparison", elasticsearchComparison);
+      result.put("success", true);
+      result.put("query_generation_comparison", queryGenerationComparison);
+      result.put("response_generation_comparison", responseGenerationComparison);
+      result.put("timestamp", now.toString());
+      result.put("user_question", chatRequest.message());
+      
+      System.out.println("[AiServiceImpl] 🎉 So sánh hoàn thành thành công!");
+      System.out.println("[AiServiceImpl] ⏱️ Tổng thời gian OpenAI: " + (openaiEndTime - openaiStartTime + openaiResponseEndTime - openaiResponseStartTime) + "ms");
+      System.out.println("[AiServiceImpl] ⏱️ Tổng thời gian OpenRouter: " + (openrouterEndTime - openrouterStartTime + openrouterResponseEndTime - openrouterResponseStartTime) + "ms");
+      System.out.println("[AiServiceImpl] 🔍 Sự khác biệt query OpenAI vs OpenRouter: " + (!openaiQueryString.equals(openrouterQueryString) ? "Các query khác nhau được tạo" : "Cùng query được tạo"));
+      System.out.println("[AiServiceImpl] 📊 Sự khác biệt dữ liệu OpenAI vs OpenRouter: " + (!openaiContent.equals(openrouterContent) ? "Dữ liệu khác nhau được truy xuất" : "Cùng dữ liệu được truy xuất"));
+      
+    } catch (Exception e) {
+      System.out.println("[AiServiceImpl] ❌ ===== LỖI TRONG CHẾ ĐỘ SO SÁNH =====");
+      System.out.println("[AiServiceImpl] 💥 Lỗi trong chế độ so sánh: " + e.getMessage());
+      e.printStackTrace();
+      
+      result.put("success", false);
+      result.put("error", e.getMessage());
+      result.put("timestamp", now.toString());
+    }
+    
+    return result;
+  }
 }

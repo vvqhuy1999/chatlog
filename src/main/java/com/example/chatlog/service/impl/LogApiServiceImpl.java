@@ -67,7 +67,7 @@ public class LogApiServiceImpl implements LogApiService {
      */
     @Override
     public String search(String index,String body) {
-     // Gửi HTTP POST request đến Elasticsearch _search endpoint
+        // Gửi HTTP POST request đến Elasticsearch _search endpoint
         return webClient.post()
             .uri("/" + index + "/_search") // Đường dẫn tìm kiếm của Elasticsearch
             .bodyValue(body) // JSON query body
@@ -83,16 +83,18 @@ public class LogApiServiceImpl implements LogApiService {
      * @param index Tên index cần lấy mapping (ví dụ: "logs-fortinet_fortigate.log-default*")
      * @return Thông tin mapping dạng JSON string từ Elasticsearch
      */
-    @Override
-    public String getFieldLog(String index) {
-        // Gửi HTTP GET request đến Elasticsearch _mapping endpoint
-        return webClient
-                .method(HttpMethod.GET)
-            .uri("/"+index+"/_mapping") // Đường dẫn mapping của Elasticsearch
-            .retrieve() // Thực hiện request
-            .bodyToMono(String.class) // Chuyển đổi response thành String
-            .block(); // Chờ kết quả (blocking call)
-    }
+//    @Override
+//    public String getFieldLog(String index) {
+//        // Gửi HTTP GET request đến Elasticsearch _mapping endpoint
+//        return webClient
+//            .method(HttpMethod.GET)
+//            .uri("/"+index+"/_mapping") // Đường dẫn mapping của Elasticsearch
+//            .retrieve() // Thực hiện request
+//            .bodyToMono(String.class) // Chuyển đổi response thành String
+//            .block(); // Chờ kết quả (blocking call)
+//    }
+
+
     /**
      * Lấy danh sách tất cả các field có trong index
      * Sử dụng _field_caps API của Elasticsearch để lấy thông tin
@@ -103,11 +105,11 @@ public class LogApiServiceImpl implements LogApiService {
     @Override
     public String getAllField(String index){
         String json = webClient
-                .post()
-                .uri("/"+index+"/_field_caps?fields=*")
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+            .post()
+            .uri("/"+index+"/_field_caps?fields=*")
+            .retrieve()
+            .bodyToMono(String.class)
+            .block();
 
         try {
             ObjectMapper mapper = new ObjectMapper();
@@ -123,11 +125,9 @@ public class LogApiServiceImpl implements LogApiService {
             }
 
 //            System.out.println("Danh sách field:");
-//            System.out.println("Danh sách field:");
             // fieldNames.forEach(System.out::println);
             return fieldNames.toString();
         } catch (Exception e) {
-            System.out.println("[LogApiServiceImpl] : " +e.getMessage());
             System.out.println("[LogApiServiceImpl] : " +e.getMessage());
         }
         return "";
