@@ -102,34 +102,34 @@ public class LogApiServiceImpl implements LogApiService {
      * @param index Tên index cần lấy thông tin field (ví dụ: "logs-fortinet_fortigate.log-default*")
      * @return Danh sách các field dạng String
      */
-    @Override
-    public String getAllField(String index){
-        String json = webClient
-            .post()
-            .uri("/"+index+"/_field_caps?fields=*")
-            .retrieve()
-            .bodyToMono(String.class)
-            .block();
-
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(json);
-            JsonNode fieldsNode = root.get("fields");
-
-            List<String> fieldNames = new ArrayList<>();
-            if (fieldsNode != null) {
-                Iterator<String> it = fieldsNode.fieldNames();
-                while (it.hasNext()) {
-                    fieldNames.add(it.next());
-                }
-            }
-
-//            System.out.println("Danh sách field:");
-            // fieldNames.forEach(System.out::println);
-            return fieldNames.toString();
-        } catch (Exception e) {
-            System.out.println("[LogApiServiceImpl] : " +e.getMessage());
-        }
-        return "";
-    }
+//    @Override
+//    public String getAllField(String index){
+//        String json = webClient
+//            .post()
+//            .uri("/"+index+"/_field_caps?fields=*")
+//            .retrieve()
+//            .bodyToMono(String.class)
+//            .block();
+//
+//        try {
+//            ObjectMapper mapper = new ObjectMapper();
+//            JsonNode root = mapper.readTree(json);
+//            JsonNode fieldsNode = root.get("fields");
+//
+//            List<String> fieldNames = new ArrayList<>();
+//            if (fieldsNode != null) {
+//                Iterator<String> it = fieldsNode.fieldNames();
+//                while (it.hasNext()) {
+//                    fieldNames.add(it.next());
+//                }
+//            }
+//
+////            System.out.println("Danh sách field:");
+//            // fieldNames.forEach(System.out::println);
+//            return fieldNames.toString();
+//        } catch (Exception e) {
+//            System.out.println("[LogApiServiceImpl] : " +e.getMessage());
+//        }
+//        return "";
+//    }
 }

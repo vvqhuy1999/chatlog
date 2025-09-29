@@ -9,5 +9,5 @@ public interface LogApiService {
 
     // String getFieldLog(String index);
 
-    String getAllField(String index);
+//    String getAllField(String index);
 }

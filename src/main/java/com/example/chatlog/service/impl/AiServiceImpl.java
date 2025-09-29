@@ -53,22 +53,6 @@ public class AiServiceImpl implements AiService {
   @Qualifier("openRouterChatClient")
   private RestClient openRouterClient;
 
-  // ObjectMapper đã loại bỏ vì không cần thiết trong phiên bản đơn giản
-
-  /**
-   * Lấy thông tin mapping (cấu trúc field) của Elasticsearch index
-   * Chỉ gọi API một lần và cache kết quả để tối ưu hiệu suất
-   * @return String chứa thông tin mapping dạng JSON
-   */
-  public String getFieldLog()
-  {
-    if (fieldLog == null)
-    {
-      fieldLog = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
-    }
-    return fieldLog;
-  }
-
   /**
    * Tạo chuỗi thông tin ngày tháng cho system message với các biểu thức thời gian tương đối của Elasticsearch
    * @param now Thời điểm hiện tại (real-time)
@@ -144,54 +128,19 @@ public class AiServiceImpl implements AiService {
     String openaiUrl = System.getenv("OPENAI_API_URL");
     String openaiApiKey = System.getenv("OPENAI_API_KEY");
     String model = "gpt-4o-mini";
-    // System.out.println("[SpringAI] OpenAI URL (from env): " + openaiUrl);
-    // System.out.println("[SpringAI] OpenAI API Key (from env): " + openaiApiKey);
-    // System.out.println("[SpringAI] Model: " + model);
-    // System.out.println("[SpringAI] Request body: " + (chatRequest != null ? chatRequest.message() : "null"));
-    // Nếu có cấu hình từ application.yaml thì log ra luôn
+
     try {
       String baseUrl = System.getProperty("spring.ai.openai.base-url");
       String apiKey = System.getProperty("spring.ai.openai.api-key");
-      // System.out.println("[SpringAI] OpenAI base-url (from properties): " + baseUrl);
-      // System.out.println("[SpringAI] OpenAI api-key (from properties): " + apiKey);
     } catch (Exception ex) {
-//      System.out.println("[SpringAI] Không lấy được base-url/api-key từ properties: " + ex.getMessage());
       System.out.println("[SpringAI] Không lấy được base-url/api-key ");
     }
 
     // Bước 1: Tạo system message hướng dẫn AI phân tích yêu cầu
     // Lấy ngày hiện tại để AI có thể xử lý các yêu cầu về thời gian chính xác
     LocalDateTime now = LocalDateTime.now();
-//        System.out.println(now);
     String dateContext = generateDateContext(now);
-//        System.out.println(dateContext);
-    
-    // Cách 1: Sử dụng PromptTemplate truyền thống
-    // SystemMessage systemMessage = new SystemMessage(
-    //     PromptTemplate.getSystemPrompt(
-    //         dateContext,
-    //         SchemaHint.getRoleNormalizationRules(),
-    //         SchemaHint.getCategoryGuides(),
-    //         SchemaHint.getNetworkTrafficExamples(),
-    //         SchemaHint.getIPSSecurityExamples(),
-    //         SchemaHint.getAdminRoleExample(),
-    //         SchemaHint.getGeographicExamples(),
-    //         SchemaHint.getFirewallRuleExamples(),
-    //         SchemaHint.getCountingExamples(),
-    //         SchemaHint.getSchemaHint(),
-    //         SchemaHint.getQuickPatterns()
-    //     )
-    // );
-    
-    // Cách 3: Sử dụng QueryPromptTemplate với các query có sẵn từ QueryTemplates
-    // String queryPrompt = QueryPromptTemplate.createQueryGenerationPrompt(
-    //     chatRequest.message(),
-    //     dateContext,
-    //     SchemaHint.getCategoryGuides(),
-    //     SchemaHint.getRoleNormalizationRules()
-    // );
-    // SystemMessage systemMessage = new SystemMessage(queryPrompt);
-    
+
     // Cách 2: Sử dụng SystemPromptTemplate với các placeholder thông qua PromptConverter
     // Không thể sử dụng Map.of với hơn 10 cặp key-value, chuyển sang sử dụng HashMap
     Map<String, String> params = new HashMap<>();
@@ -228,9 +177,7 @@ public class AiServiceImpl implements AiService {
         dynamicInputs
     );
     SystemMessage systemMessage = new SystemMessage(queryPrompt);
-    // Debug: in ra nội dung system prompt để xác minh đã chứa QueryTemplates
-//    System.out.println("[AiServiceImpl] SYSTEM PROMPT (handleRequest) length=" + systemMessage.getContent().length());
-//    System.out.println("[AiServiceImpl] SYSTEM PROMPT (handleRequest) preview:\n" + systemMessage.getContent());
+
 
     List<String> schemaHints = SchemaHint.allSchemas();
     String schemaContext = String.join("\n\n", schemaHints);
@@ -239,11 +186,7 @@ public class AiServiceImpl implements AiService {
     UserMessage sampleLogMsg = new UserMessage("SAMPLE LOG (for inference):\n" + SchemaHint.examplelog());
 
     UserMessage userMessage = new UserMessage(chatRequest.message());
-    // System.out.println(systemMessage);
-//    System.out.println("----------------------------------------------------------");
-    // System.out.println(schemaMsg);
-//    System.out.println("----------------------------------------------------------");
-    // System.out.println(userMessage);
+
     System.out.println("----------------------------------------------------------");
     Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, sampleLogMsg, userMessage));
 
@@ -254,21 +197,6 @@ public class AiServiceImpl implements AiService {
 
     // Gọi AI để phân tích và tạo request body
     try {
-      // Log thông tin request gửi tới OpenAI
-      // System.out.println("[SpringAI] Prompt: " + prompt);
-      // System.out.println("[SpringAI] ChatOptions: " + chatOptions);
-
-      // Nếu muốn log chi tiết HTTP, có thể bật debug cho WebClient/RestTemplate hoặc log thủ công
-      // Log giả lập: headers, endpoint, body
-//      System.out.println("[SpringAI] --- HTTP REQUEST ---");
-//      System.out.println("POST " + (openaiUrl != null ? openaiUrl : "https://api.openai.com/v1/chat/completions"));
-//      System.out.println("Headers:");
-//      System.out.println("Authorization: Bearer " + (openaiApiKey != null ? openaiApiKey : "(from config)"));
-//      System.out.println("Content-Type: application/json");
-//      System.out.println("Body:");
-//      System.out.println(prompt);
-//      System.out.println("---------------------------");
-
       // SỬA: Sử dụng conversationId riêng cho query generation để tránh memory contamination
       String queryConversationId = sessionId + "_query_generation";
       
@@ -434,7 +362,8 @@ public class AiServiceImpl implements AiService {
       String content = logApiService.search("logs-fortinet_fortigate.log-default*", query);
       System.out.println("[AiServiceImpl] Elasticsearch response received successfully");
       return new String[]{content, query};
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       System.out.println("[AiServiceImpl] ERROR: Log API returned an error! " + e.getMessage());
 
       // Parse error details từ Elasticsearch
@@ -449,7 +378,7 @@ public class AiServiceImpl implements AiService {
 
         try {
           // Lấy field mapping và tạo comparison prompt với error details
-          String allFields = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
+          String allFields = SchemaHint.getSchemaHint();
           String prevQuery = requestBody.getBody();
           String userMess = chatRequest.message();
 
@@ -868,31 +797,42 @@ public class AiServiceImpl implements AiService {
     SystemMessage systemMessage = new SystemMessage(String.format("""
                 You are HPT.AI
                 You should respond in a formal voice.
-                
+
                 IMPORTANT CONTEXT:
                 - Current date: %s
                 - Current datetime: %s (Vietnam timezone +07:00)
                 - All dates in the query and data are valid and current
                 - NEVER mention that dates are "in the future" or incorrect
                 - NEVER reference 2023 or any other year as current time
-                
+
                 IMPORTANT: Always include the Elasticsearch query used at the end of your response.
                 Also include a short justification for key field choices.
                 CRITICAL: If the user asks for counts (đếm/số lượng) or totals (tổng), you MUST parse Elasticsearch aggregations and state the numeric answer clearly.
-                
+
                 DATA INTERPRETATION RULES:
-                - CRITICAL: If hits.total.value = 0 and hits.hits = [], respond with "Không tìm thấy dữ liệu" message. DO NOT generate fake data.
-                - If aggregations.total_count.value exists, that is the count of documents.
-                - If aggregations.total_bytes.value (or total_packets.value) exists, that is the total metric.
-                - If size:0 with only aggregations is returned, base your answer on aggregations instead of hits.
-                - If both count and total are present, report both. If only count is present, report count. If no aggregations, use hits.hits length for count (if applicable).
-                
-              
-                
+                - FIRST: Check if there is ANY data in the response. Look for aggregations with values > 0 OR hits with entries.
+                - If aggregations.total_count.value > 0, there IS data - report the count (e.g., "Số log: 1234").
+                - If aggregations.total_bytes.value > 0, there IS data - report the total (e.g., "Tổng bytes: 56789").
+                - If hits.total.value > 0 OR hits.hits array has entries, there IS data - summarize the logs naturally.
+                - ONLY say "Không tìm thấy dữ liệu" if BOTH aggregations are empty/zero AND hits.total.value = 0 AND hits.hits is empty array.
+                - DO NOT say no data just because size=0 - aggregations can still have results.
+                - If aggregations exist with non-zero values, ALWAYS report them as the answer.
+                - If query has "aggs" but no "query", it's an aggregation query - base answer on aggregations only.
+                - If both aggregations and hits exist, prioritize aggregations for counts/totals, use hits for details.
+                - IMPORTANT: For queries that return hits with data (hits.total.value > 0), ALWAYS summarize the log entries, never say no data.
+                - CRITICAL: In the provided content, if you see hits.total.value > 0 and hits.hits array with entries, there IS data - summarize it.
+                - ABSOLUTE RULE: If hits.total.value is greater than 0 (like 10000) and hits.hits contains entries (like 10 entries), there IS DEFINITELY data - summarize the logs.
+                - NEVER say "no data" when hits.total.value > 0 and hits.hits has entries.
+                - If you see "hits":{"total":{"value":10000},"hits":[{...},{...},...]} then there IS data - summarize it.
+
+                NO DATA SCENARIOS (only when truly empty):
+                - hits.total.value = 0 AND hits.hits = [] AND no aggregations with values > 0
+                - aggregations.total_count.value = 0 AND no other aggregation values > 0
+
                 LOG DATA EXTRACTION RULES:
                 For each log entry in hits.hits, extract and display these key fields when available:
                 - Người dùng: source.user.name (if available)
-                - Địa chỉ nguồn: source.ip 
+                - Địa chỉ nguồn: source.ip
                 - Địa chỉ đích: destination.ip
                 - Hành động: fortinet.firewall.action (allow/deny) or event.action
                 - Nội dung: event.message or log.message or message
@@ -908,35 +848,35 @@ public class AiServiceImpl implements AiService {
 
                 logData : %s
                 query : %s
-                
+
                 Format your response as:
                 [Your analysis and summary of the data based on current date %s]
-                
+
                 LOG INFORMATION PRESENTATION:
                 Present log information in a natural, descriptive format. For each log entry, write a clear description that includes the key details:
-                
+
                 Format each log entry as a natural description like:
                 "Vào lúc [time], từ địa chỉ [source.ip] đã [action] kết nối đến [destination.ip]:[port] sử dụng giao thức [protocol]. Rule được áp dụng: [rule.name]. Dữ liệu truyền tải: [bytes] bytes."
-                
+
                 Include additional details when available:
                 - If source.user.name exists: "Người dùng: [source.user.name]"
                 - If event.message exists: "Mô tả: [event.message]"
                 - If geo information exists: "Từ quốc gia [source.geo.country_name] đến [destination.geo.country_name]"
                 - If risk level exists: "Mức rủi ro: [fortinet.firewall.crlevel]"
                 - If attack signature exists: "Cảnh báo tấn công: [fortinet.firewall.attack]"
-                
+
                 Present multiple entries in a flowing narrative style, grouping similar activities when appropriate.
-                
+
                 When the question requests:
                 - "đếm số log ..." → Output: "Số log: <number>" (derived from aggregations.total_count.value)
                 - "tổng log ..." (tổng số bản ghi) → Output: "Tổng log: <number>" (also aggregations.total_count.value)
                 - "tổng bytes/packets ..." → Output: "Tổng bytes/packets: <number>" (from aggregations.total_bytes/total_packets.value)
-                
+
                 Field Selection Rationale (concise):
                 - Explain why the chosen fields best match the intent, referencing categories when relevant
                 - Prefer reasons like: action semantics (fortinet.firewall.action vs event.outcome), traffic volume (network.bytes/packets), direction (network.direction), geo (source/destination.geo.country_name), rule grouping (rule.name vs ruleid), user specificity (source.user.* vs user.*)
                 - 3-6 bullets max
-                
+
                 **Elasticsearch Query Used:**
                 ```json
                 %s
@@ -985,7 +925,7 @@ public class AiServiceImpl implements AiService {
     } catch (Exception e) {
       System.out.println("[AiServiceImpl] Could not format query JSON: " + e.getMessage());
     }
-
+      System.out.println("[AiServiceImpl] nội dung content: " + content);
     // Tạo system message hướng dẫn AI cách phản hồi
     SystemMessage systemMessage = new SystemMessage(String.format("""
                 You are HPT.AI
@@ -1003,11 +943,20 @@ public class AiServiceImpl implements AiService {
                 CRITICAL: If the user asks for counts (đếm/số lượng) or totals (tổng), you MUST parse Elasticsearch aggregations and state the numeric answer clearly.
                 
                 DATA INTERPRETATION RULES:
-                - CRITICAL: If hits.total.value = 0 and hits.hits = [], respond with "Không tìm thấy dữ liệu" message. DO NOT generate fake data.
-                - If aggregations.total_count.value exists, that is the count of documents.
-                - If aggregations.total_bytes.value (or total_packets.value) exists, that is the total metric.
-                - If size:0 with only aggregations is returned, base your answer on aggregations instead of hits.
-                - If both count and total are present, report both. If only count is present, report count. If no aggregations, use hits.hits length for count (if applicable).
+                - FIRST: Check if there is ANY data in the response. Look for aggregations with values > 0 OR hits with entries.
+                - If aggregations.total_count.value > 0, there IS data - report the count (e.g., "Số log: 1234").
+                - If aggregations.total_bytes.value > 0, there IS data - report the total (e.g., "Tổng bytes: 56789").
+                - If hits.total.value > 0 OR hits.hits array has entries, there IS data - summarize the logs naturally.
+                - ONLY say "Không tìm thấy dữ liệu" if BOTH aggregations are empty/zero AND hits.total.value = 0 AND hits.hits is empty array.
+                - DO NOT say no data just because size=0 - aggregations can still have results.
+                - If aggregations exist with non-zero values, ALWAYS report them as the answer.
+                - If query has "aggs" but no "query", it's an aggregation query - base answer on aggregations only.
+                - If both aggregations and hits exist, prioritize aggregations for counts/totals, use hits for details.
+                - IMPORTANT: For queries that return hits with data (hits.total.value > 0), ALWAYS summarize the log entries, never say no data.
+                - CRITICAL: In the provided content, if you see hits.total.value > 0 and hits.hits array with entries, there IS data - summarize it.
+                - ABSOLUTE RULE: If hits.total.value is greater than 0 (like 10000) and hits.hits contains entries (like 10 entries), there IS DEFINITELY data - summarize the logs.
+                - NEVER say "no data" when hits.total.value > 0 and hits.hits has entries.
+                - If you see "hits":{"total":{"value":10000},"hits":[{...},{...},...]} then there IS data - summarize it.
                 
                 NO DATA HANDLING:
                 When hits.total.value = 0 or aggregations return empty buckets or zero count:
@@ -1112,7 +1061,6 @@ public class AiServiceImpl implements AiService {
 
     UserMessage userMessage = new UserMessage(chatRequest.message());
     Prompt prompt = new Prompt(systemMessage, userMessage);
-
     // Gọi AI với conversation ID tùy chỉnh để tránh memory contamination
     // Provider: default ChatClient (OpenAI) for comparison response generation
     return chatClient
@@ -1126,37 +1074,6 @@ public class AiServiceImpl implements AiService {
         .content();
   }
 
-  /**
-   * Xử lý yêu cầu với file đính kèm (hình ảnh, tài liệu, v.v.)
-   * Cho phép người dùng gửi file cùng với tin nhắn để AI phân tích
-   *
-   * @param sessionId ID phiên chat để duy trì ngữ cảnh
-   * @param file File được upload bởi người dùng
-   * @param request Yêu cầu kèm theo từ người dùng
-   * @param content Nội dung bổ sung (nếu có)
-   * @return Phản hồi của AI sau khi phân tích file và tin nhắn
-   */
-  public String getAiResponse(Long sessionId, MultipartFile file, ChatRequest request, String content) {
-    String conversationId = sessionId.toString();
-
-    // Tạo đối tượng Media từ file upload
-    Media media = Media.builder()
-        .mimeType(MimeTypeUtils.parseMimeType(file.getContentType()))
-        .data(file.getResource())
-        .build();
-
-    // Gọi AI với cả media và text, duy trì ngữ cảnh cuộc trò chuyện
-    return chatClient.prompt()
-        .system("")
-        .user(promptUserSpec ->promptUserSpec.media(media)
-            .text(request.message()))
-        .advisors(advisorSpec -> advisorSpec.param(
-            ChatMemory.CONVERSATION_ID, conversationId
-        ))
-        .call()
-        .content();
-  }
-  
   /**
    * Xử lý yêu cầu của người dùng trong chế độ so sánh, sử dụng cả OpenAI và OpenRouter
    * @param sessionId ID phiên chat để duy trì ngữ cảnh
@@ -1211,26 +1128,17 @@ public class AiServiceImpl implements AiService {
       // Ghép tất cả vào một system message duy nhất để AI có tối đa bối cảnh
       String combinedPrompt = queryPrompt + "\n\n" + fullSystemPrompt;
       SystemMessage systemMessage = new SystemMessage(combinedPrompt);
-      // Debug: in ra nội dung system prompt để xác minh đã chứa QueryTemplates
-      // System.out.println("[AiServiceImpl] SYSTEM PROMPT (comparison) length=" + systemMessage.getContent().length());
-      // System.out.println("[AiServiceImpl] SYSTEM PROMPT (comparison) preview:\n" + systemMessage.getContent());
-      
+
       UserMessage userMessage = new UserMessage(chatRequest.message());
       List<String> schemaHints = SchemaHint.allSchemas();
       String schemaContext = String.join("\n\n", schemaHints);
       UserMessage schemaMsg = new UserMessage("Available schema hints:\n" + schemaContext);
       // Provide a single sample log to help AI infer fields and structure
       UserMessage sampleLogMsg = new UserMessage("SAMPLE LOG (for inference):\n" + SchemaHint.examplelog());
-      
-      // System.out.println(systemMessage);
-      // System.out.println("---------------------------------------------------------------------------------------");
-      // System.out.println(schemaMsg);
-      // System.out.println("---------------------------------------------------------------------------------------");
-      // System.out.println(userMessage);
+
       System.out.println("---------------------------------------------------------------------------------------");
       Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, sampleLogMsg, userMessage));
-      // System.out.println("Promt very long: " + prompt);
-      
+
       ChatOptions chatOptions = ChatOptions.builder()
           .temperature(0.0D)
           .build();
