@@ -54,6 +54,120 @@ public class AiServiceImpl implements AiService {
   private RestClient openRouterClient;
 
   /**
+   * Refine query iteratively if needed for better comprehensiveness
+   * @param currentQuery Current Elasticsearch query JSON string
+   * @param userMessage Original user message
+   * @param dateContext Date context for time-based queries
+   * @param sessionId Session ID for conversation isolation
+   * @return Refined query string or original if no refinement needed
+   */
+  private String refineQueryIfNeeded(String currentQuery, String userMessage, String dateContext, Long sessionId) {
+    try {
+      // Quick analysis to determine if refinement might be beneficial
+      JsonNode queryJson = new ObjectMapper().readTree(currentQuery);
+
+      // Check if query is too simple (just match_all)
+      boolean isSimpleQuery = queryJson.has("query") &&
+                              queryJson.get("query").has("match_all");
+
+      // Check if query lacks time filters when user mentioned time-related terms
+      boolean mentionsTime = userMessage.toLowerCase().contains("hôm") ||
+                            userMessage.toLowerCase().contains("ngày") ||
+                            userMessage.toLowerCase().contains("giờ") ||
+                            userMessage.toLowerCase().contains("tuần") ||
+                            userMessage.toLowerCase().contains("tháng");
+
+      boolean hasTimeFilter = queryJson.has("query") &&
+                             queryJson.get("query").has("bool") &&
+                             (queryJson.get("query").get("bool").has("filter") ||
+                              queryJson.get("query").get("bool").has("must"));
+
+      if (hasTimeFilter && queryJson.get("query").get("bool").has("filter")) {
+        JsonNode filters = queryJson.get("query").get("bool").get("filter");
+        if (filters.isArray()) {
+          for (JsonNode filter : filters) {
+            if (filter.has("range") && filter.get("range").has("@timestamp")) {
+              hasTimeFilter = true;
+              break;
+            }
+          }
+        }
+      }
+
+      // If query is simple and user mentioned time, or if query lacks comprehensive filters, refine it
+      if ((isSimpleQuery && mentionsTime) || (!hasTimeFilter && mentionsTime)) {
+        System.out.println("[AiServiceImpl] 🔍 Query refinement needed - generating more comprehensive query");
+
+        // Create refinement prompt
+        String refinementPrompt = String.format("""
+            You are an Elasticsearch query optimization expert. Analyze the current query and user request, then generate a more comprehensive query if needed.
+
+            CURRENT QUERY: %s
+            USER REQUEST: %s
+            DATE CONTEXT: %s
+
+            REFINEMENT RULES:
+            1. If query is too simple (just match_all) and user mentioned time, add appropriate time filters
+            2. If query lacks time ranges when user clearly wants temporal filtering, add them
+            3. Ensure query includes all relevant filters mentioned in user request
+            4. Add aggregations if user is asking for counts, totals, or analytics
+            5. Include appropriate field selections based on user intent
+
+            IMPORTANT: Only refine if the current query is genuinely incomplete or misses key filtering criteria.
+            If the current query already comprehensively captures the user intent, return it unchanged.
+
+            Return ONLY the JSON query string, no explanations.
+            """, currentQuery, userMessage, dateContext);
+
+        SystemMessage refinementSystemMessage = new SystemMessage(refinementPrompt);
+        UserMessage refinementUserMessage = new UserMessage("Please refine this query if needed: " + currentQuery);
+
+        Prompt refinementPromptObj = new Prompt(refinementSystemMessage, refinementUserMessage);
+
+        ChatOptions refinementOptions = ChatOptions.builder()
+            .temperature(0.0D)
+            .build();
+
+        String refinedQuery = chatClient
+            .prompt(refinementPromptObj)
+            .options(refinementOptions)
+            .advisors(advisorSpec -> advisorSpec.param(
+                ChatMemory.CONVERSATION_ID, sessionId + "_refinement"
+            ))
+            .call()
+            .content();
+
+        // Clean the response
+        if (refinedQuery != null) {
+          refinedQuery = refinedQuery.trim();
+          if (refinedQuery.startsWith("```json")) {
+            refinedQuery = refinedQuery.substring(7);
+          }
+          if (refinedQuery.endsWith("```")) {
+            refinedQuery = refinedQuery.substring(0, refinedQuery.length() - 3);
+          }
+          refinedQuery = refinedQuery.trim();
+
+          // Validate that it's valid JSON
+          try {
+            new ObjectMapper().readTree(refinedQuery);
+            System.out.println("[AiServiceImpl] ✅ Query refinement completed successfully");
+            return refinedQuery;
+          } catch (Exception e) {
+            System.out.println("[AiServiceImpl] ⚠️ Refined query is invalid JSON, keeping original: " + e.getMessage());
+          }
+        }
+      }
+
+      return currentQuery; // Return original if no refinement needed or refinement failed
+
+    } catch (Exception e) {
+      System.out.println("[AiServiceImpl] ⚠️ Error during query refinement, keeping original: " + e.getMessage());
+      return currentQuery;
+    }
+  }
+
+  /**
    * Tạo chuỗi thông tin ngày tháng cho system message với các biểu thức thời gian tương đối của Elasticsearch
    * @param now Thời điểm hiện tại (real-time)
    * @return Chuỗi chứa thông tin về cách sử dụng biểu thức thời gian tương đối của Elasticsearch
@@ -167,8 +281,27 @@ public class AiServiceImpl implements AiService {
     params.put("complexityLevel", "Advanced - Hỗ trợ nested aggregations và bucket selectors");
     params.put("maxSize", "1000");
     
-    // Sử dụng QueryPromptTemplate: đưa toàn bộ thư viện + ví dụ động (nếu có)
+    // Enhanced query generation with comprehensive instructions
     Map<String, Object> dynamicInputs = new HashMap<>();
+    dynamicInputs.put("query_complexity_guidelines",
+        "CRITICAL: Create COMPREHENSIVE Elasticsearch queries that fully capture user intent. " +
+        "Avoid overly simple queries that miss important filtering criteria. " +
+        "Include all relevant fields and conditions mentioned or implied in the user request. " +
+        "Use appropriate aggregations when counting or analyzing patterns. " +
+        "Consider time ranges, user filters, IP addresses, actions, and other relevant dimensions."
+    );
+    dynamicInputs.put("examples_complex_queries",
+        "EXAMPLES OF COMPREHENSIVE QUERIES:\n" +
+        "- User asks 'traffic from Vietnam': Include geo filters, time ranges, and aggregations\n" +
+        "- User asks 'failed logins': Include authentication events, failure reasons, user details\n" +
+        "- User asks 'attacks last week': Include IPS events, attack types, time filters, severity levels\n" +
+        "- User asks 'user activity': Include user identification, actions performed, time periods\n\n" +
+        "AVOID SIMPLE QUERIES LIKE:\n" +
+        "- Just {'query': {'match_all': {}}} when specific filters are needed\n" +
+        "- Missing time ranges when temporal context is important\n" +
+        "- Ignoring user-specified criteria like usernames, IPs, or actions"
+    );
+
     String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPromptWithAllTemplates(
         chatRequest.message(),
         dateContext,
@@ -257,6 +390,13 @@ public class AiServiceImpl implements AiService {
     System.out.println("THong tin quey: "+requestBody.getQuery());
     System.out.println("[AiServiceImpl] Generated query body: " + requestBody.getBody());
     System.out.println("[AiServiceImpl] Using current date context: " + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+
+    // Add iterative query refinement step
+    String refinedQuery = refineQueryIfNeeded(requestBody.getBody(), chatRequest.message(), dateContext, sessionId);
+    if (!refinedQuery.equals(requestBody.getBody())) {
+      System.out.println("[AiServiceImpl] 🔧 Query refined for better comprehensiveness");
+      requestBody.setBody(refinedQuery);
+    }
 
     String fixedQuery = requestBody.getBody(); // Giá trị mặc định
 
@@ -1097,9 +1237,27 @@ public class AiServiceImpl implements AiService {
       
       // Chuẩn bị schema một lần để dùng lại cho cả hai prompt
       String fullSchema = SchemaHint.getSchemaHint();
-      
+
       // Sử dụng QueryPromptTemplate: đưa toàn bộ thư viện + ví dụ động (nếu có)
-      Map<String, Object> dynamicInputs = new HashMap<>();
+        Map<String, Object> dynamicInputs = new HashMap<>();
+        dynamicInputs.put("query_complexity_guidelines",
+                "CRITICAL: Create COMPREHENSIVE Elasticsearch queries that fully capture user intent. " +
+                        "Avoid overly simple queries that miss important filtering criteria. " +
+                        "Include all relevant fields and conditions mentioned or implied in the user request. " +
+                        "Use appropriate aggregations when counting or analyzing patterns. " +
+                        "Consider time ranges, user filters, IP addresses, actions, and other relevant dimensions."
+        );
+        dynamicInputs.put("examples_complex_queries",
+                "EXAMPLES OF COMPREHENSIVE QUERIES:\n" +
+                        "- User asks 'traffic from Vietnam': Include geo filters, time ranges, and aggregations\n" +
+                        "- User asks 'failed logins': Include authentication events, failure reasons, user details\n" +
+                        "- User asks 'attacks last week': Include IPS events, attack types, time filters, severity levels\n" +
+                        "- User asks 'user activity': Include user identification, actions performed, time periods\n\n" +
+                        "AVOID SIMPLE QUERIES LIKE:\n" +
+                        "- Just {'query': {'match_all': {}}} when specific filters are needed\n" +
+                        "- Missing time ranges when temporal context is important\n" +
+                        "- Ignoring user-specified criteria like usernames, IPs, or actions"
+        );
       String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPromptWithAllTemplates(
           chatRequest.message(),
           dateContext,
