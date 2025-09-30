@@ -46,6 +46,16 @@ chatlog/
 │     └─ java/
 │        └─ com/example/chatlog/
 │           └─ ChatlogApplicationTests.java
+
+
+AiServiceImpl
+├── AiQueryService (tạo và thực hiện query)
+├── AiComparisonService (so sánh 2 model)
+│   ├── AiQueryService
+│   ├── AiResponseService  
+│   └── AiFallbackService
+├── AiFallbackService (fallback queries)
+└── AiResponseService (tạo phản hồi AI)
 ```
 
 ## Mô tả tệp và thư mục
