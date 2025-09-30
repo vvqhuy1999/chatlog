@@ -49,21 +49,6 @@ public class AiServiceImpl implements AiService {
   @Autowired
   private AiResponseService aiResponseService;
 
-  // ObjectMapper đã loại bỏ vì không cần thiết trong phiên bản đơn giản
-
-  /**
-   * Lấy thông tin mapping (cấu trúc field) của Elasticsearch index
-   * Chỉ gọi API một lần và cache kết quả để tối ưu hiệu suất
-   * @return String chứa thông tin mapping dạng JSON
-   */
-  public String getFieldLog()
-  {
-    if (fieldLog == null)
-    {
-      fieldLog = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
-    }
-    return fieldLog;
-  }
 
 
   /**
@@ -141,22 +126,6 @@ public class AiServiceImpl implements AiService {
   }
 
 
-
-
-  /**
-   * Xử lý yêu cầu với file đính kèm (hình ảnh, tài liệu, v.v.)
-   * Cho phép người dùng gửi file cùng với tin nhắn để AI phân tích
-   *
-   * @param sessionId ID phiên chat để duy trì ngữ cảnh
-   * @param file File được upload bởi người dùng
-   * @param request Yêu cầu kèm theo từ người dùng
-   * @param content Nội dung bổ sung (nếu có)
-   * @return Phản hồi của AI sau khi phân tích file và tin nhắn
-   */
-  public String getAiResponse(Long sessionId, MultipartFile file, ChatRequest request, String content) {
-    return aiResponseService.getAiResponse(sessionId, file, request, content);
-  }
-  
   /**
    * Xử lý yêu cầu của người dùng trong chế độ so sánh, sử dụng cả OpenAI và OpenRouter
    * @param sessionId ID phiên chat để duy trì ngữ cảnh

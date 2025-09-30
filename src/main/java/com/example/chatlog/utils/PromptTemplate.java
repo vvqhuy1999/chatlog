@@ -46,6 +46,7 @@ public class PromptTemplate {
                 - Return ONLY the JSON query object
                 - No explanations, wrappers, or multiple queries
                 - Valid JSON syntax required
+                - Always generate size in query, Default : {size : 50}
                 
                 TIME HANDLING (Priority #1)
                 Current Context: %s
@@ -66,7 +67,7 @@ public class PromptTemplate {
                 
                 COUNTING QUERIES ⭐ TOP PRIORITY
                 Triggers: "tổng", "đếm", "tổng số", "bao nhiêu", "count", "số lượng"
-                Mandatory Structure: 
+                Mandatory Structure:
                 {
                   "query": {
                     "bool": {
@@ -82,7 +83,7 @@ public class PromptTemplate {
                       "value_count": {"field": "@timestamp"}
                     }
                   },
-                  "size": 0
+                  "size": 50
                 }
                 
                 ANALYSIS QUERIES ⭐ HIGH PRIORITY
@@ -111,7 +112,7 @@ public class PromptTemplate {
                       }
                     }
                   },
-                  "size": 0
+                  "size": 50
                 }
                 
                 SECURITY THREAT DETECTION ⭐ CRITICAL
@@ -238,7 +239,7 @@ public class PromptTemplate {
                 
                 QUERY STRUCTURE BEST PRACTICES
                 - Use bool.filter for exact matches and ranges
-                - Default size: 10 (except counting: size: 0)
+                - Default size: 50 (except counting: size: 0)
                 - Prefer now-24h over absolute timestamps
                 - Use field names without .keyword unless necessary
 
@@ -299,8 +300,8 @@ public class PromptTemplate {
                 
                 RESPONSE FORMAT
                 Return only JSON:
-                - Simple: {"query":{...},"size":10}
-                - Aggregation: {"query":{...},"aggs":{...},"size":0}
+                - Simple: {"query":{...},"size":50}
+                - Aggregation: {"query":{...},"aggs":{...},"size":50}
                 """,
             dateContext,
             roleNormalizationRules,
@@ -364,7 +365,7 @@ public class PromptTemplate {
                 6. CRITICAL: Return ONLY ONE JSON object, NOT multiple objects separated by commas
                 7. ALL fields (query, aggs, sort, size) MUST be in the SAME JSON object
                 8. NEVER return: {"query":{...}},{"aggs":{...}} - This is WRONG!
-                9. ALWAYS return: {"query":{...},"aggs":{...}} - This is CORRECT!
+                9. ALWAYS return: {"query":{...},"aggs":{...},"size":...} - This is CORRECT!
                 
                 TIMESTAMP FORMAT:
                 - CORRECT: "2025-09-14T11:41:04.000+07:00"
@@ -387,7 +388,7 @@ public class PromptTemplate {
                 
                 RESPONSE FORMAT:
                 Return ONLY the corrected Elasticsearch JSON query, no explanations.
-                Example: {"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
+                Example: {"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
                 """,
             allFields, previousQuery, userMessage, dateContext);
     }
