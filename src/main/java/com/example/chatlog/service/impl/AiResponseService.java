@@ -191,7 +191,7 @@ public class AiResponseService {
                 - NEVER reference 2023 or any other year as current time
 
                 IMPORTANT: Always include the Elasticsearch query used at the end of your response.
-                Also include a short justification for key field choices.
+                CRITICAL: You MUST include a section titled exactly: "Lý do chọn các trường" with 3-6 concise bullet points explaining the key field choices.
                 CRITICAL: If the user asks for counts (đếm/số lượng) or totals (tổng), you MUST parse Elasticsearch aggregations and state the numeric answer clearly.
 
                 DATA INTERPRETATION RULES:
@@ -248,7 +248,7 @@ public class AiResponseService {
                     Bước 2: Bỏ tiền tố "interface[" và dấu "]" rồi tách từng danh sách bằng khoảng trắng
                     - Ban đầu: LAB-CNHN, MGMT-SW-FW, PRINTER-DEVICE, SECCAM-CNHN, WiFi, HPT-GUEST, WiFi-HPTVIETNAM, WiFi-IoT, SERVER_CORE, CNHN_Wire_NV, CNHN_Wire_Lab]
                     - Sau: LAB-CNHN, MGMT-SW-FW, PRINTER-DEVICE, SECCAM-CNHN, WiFi, HPT-GUEST, WiFi-HPTVIETNAM, WiFi-IoT, SERVER_CORE, CNHN_Wire_NV
-                    Bước 3: So sánh
+                     Bước 3: So sánh
                     - Thêm: [] (không có)
                     - Xóa: [CNHN_Wire_Lab]
                 • Xuất theo timeline (sắp xếp theo @timestamp):
@@ -262,6 +262,13 @@ public class AiResponseService {
                     - Xóa: [...]
                     Luôn luôn hiển thị cả Ban đầu và Sau, ngay cả khi không có sự thay đổi.
                 • Nếu không có "->" trong cfgattr, coi toàn bộ là danh sách hiện tại
+
+                SUMMARIZATION & DEDUPLICATION RULES:
+                - Tập trung trả lời trực tiếp câu hỏi của người dùng trước (đúng trọng tâm).
+                - Nếu nhiều log giống nhau về các trường chính (ví dụ: source.user.name, source.ip, destination.ip, destination.port, network.protocol, fortinet.firewall.action, rule.name, và nội dung message tương đương), hãy GỘP lại thành MỘT mục mô tả duy nhất và nêu tổng số lần xuất hiện (ví dụ: "xN lần").
+                - Chỉ liệt kê chi tiết riêng cho các log có sự khác biệt ý nghĩa (khác người dùng, IP, port, hành động, rule, hoặc thông điệp).
+                - Ưu tiên nhóm theo ngữ nghĩa phù hợp với câu hỏi (ví dụ: theo người dùng khi hỏi về hành vi người dùng, theo đích khi hỏi về lưu lượng đến một máy chủ).
+                - Giữ văn phong ngắn gọn, tránh lặp lại thông tin không cần thiết.
 
                 logData : %s
                 query : %s
@@ -277,7 +284,6 @@ public class AiResponseService {
 
                 Format each log entry as a natural description like:
                 "Vào lúc [time], từ địa chỉ [source.ip] đã [action] kết nối đến [destination.ip]:[port] sử dụng giao thức [protocol]. Rule được áp dụng: [rule.name]. Dữ liệu truyền tải: [bytes] bytes."
-
                 Include additional details when available:
                 - If source.user.name exists: "Người dùng: [source.user.name]"
                 - If event.message exists: "Mô tả: [event.message]"
@@ -290,10 +296,17 @@ public class AiResponseService {
                 - "tổng log ..." (tổng số bản ghi) → Output: "Tổng log: <number>" (also aggregations.total_count.value)
                 - "tổng bytes/packets ..." → Output: "Tổng bytes/packets: <number>" (from aggregations.total_bytes/total_packets.value)
 
-                Field Selection Rationale (concise):
-                - Explain why the chosen fields best match the intent, referencing categories when relevant
-                - Prefer reasons like: action semantics (fortinet.firewall.action vs event.outcome), traffic volume (network.bytes/packets), direction (network.direction), geo (source/destination.geo.country_name), rule grouping (rule.name vs ruleid), user specificity (source.user.* vs user.*)
-                - 3-6 bullets max
+                Lý do chọn các trường:
+                - Bạn PHẢI thêm mục này với tiêu đề chính xác: "Lý do chọn các trường".
+                - Trình bày 3–6 gạch đầu dòng ngắn gọn, nêu vì sao các trường chính được chọn phù hợp với ý định: hành động (fortinet.firewall.action vs event.action), lưu lượng (network.bytes/packets), hướng (network.direction), địa lý (source/destination.geo.country_name), quy tắc (rule.name vs ruleid), người dùng (source.user.* vs user.*).
+
+                BEFORE SENDING (Self-checklist):
+                - The response starts with a direct answer if data exists; otherwise, a natural “Không tìm thấy dữ liệu”.
+                - The section "Lý do chọn các trường" exists with 3–6 bullets.
+                - The final section includes "**Elasticsearch Query Used:**" followed by the JSON query (pretty-printed if available).
+                - Numeric answers for counts/totals are extracted from aggregations when requested.
+                - No contradictions with the current date context.
+                - Đảm bảo đã gộp các log trùng lặp và nêu tổng số lần xuất hiện.
 
                 **Elasticsearch Query Used:**
                 ```json  

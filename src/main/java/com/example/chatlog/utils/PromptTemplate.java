@@ -238,7 +238,7 @@ public class PromptTemplate {
                 
                 QUERY STRUCTURE BEST PRACTICES
                 - Use bool.filter for exact matches and ranges
-                - Default size: 10 (except counting: size: 0)
+                - Default size: 50 (except counting: size: 0)
                 - Prefer now-24h over absolute timestamps
                 - Use field names without .keyword unless necessary
 
@@ -246,10 +246,10 @@ public class PromptTemplate {
                 
                 Basic Searches
                 // User activity today
-                {"query":{"bool":{"filter":[{"term":{"source.user.name":"USERNAME"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
+                {"query":{"bool":{"filter":[{"term":{"source.user.name":"USERNAME"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
                 
                 // Admin logs
-                {"query":{"bool":{"filter":[{"term":{"source.user.roles":"Administrator"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
+                {"query":{"bool":{"filter":[{"term":{"source.user.roles":"Administrator"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
                 
                 Counting Queries
                 // Count total logs
@@ -268,7 +268,7 @@ public class PromptTemplate {
                 
                 Geographic Analysis
                 // Vietnam outbound traffic
-                {"query":{"bool":{"must":[{"term":{"source.geo.country_name":"Vietnam"}}],"must_not":[{"term":{"destination.geo.country_name":"Vietnam"}}],"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
+                {"query":{"bool":{"must":[{"term":{"source.geo.country_name":"Vietnam"}}],"must_not":[{"term":{"destination.geo.country_name":"Vietnam"}}],"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
                 
                 Firewall Rules
                 // Top blocking rules
@@ -299,7 +299,7 @@ public class PromptTemplate {
                 
                 RESPONSE FORMAT
                 Return only JSON:
-                - Simple: {"query":{...},"size":10}
+                - Simple: {"query":{...},"size":50}
                 - Aggregation: {"query":{...},"aggs":{...},"size":0}
                 """,
             dateContext,
@@ -387,7 +387,7 @@ public class PromptTemplate {
                 
                 RESPONSE FORMAT:
                 Return ONLY the corrected Elasticsearch JSON query, no explanations.
-                Example: {"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
+                Example: {"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
                 """,
             allFields, previousQuery, userMessage, dateContext);
     }

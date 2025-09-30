@@ -980,7 +980,7 @@ public class SchemaHint {
   public static String getAdminRoleExample() {
     return """
         Question: "hôm ngày 11-09 có roles admin nào vào hệ thống hay ko?"
-        Response: {"body":"{\\"query\\":{\\"bool\\":{\\"must\\":[{\\"term\\":{\\"source.user.roles\\":\\"Administrator\\"}},{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-11T00:00:00.000+07:00\\",\\"lte\\":\\"2025-09-11T23:59:59.999+07:00\\"}}}]}},\\"size\\":10}","query":1}
+        Response: {"body":"{\\"query\\":{\\"bool\\":{\\"must\\":[{\\"term\\":{\\"source.user.roles\\":\\"Administrator\\"}},{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-11T00:00:00.000+07:00\\",\\"lte\\":\\"2025-09-11T23:59:59.999+07:00\\"}}}]}} ,\\"size\\":50}","query":1}
         """;
   }
 
@@ -997,7 +997,7 @@ public class SchemaHint {
         
         🌍 Pattern 2: "Vietnam outbound traffic" (CRITICAL)
         Q: "Kết nối từ Việt Nam ra nước ngoài trong 6 giờ qua"
-        ✅ {"query":{"bool":{"must":[{"term":{"network.direction":"outbound"}},{"term":{"source.geo.country_name":"Vietnam"}}],"must_not":[{"term":{"destination.geo.country_name":"Vietnam"}}],"filter":[{"range":{"@timestamp":{"gte":"now-6h"}}}]}},"size":10}
+        ✅ {"query":{"bool":{"must":[{"term":{"network.direction":"outbound"}},{"term":{"source.geo.country_name":"Vietnam"}}],"must_not":[{"term":{"destination.geo.country_name":"Vietnam"}}],"filter":[{"range":{"@timestamp":{"gte":"now-6h"}}}]}},"size":50}
         
         📈 Pattern 3: "Top organizations by bytes"
         Q: "Tổ chức nào được truy cập nhiều nhất theo bytes?"
@@ -1104,7 +1104,7 @@ public class SchemaHint {
               ]
             }
           },
-          "size": 10
+          "size": 50
         }
         
         2. Inbound traffic to Vietnam from foreign countries:
@@ -1125,7 +1125,7 @@ public class SchemaHint {
               ]
             }
           },
-          "size": 10
+          "size": 50
         }
         
         3. Internal Vietnam traffic:
@@ -1144,7 +1144,7 @@ public class SchemaHint {
               ]
             }
           },
-          "size": 10
+          "size": 50
         }
         
         CRITICAL GEOGRAPHIC RULES:
@@ -1280,9 +1280,9 @@ public class SchemaHint {
         🚀 QUICK PATTERNS REFERENCE:
         
         📋 BASIC SEARCHES:
-        • User logs: {"query":{"bool":{"filter":[{"term":{"source.user.name":"USERNAME"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
-        • Admin activity: {"query":{"bool":{"filter":[{"term":{"source.user.roles":"Administrator"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
-        • Blocked traffic: {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.action":"deny"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
+        • User logs: {"query":{"bool":{"filter":[{"term":{"source.user.name":"USERNAME"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
+        • Admin activity: {"query":{"bool":{"filter":[{"term":{"source.user.roles":"Administrator"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
+        • Blocked traffic: {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.action":"deny"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
         
         📊 COUNTING QUERIES:
         • Count total: {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"total":{"value_count":{"field":"@timestamp"}}},"size":0}
@@ -1301,11 +1301,11 @@ public class SchemaHint {
         
         🔄 NAT QUERIES:
         • DNAT to server: [See QueryTemplates.getDnatSessionsToInternalServer()]
-        • SNAT from IP: {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.trandisp":"snat"}},{"term":{"source.ip":"192.168.1.100"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
+        • SNAT from IP: {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.trandisp":"snat"}},{"term":{"source.ip":"192.168.1.100"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
         
         🔐 PROTOCOL QUERIES:
         • RDP from WAN: [Moved to QueryTemplates.RDP_TRAFFIC_FROM_WAN]
-        • SSH to server: {"query":{"bool":{"filter":[{"term":{"destination.port":22}},{"term":{"destination.ip":"10.0.0.10"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
+        • SSH to server: {"query":{"bool":{"filter":[{"term":{"destination.port":22}},{"term":{"destination.ip":"10.0.0.10"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
         
         🚨 SECURITY THREAT DETECTION:
         • Brute force login: [Moved to QueryTemplates.BRUTE_FORCE_DETECTION]

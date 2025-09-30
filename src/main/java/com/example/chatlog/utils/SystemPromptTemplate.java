@@ -136,7 +136,7 @@ public class SystemPromptTemplate {
                 
                 ĐỊNH DẠNG PHẢN HỒI
                 Chỉ trả về JSON:
-                - Đơn giản: {"query":{...},"size":10}
+                - Đơn giản: {"query":{...},"size":50}
                 - Tổng hợp: {"query":{...},"aggs":{...},"size":0}
                 """,
                 dateContext, fieldMappings, exampleQueries);
@@ -183,7 +183,7 @@ public class SystemPromptTemplate {
             1. Filter context cho exact match (không cần scoring)
             2. Điều kiện loại bỏ nhiều docs nhất đặt đầu bool query
             3. Term queries cho exact match thay vì match
-            4. Size hợp lý: mặc định 10, tối đa {maxSize}
+            4. Size hợp lý: mặc định 50, tối đa {maxSize}
             5. _source filtering để giảm băng thông
             
             VÍ DỤ CẤU TRÚC:
@@ -195,7 +195,7 @@ public class SystemPromptTemplate {
             - Luôn validate cú pháp JSON trước khi trả về
             
             ĐỊNH DẠNG CUỐI CÙNG
-            Chỉ trả về JSON object: {"query": {...}, "size": 10}
+            Chỉ trả về JSON object: {"query": {...}, "size": 50}
             """;
     
     /**
@@ -223,7 +223,7 @@ public class SystemPromptTemplate {
             
             RÀNG BUỘC: {constraints}
             
-            ĐẦU RA: {"query":{...},"size":10}
+            ĐẦU RA: {"query":{...},"size":50}
             """;
     
     /**
@@ -245,7 +245,7 @@ public class SystemPromptTemplate {
             "complexityLevel", "Intermediate - Hỗ trợ aggregation và nested queries",
             "maxSize", "1000",
             "queryExamples", """
-                Search: {"query":{"bool":{"must":[{"match":{"message":"error"}}],"filter":[{"range":{"@timestamp":{"gte":"now-1h"}}}]}},"size":10}
+                Search: {"query":{"bool":{"must":[{"match":{"message":"error"}}],"filter":[{"range":{"@timestamp":{"gte":"now-1h"}}}]}} ,"size":50}
                 
                 Aggregation: {"query":{"match_all":{}},"aggs":{"levels":{"terms":{"field":"level.keyword","size":5}}},"size":0}
                 """
