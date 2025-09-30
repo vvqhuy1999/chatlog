@@ -206,19 +206,48 @@ public class AiQueryService {
                     String prevQuery = requestBody.getBody();
                     String userMess = chatRequest.message();
                     
-                    // Cải thiện prompt với error details cụ thể
-                    String enhancedPrompt = com.example.chatlog.utils.PromptTemplate.getComparisonPrompt(
-                        allFields, prevQuery, userMess, generateDateContext(LocalDateTime.now())
-                    ) + "\n\nIMPORTANT: The previous query failed with this error:\n" + errorDetails + 
-                        "\nPlease fix the specific issue mentioned in the error and generate a corrected Elasticsearch query.";
+                     // Cải thiện prompt với error details cụ thể
+                     String systemPrompt =
+                         com.example.chatlog.utils.PromptTemplate.getComparisonPrompt(
+                             allFields, prevQuery, userMess, generateDateContext(LocalDateTime.now())
+                         )
+                         + "\n\nROLE: You are an expert Elasticsearch DSL fixer.\n"
+                         + "Context:\n"
+                         + "- allFields: the complete list of valid field names (with types if available). Use only these.\n"
+                         + "- prevQuery: the failing query to fix without changing the user's intent.\n"
+                         + "- userMess: user's intent. Preserve semantics.\n"
+                         + "- dateContext: current time context if needed.\n\n"
+                         + "Task:\n"
+                         + "- Fix the specific issue in errorDetails.\n"
+                         + "- Keep the user's intent unchanged.\n"
+                         + "- Use only fields present in allFields; replace or remove invalid fields appropriately.\n\n"
+                         + "Output requirements:\n"
+                         + "- Return ONLY a single valid Elasticsearch JSON query. No explanations, no extra text.\n"
+                         + "- Ensure valid JSON syntax.\n\n"
+                         + "Best practices and constraints:\n"
+                         + "1) Do NOT place \"aggs\" inside \"query\". Use proper root-level aggs (or nested aggs correctly when needed).\n"
+                         + "2) Validate bool structure: must/should/filter/must_not used correctly.\n"
+                         + "3) Use operators matching field types (term/terms vs match; range for numeric/date, keyword vs text).\n"
+                         + "4) Ensure brackets, quotes, and commas are properly balanced.\n"
+                         + "5) If date filters are present, honor date formats and time zones. Use dateContext as needed.\n"
+                         + "6) Preserve size/sort/from if valid; otherwise fix or remove with minimal change.\n"
+                         + "7) Mentally verify the query passes syntax and mapping checks before returning.\n";
+
+                     String userPrompt =
+                         "URGENT: Fix this Elasticsearch query and ensure correct syntax.\n\n"
+                         + "errorDetails: " + errorDetails + "\n"
+                         + "userMess: " + userMess + "\n"
+                         + "prevQuery: " + prevQuery + "\n\n"
+                         + "Return only the corrected JSON query.";
+
+                     Prompt comparePrompt = new Prompt(
+                         new SystemMessage(systemPrompt),
+                         new UserMessage(userPrompt)
+                     );
                     
-                    Prompt comparePrompt = new Prompt(
-                        new SystemMessage(enhancedPrompt),
-                        new UserMessage("Fix this query error: " + errorDetails + " | User request: " + userMess + " | Failed query: " + prevQuery)
-                    );
                     
                     ChatOptions retryChatOptions = ChatOptions.builder()
-                        .temperature(0.0D)
+                        .temperature(0.3D)
                         .build();
                     
                     // Gọi AI để tạo query mới với isolate memory
@@ -272,20 +301,34 @@ public class AiQueryService {
                             System.out.println("[AiQueryService] Raw response is not valid JSON: " + jsonException.getMessage());
                             throw new RuntimeException("AI returned invalid JSON: " + newQuery, jsonException);
                         }
-                    }
-                    System.out.println("[AiQueryService] 🔧 Generated new query with error fix: " + newQuery);
-                    
-                    // Kiểm tra xem query mới có khác query cũ không
-                    if (newQuery.equals(prevQuery)) {
-                        System.out.println("[AiQueryService] WARNING: New query is identical to failed query");
-                        return new String[]{
-                            "❌ **Elasticsearch Error (Same Query Generated)**\n\n" +
-                                "AI tạo ra query giống hệt với query đã lỗi.\n\n" +
-                                "**Lỗi gốc:** " + errorDetails + "\n\n" +
-                                "💡 **Gợi ý:** Vui lòng thử câu hỏi khác với cách diễn đạt khác.",
-                            query
-                        };
-                    }
+                     }
+                     System.out.println("[AiQueryService] 🔧 Generated new query with error fix: " + newQuery);
+                     
+                     // Validate syntax của query mới trước khi sử dụng
+                     String newQueryValidationError = validateQuerySyntax(newQuery);
+                     if (newQueryValidationError != null) {
+                         System.out.println("[AiQueryService] WARNING: New query has syntax errors: " + newQueryValidationError);
+                         return new String[]{
+                             "❌ **Elasticsearch Error (Invalid Retry Query)**\n\n" +
+                                 "AI tạo ra query mới nhưng có lỗi syntax.\n\n" +
+                                 "**Lỗi gốc:** " + errorDetails + "\n\n" +
+                                 "**Lỗi query mới:** " + newQueryValidationError + "\n\n" +
+                                 "💡 **Gợi ý:** Vui lòng thử câu hỏi khác với cách diễn đạt khác.",
+                             query
+                         };
+                     }
+                     
+                     // Kiểm tra xem query mới có khác query cũ không
+                     if (newQuery.equals(prevQuery)) {
+                         System.out.println("[AiQueryService] WARNING: New query is identical to failed query");
+                         return new String[]{
+                             "❌ **Elasticsearch Error (Same Query Generated)**\n\n" +
+                                 "AI tạo ra query giống hệt với query đã lỗi.\n\n" +
+                                 "**Lỗi gốc:** " + errorDetails + "\n\n" +
+                                 "💡 **Gợi ý:** Vui lòng thử câu hỏi khác với cách diễn đạt khác.",
+                             query
+                         };
+                     }
                     
                     // Retry với query mới
                     System.out.println("[AiQueryService] 🔄 Đang thử lại với query đã sửa...");

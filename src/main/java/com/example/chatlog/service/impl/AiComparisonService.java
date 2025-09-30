@@ -37,8 +37,6 @@ public class AiComparisonService {
     @Autowired
     private AiResponseService aiResponseService;
     
-    @Autowired
-    private AiFallbackService aiFallbackService;
     
     private final ChatClient chatClient;
     
@@ -243,18 +241,9 @@ public class AiComparisonService {
             
             System.out.println("OpenaiElasticsearch : "+ openaiElasticsearch);
             
-            // Nếu OpenAI query thất bại hoàn toàn, dùng fallback mẫu gợi ý từ QueryTemplates
+            // Nếu OpenAI query thất bại, giữ nguyên lỗi để AI xử lý
             if (openaiContent != null && openaiContent.startsWith("❌")) {
-                String fallbackQueryStr = aiFallbackService.selectFallbackQuery(chatRequest.message());
-                System.out.println("[AiComparisonService] 🔵 OPENAI - Dùng fallback query theo intent: " + fallbackQueryStr);
-                RequestBody fallbackOpenAi = new RequestBody(fallbackQueryStr, 1);
-                String[] fallbackOpenAiResults = aiQueryService.getLogData(fallbackOpenAi, chatRequest);
-                if (fallbackOpenAiResults[0] != null && !fallbackOpenAiResults[0].startsWith("❌")) {
-                    openaiContent = fallbackOpenAiResults[0];
-                    finalOpenaiQuery = fallbackOpenAiResults[1];
-                    System.out.println("[AiComparisonService] 🔵 OPENAI - Fallback query trả về dữ liệu thành công");
-                    System.out.println("[AiComparisonService] 📊 DỮ LIỆU FALLBACK (OpenAI): " + (openaiContent.length() > 500 ? openaiContent.substring(0, 500) + "..." : openaiContent));
-                }
+                System.out.println("[AiComparisonService] 🔵 OPENAI - Query thất bại, giữ nguyên lỗi để AI xử lý");
             }
             
             // Tìm kiếm OpenRouter (sử dụng query riêng từ OpenRouter)
@@ -280,18 +269,9 @@ public class AiComparisonService {
             
             System.out.println("OpenrouterElasticsearch : " + openrouterElasticsearch);
             
-            // Nếu OpenRouter cũng thất bại, thử fallback tương tự
+            // Nếu OpenRouter query thất bại, giữ nguyên lỗi để AI xử lý
             if (openrouterContent != null && openrouterContent.startsWith("❌")) {
-                String fallbackQueryStr = aiFallbackService.selectFallbackQuery(chatRequest.message());
-                System.out.println("[AiComparisonService] 🟠 OPENROUTER - Dùng fallback query theo intent: " + fallbackQueryStr);
-                RequestBody fallbackOpenrouter = new RequestBody(fallbackQueryStr, 1);
-                String[] fallbackOpenrouterResults = aiQueryService.getLogData(fallbackOpenrouter, chatRequest);
-                if (fallbackOpenrouterResults[0] != null && !fallbackOpenrouterResults[0].startsWith("❌")) {
-                    openrouterContent = fallbackOpenrouterResults[0];
-                    finalOpenrouterQuery = fallbackOpenrouterResults[1];
-                    System.out.println("[AiComparisonService] 🟠 OPENROUTER - Fallback query trả về dữ liệu thành công");
-                    System.out.println("[AiComparisonService] 📊 DỮ LIỆU FALLBACK (OpenRouter): " + (openrouterContent.length() > 500 ? openrouterContent.substring(0, 500) + "..." : openrouterContent));
-                }
+                System.out.println("[AiComparisonService] 🟠 OPENROUTER - Query thất bại, giữ nguyên lỗi để AI xử lý");
             }
             
             elasticsearchComparison.put("openai", openaiElasticsearch);

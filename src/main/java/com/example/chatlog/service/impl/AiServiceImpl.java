@@ -45,8 +45,6 @@ public class AiServiceImpl implements AiService {
   @Autowired
   private AiComparisonService aiComparisonService;
   
-  @Autowired
-  private AiFallbackService aiFallbackService;
   
   @Autowired
   private AiResponseService aiResponseService;
