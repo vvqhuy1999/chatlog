@@ -46,6 +46,8 @@ public class PromptTemplate {
                 - Return ONLY the JSON query object
                 - No explanations, wrappers, or multiple queries
                 - Valid JSON syntax required
+                - Non-aggregation queries MUST include "size": 50
+                - Aggregation queries (with aggs) MUST include "size": 0
                 
                 TIME HANDLING (Priority #1)
                 Current Context: %s

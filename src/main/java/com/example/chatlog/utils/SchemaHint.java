@@ -867,6 +867,7 @@ public class SchemaHint {
       - For terms aggregation, check if field supports aggregation
       - If unsure about field type, use simple field name without .keyword
       - Example: use "source.user.name" not "source.user.name.keyword"
+      - Non-aggregation queries MUST set "size": 50; aggregation queries MUST set "size": 0
       
       Default time filter: @timestamp >= NOW() - {hours} HOURS unless the question specifies otherwise.
       When counting or grouping, return meaningful columns (e.g., user.name, source.user.roles, source.ip, count, last_seen).

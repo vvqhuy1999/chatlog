@@ -529,7 +529,7 @@ public class QueryTemplates {
      */
     public static final String TOP_BLOCKING_RULES = """
             {
-              "size": 0,
+              "size": 50,
               "query": {
                 "bool": {
                   "filter": [
