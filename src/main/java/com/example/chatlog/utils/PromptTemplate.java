@@ -109,7 +109,7 @@ public class PromptTemplate {
                     "analysis_field": {
                       "terms": {
                         "field": "field_to_analyze",
-                        "size": 10
+                        "size": 50
                       }
                     }
                   },
@@ -117,7 +117,7 @@ public class PromptTemplate {
                 }
                 
                 SECURITY THREAT DETECTION ⭐ CRITICAL
-                Triggers: "brute force", "port scanning", "quá nhiều", "bất thường", "suspicious"
+                Triggers: "brute force", "port scanning", "botnet", "quá nhiều", "bất thường", "suspicious"
                 Advanced Aggregation Patterns:
                 
                 1. BRUTE FORCE DETECTION:
@@ -132,7 +132,12 @@ public class PromptTemplate {
                 - "upload quá nhiều", "exfiltration" → sum agg + bucket_selector (1GB = 1073741824)
                 - Structure: {"aggs":{"by_user":{"terms":{"field":"source.user.name"},"aggs":{"bytes_sent":{"sum":{"field":"network.bytes"}},"big_upload":{"bucket_selector":{"buckets_path":{"b":"bytes_sent"},"script":"params.b > 1073741824"}}}}}}
                 
-                4. SUSPICIOUS TRAFFIC VOLUME:
+                4. BOTNET DETECTION ⭐ CRITICAL:
+                - "botnet", "botnet activity" → use "exists" query on "fortinet.firewall.botnetip"
+                - NEVER use {"term": {"fortinet.firewall.botnetip": "true"}} - this is WRONG
+                - Structure: {"query":{"bool":{"filter":[{"exists":{"field":"fortinet.firewall.botnetip"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}}}
+                
+                5. SUSPICIOUS TRAFFIC VOLUME:
                 - "quá nhiều gói ICMP", "bất thường" → sum agg + bucket_selector
                 - Structure: {"aggs":{"by_source":{"terms":{"field":"source.ip"},"aggs":{"pkt_sum":{"sum":{"field":"network.packets"}},"heavy_senders":{"bucket_selector":{"buckets_path":{"p":"pkt_sum"},"script":"params.p > 10000"}}}}}}
                 
@@ -262,11 +267,11 @@ public class PromptTemplate {
                 
                 Analysis Queries
                 // Find users associated with specific IP
-                {"query":{"bool":{"filter":[{"term":{"source.ip":"10.6.99.78"}}]}},"aggs":{"user_names":{"terms":{"field":"source.user.name","size":10}}},"size":0}
+                {"query":{"bool":{"filter":[{"term":{"source.ip":"10.6.99.78"}}]}},"aggs":{"user_names":{"terms":{"field":"source.user.name","size":50}}},"size":0}
                 
                 Top Rankings
                 // Top destinations by traffic
-                {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_destinations":{"terms":{"field":"destination.ip","size":10,"order":{"total_bytes":"desc"}},"aggs":{"total_bytes":{"sum":{"field":"network.bytes"}}}}},"size":0}
+                {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_destinations":{"terms":{"field":"destination.ip","size":50,"order":{"total_bytes":"desc"}},"aggs":{"total_bytes":{"sum":{"field":"network.bytes"}}}}},"size":0}
                 
                 Geographic Analysis
                 // Vietnam outbound traffic
@@ -274,7 +279,7 @@ public class PromptTemplate {
                 
                 Firewall Rules
                 // Top blocking rules
-                {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.action":"deny"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"aggs":{"top_rules":{"terms":{"field":"rule.name","size":10}}},"size":0}
+                {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.action":"deny"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"aggs":{"top_rules":{"terms":{"field":"rule.name","size":50}}},"size":0}
                 
                 SPECIFIC EXAMPLES
                 

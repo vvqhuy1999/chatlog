@@ -71,6 +71,9 @@ public class QueryPromptTemplate {
             8. TOP BLOCKING RULES:
             {topBlockingRules}
             
+            9. BOTNET DETECTION:
+            {botnetDetection}
+            
             USER QUERY: {userQuery}
             """;
     
@@ -97,6 +100,7 @@ public class QueryPromptTemplate {
         params.put("highRiskIpsSessions", QueryTemplates.HIGH_RISK_IPS_SESSIONS);
         params.put("outboundConnectionsFromVietnam", QueryTemplates.OUTBOUND_CONNECTIONS_FROM_VIETNAM);
         params.put("topBlockingRules", QueryTemplates.TOP_BLOCKING_RULES);
+        params.put("botnetDetection", QueryTemplates.BOTNET_DETECTION);
         
         return formatTemplate(QUERY_GENERATION_TEMPLATE, params);
     }
@@ -216,6 +220,7 @@ public class QueryPromptTemplate {
         library.append("\n- LARGE DATA UPLOADS:\n").append(QueryTemplates.LARGE_DATA_UPLOADS).append('\n');
         library.append("\n- BLOCKED ADMIN WEB ACCESS FROM LAN:\n").append(QueryTemplates.BLOCKED_ADMIN_WEB_ACCESS_FROM_LAN).append('\n');
         library.append("\n- BLOCKED P2P TRAFFIC:\n").append(QueryTemplates.BLOCKED_P2P_TRAFFIC).append('\n');
+        library.append("\n- BOTNET DETECTION:\n").append(QueryTemplates.BOTNET_DETECTION).append('\n');
 
         // Hướng dẫn gọi các hàm động còn lại (không có input thì không thể in trực tiếp)
         library.append("\nDYNAMIC TEMPLATE FUNCTIONS (CALL WITH INPUTS):\n");
