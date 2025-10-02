@@ -436,7 +436,7 @@ public class AiComparisonService {
                 .sorted((e1, e2) -> {
                     int score1 = exampleScores.get(e1);
                     int score2 = exampleScores.get(e2);
-                    System.out.printf("  🔄 Comparing: Score %d vs %d\n", score1, score2);
+//                    System.out.printf("  🔄 Comparing: Score %d vs %d\n", score1, score2);
                     return Integer.compare(score2, score1); // Descending order
                 })
                 .limit(5) // Return top 5 most relevant examples
