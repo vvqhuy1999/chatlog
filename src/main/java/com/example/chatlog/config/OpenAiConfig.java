@@ -24,4 +24,12 @@ public class OpenAiConfig {
         .defaultSystem("You are a helpful AI assistant")
         .build();
   }
+  
+  /**
+   * Expose ChatClient.Builder as a bean for other services to use
+   */
+  @Bean
+  public ChatClient.Builder chatClientBuilder(org.springframework.ai.chat.model.ChatModel chatModel) {
+    return ChatClient.builder(chatModel);
+  }
 }

@@ -13,7 +13,7 @@ public class QueryPromptTemplate {
      * Template cho prompt sinh truy vấn Elasticsearch với dynamic examples
      */
     public static final String QUERY_GENERATION_TEMPLATE = """
-            Elasticsearch Query Generator - Dynamic Knowledge Base System
+            Elasticsearch Query Generator - Fortinet Firewall Logs
             
             CORE OBJECTIVE
             You are an expert Elasticsearch query generator for Fortinet firewall logs. Generate ONE valid JSON query that matches user intent exactly.
