@@ -57,54 +57,6 @@ public class ChatMessagesController {
         }
     }
 
-    /**
-     * API để gửi tin nhắn thường (single AI mode) - chỉ OpenAI xử lý
-     * @param sessionId Session ID
-     * @param chatRequest Tin nhắn từ user
-     * @return Phản hồi từ OpenAI
-     */
-    @PostMapping("/{sessionId}")
-    public ResponseEntity<Map<String, Object>> sendMessage(
-        @PathVariable Long sessionId,
-        @RequestBody ChatRequest chatRequest) {
-        
-        try {
-            System.out.println("[ChatMessagesController] Bắt đầu chế độ single AI cho phiên: " + sessionId);
-            System.out.println("[ChatMessagesController] Tin nhắn người dùng: " + chatRequest.message());
-
-            // Bước 1: Lưu tin nhắn người dùng và nhận phản hồi AI (normal flow)
-            ChatMessages userMessage = new ChatMessages();
-            userMessage.setContent(chatRequest.message());
-            userMessage.setSender(ChatMessages.SenderType.USER);
-            
-            // Sử dụng save() thông thường - sẽ tự động gọi AI và lưu cả user + AI message
-            ChatMessages aiResponse = chatMessagesService.save(sessionId, userMessage);
-            
-            System.out.println("[ChatMessagesController] Đã lưu phản hồi AI với ID: " + aiResponse.getMessageId());
-
-            // Tạo response
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("mode", "single_ai");
-            response.put("ai_response", aiResponse.getContent());
-            response.put("saved_ai_message_id", aiResponse.getMessageId());
-            response.put("session_id", sessionId);
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            System.out.println("[ChatMessagesController] Single AI mode failed: " + e.getMessage());
-            e.printStackTrace();
-
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("error", "Single AI mode failed: " + e.getMessage());
-            errorResponse.put("session_id", sessionId);
-
-            return ResponseEntity.status(500).body(errorResponse);
-        }
-    }
-
 
     // Cập nhật message
     @PutMapping("/{messageId}")
@@ -199,7 +151,7 @@ public class ChatMessagesController {
             System.out.println("[ChatMessagesController] Đã tạo session mới với ID: " + savedSession.getSessionId());
 
             // Bước 2: Gọi single AI mode với session mới
-            return sendMessage(savedSession.getSessionId(), chatRequest);
+            //return sendMessage(savedSession.getSessionId(), chatRequest);
 
         } catch (Exception e) {
             System.out.println("[ChatMessagesController] Tạo session với single AI mode thất bại: " + e.getMessage());
@@ -211,6 +163,7 @@ public class ChatMessagesController {
 
             return ResponseEntity.status(500).body(errorResponse);
         }
+        return ResponseEntity.status(500).body(null);
     }
 
     /**

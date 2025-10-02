@@ -11,8 +11,7 @@ import java.util.Map;
 @Service
 public interface AiService {
 
-    String handleRequest(Long sessionId, ChatRequest chatRequest);
-    
+
     Map<String, Object> handleRequestWithComparison(Long sessionId, ChatRequest chatRequest);
 
 }
