@@ -1,0 +1,814 @@
+========================================
+THÔNG TIN KINH DOANH & PHÂN TÍCH VẬN HÀNH - QUY TRÌNH XỪC LÝ
+Business Intelligence & Operational Analytics Playbook
+Tác giả: Quản lý vận hành CNTT & Chuyên gia phân tích kinh doanh
+Phiên bản: 1.0 - Tháng 10, 2025
+========================================
+
+PHẦN I: TRUY VẤN THÔNG TIN KINH DOANH (BUSINESS INTELLIGENCE QUERIES)
+
+TÌNH HUỐNG 17: GIÁM SÁT HIỆU SUẤT DỊCH VỤ CNTT & SLA
+Kịch bản:
+Các bên liên quan kinh doanh yêu cầu báo cáo về hiệu suất dịch vụ CNTT và tuân thủ SLA.
+Cần các chỉ số để hỗ trợ quyết định kinh doanh và lập kế hoạch ngân sách.
+
+Giai đoạn 1: Chỉ số tính sẵn sàng & hiệu suất dịch vụ (Service Availability & Performance Metrics)
+{
+  "title": "Bảng điều khiển dịch vụ CNTT - Cấp điều hành",
+  "keywords": ["hiệu suất dịch vụ", "sla monitoring", "tính sẵn sàng", "business intelligence", "chỉ số kinh doanh"],
+  "questions": [
+    {
+      "question": "Tính sẵn sàng của các dịch vụ kinh doanh quan trọng trong tháng qua?",
+      "purpose": "Bảng điều khiển điều hành - Báo cáo tính sẵn sàng dịch vụ",
+      "business_value": "Tuân thủ SLA, đảm bảo liên tục kinh doanh",
+      "keywords": ["tính sẵn sàng dịch vụ", "sla compliance", "dịch vụ quan trọng", "business critical"],
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-30d"}}}
+            ],
+            "should": [
+              {"wildcard": {"destination.ip": "10.100.*"}},
+              {"terms": {"rule.category": ["business-critical", "production", "erp"]}},
+              {"terms": {"network.application": ["SAP", "Oracle", "Exchange", "SharePoint"]}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "service_availability": {
+            "multi_terms": {
+              "terms": [
+                {"field": "destination.ip"},
+                {"field": "network.application"}
+              ]
+            },
+            "aggs": {
+              "uptime_calculation": {
+                "date_histogram": {
+                  "field": "@timestamp",
+                  "fixed_interval": "1h"
+                },
+                "aggs": {
+                  "successful_requests": {
+                    "filter": {"term": {"event.outcome": "success"}}
+                  },
+                  "failed_requests": {
+                    "filter": {"term": {"event.outcome": "failure"}}
+                  },
+                  "availability_percentage": {
+                    "bucket_script": {
+                      "buckets_path": {
+                        "success": "successful_requests>_count",
+                        "total": "_count"
+                      },
+                      "script": "params.total > 0 ? (params.success / params.total) * 100 : 100"
+                    }
+                  }
+                }
+              },
+              "sla_compliance": {
+                "bucket_script": {
+                  "buckets_path": {"avg_availability": "uptime_calculation>availability_percentage>avg"},
+                  "script": "params.avg_availability >= 99.9 ? 'COMPLIANT' : 'NON_COMPLIANT'"
+                }
+              },
+              "monthly_downtime_minutes": {
+                "bucket_script": {
+                  "buckets_path": {"availability": "uptime_calculation>availability_percentage>avg"},
+                  "script": "((100 - params.availability) / 100) * 43200"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "question": "Tác động kinh doanh của sự cố mạng - Tương quan với doanh thu?",
+      "purpose": "Định lượng tác động kinh doanh của các vấn đề CNTT",
+      "business_value": "Chứng minh ROI cho đầu tư hạ tầng",
+      "keywords": ["tác động kinh doanh", "business impact", "network outages", "revenue correlation", "roi calculation"],
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-90d"}}},
+              {"term": {"event.outcome": "failure"}}
+            ],
+            "should": [
+              {"terms": {"destination.port": [80, 443, 1433, 3306]}},
+              {"terms": {"rule.category": ["ecommerce", "pos-system", "payment-gateway"]}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "business_impact_analysis": {
+            "date_histogram": {
+              "field": "@timestamp",
+              "calendar_interval": "1d"
+            },
+            "aggs": {
+              "outage_duration": {
+                "sum": {"field": "event.duration"}
+              },
+              "affected_services": {
+                "terms": {"field": "network.application", "size": 20}
+              },
+              "impacted_users": {
+                "cardinality": {"field": "source.user.name"}
+              },
+              "estimated_revenue_impact": {
+                "bucket_script": {
+                  "buckets_path": {"duration": "outage_duration"},
+                  "script": "(params.duration / 3600000) * 10000"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+Phase 2: Cost Optimization Opportunities
+{
+  "questions": [
+    {
+      "question": "Tối ưu hóa chi phí băng thông: Phân tích sử dụng vs dung lượng?",
+      "purpose": "Xác định cơ hội tiết kiệm chi phí",
+      "business_value": "Giảm chi phí vận hành, tối ưu phân bổ tài nguyên",
+      "keywords": ["tối ưu chi phí", "bandwidth optimization", "cost analysis", "capacity planning", "tiết kiệm chi phí"],
+      "purpose": "Identify cost saving opportunities",
+      "business_value": "Reduce operational expenses, optimize resource allocation",
+      "query": {
+        "query": {
+          "range": {"@timestamp": {"gte": "now-30d"}}
+        },
+        "aggs": {
+          "bandwidth_cost_analysis": {
+            "date_histogram": {
+              "field": "@timestamp",
+              "calendar_interval": "1d"
+            },
+            "aggs": {
+              "daily_usage": {"sum": {"field": "network.bytes"}},
+              "peak_hour_usage": {
+                "date_histogram": {
+                  "field": "@timestamp",
+                  "fixed_interval": "1h"
+                },
+                "aggs": {
+                  "hourly_usage": {"sum": {"field": "network.bytes"}}
+                }
+              },
+              "95th_percentile_usage": {
+                "percentiles_bucket": {
+                  "buckets_path": "peak_hour_usage>hourly_usage",
+                  "percents": [95]
+                }
+              },
+              "underutilization_score": {
+                "bucket_script": {
+                  "buckets_path": {
+                    "daily": "daily_usage",
+                    "peak": "95th_percentile_usage[95.0]"
+                  },
+                  "script": "params.peak > 0 ? (params.daily / (params.peak * 24)) * 100 : 0"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+========================================
+
+TÌNH HUỐNG 18: USER PRODUCTIVITY & BEHAVIOR ANALYTICS
+Kịch bản:
+HR và Management muốn hiểu user behavior patterns để optimize workplace productivity.
+
+Phase 1: Productivity Metrics & Work Pattern Analysis
+{
+  "questions": [
+    {
+      "question": "Mô hình làm việc kỹ thuật số của nhân viên: Thời gian hiệu quả vs không hiệu quả?",
+      "purpose": "Đo lường năng suất nơi làm việc kỹ thuật số",
+      "business_value": "Tối ưu môi trường làm việc, xác định nhu cầu đào tạo",
+      "keywords": ["mô hình làm việc", "productivity analysis", "digital workplace", "employee behavior", "năng suất làm việc"],
+      "purpose": "Measure digital workplace productivity",
+      "business_value": "Optimize work environment, identify training needs",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-30d"}}},
+              {"exists": {"field": "source.user.name"}}
+            ]
+          }
+        },
+        "aggs": {
+          "productivity_analysis": {
+            "terms": {"field": "source.user.name", "size": 200},
+            "aggs": {
+              "work_pattern": {
+                "filters": {
+                  "filters": {
+                    "productive_apps": {
+                      "terms": {"network.application": ["Office365", "SAP", "CRM", "ERP", "Email"]}
+                    },
+                    "collaboration_tools": {
+                      "terms": {"network.application": ["Teams", "Zoom", "Slack", "SharePoint"]}
+                    },
+                    "social_media": {
+                      "terms": {"network.application": ["Facebook", "Twitter", "Instagram", "LinkedIn"]}
+                    },
+                    "entertainment": {
+                      "terms": {"network.application": ["YouTube", "Netflix", "Spotify", "Gaming"]}
+                    }
+                  }
+                },
+                "aggs": {
+                  "time_spent": {"sum": {"field": "event.duration"}},
+                  "data_usage": {"sum": {"field": "network.bytes"}}
+                }
+              },
+              "productivity_score": {
+                "bucket_script": {
+                  "buckets_path": {
+                    "productive": "work_pattern>productive_apps>time_spent",
+                    "total": "_count"
+                  },
+                  "script": "params.total > 0 ? (params.productive / params.total) * 100 : 0"
+                }
+              },
+              "work_schedule_analysis": {
+                "date_histogram": {
+                  "field": "@timestamp",
+                  "fixed_interval": "1h"
+                },
+                "aggs": {
+                  "hourly_activity": {"value_count": {"field": "@timestamp"}},
+                  "after_hours_work": {
+                    "filter": {
+                      "script": "doc['@timestamp'].value.getHour() > 18 || doc['@timestamp'].value.getHour() < 8"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "question": "Hiệu quả làm việc từ xa: Mô hình sử dụng VPN và tương quan năng suất?",
+      "purpose": "Đánh giá năng suất làm việc từ xa và nhu cầu hạ tầng",
+      "business_value": "Tối ưu chính sách làm việc từ xa, lập kế hoạch dung lượng VPN",
+      "keywords": ["làm việc từ xa", "remote work", "vpn usage", "productivity correlation", "hiệu quả làm việc"],
+      "purpose": "Assess remote work productivity and infrastructure needs",
+      "business_value": "Optimize remote work policies, plan VPN capacity",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-30d"}}},
+              {"wildcard": {"source.ip": "192.168.*"}}
+            ]
+          }
+        },
+        "aggs": {
+          "remote_work_analysis": {
+            "terms": {"field": "source.user.name", "size": 100},
+            "aggs": {
+              "vpn_usage_pattern": {
+                "date_histogram": {
+                  "field": "@timestamp",
+                  "calendar_interval": "1d"
+                },
+                "aggs": {
+                  "daily_vpn_hours": {
+                    "date_histogram": {
+                      "field": "@timestamp",
+                      "fixed_interval": "1h"
+                    },
+                    "aggs": {
+                      "active_hour": {
+                        "bucket_selector": {
+                          "buckets_path": {"count": "_count"},
+                          "script": "params.count > 10"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "remote_productivity": {
+                "filters": {
+                  "filters": {
+                    "business_hours": {
+                      "script": "doc['@timestamp'].value.getHour() >= 8 && doc['@timestamp'].value.getHour() <= 17"
+                    },
+                    "off_hours": {
+                      "script": "doc['@timestamp'].value.getHour() < 8 || doc['@timestamp'].value.getHour() > 17"
+                    }
+                  }
+                },
+                "aggs": {
+                  "activity_count": {"value_count": {"field": "@timestamp"}},
+                  "data_usage": {"sum": {"field": "network.bytes"}}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+========================================
+
+TÌNH HUỐNG 19: DIGITAL TRANSFORMATION METRICS
+Kịch bản:
+C-level executives cần metrics để đánh giá Digital Transformation initiatives.
+
+Phase 1: Cloud Adoption & Migration Progress
+{
+  "questions": [
+    {
+      "question": "Tỉ lệ áp dụng dịch vụ đám mây và xu hướng sử dụng?",
+      "purpose": "Theo dõi tiến độ chuyển đổi số",
+      "business_value": "Đo ROI của các sáng kiến đám mây, lập kế hoạch giai đoạn migration",
+      "keywords": ["áp dụng đám mây", "cloud adoption", "digital transformation", "usage trends", "migration progress"],
+      "purpose": "Track digital transformation progress",
+      "business_value": "Measure ROI of cloud initiatives, plan migration phases",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-180d"}}}
+            ],
+            "should": [
+              {"wildcard": {"url.domain": "*azure*"}},
+              {"wildcard": {"url.domain": "*aws*"}},
+              {"wildcard": {"url.domain": "*office365*"}},
+              {"wildcard": {"url.domain": "*salesforce*"}},
+              {"wildcard": {"url.domain": "*google*workspace*"}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "cloud_adoption_metrics": {
+            "date_histogram": {
+              "field": "@timestamp",
+              "calendar_interval": "1M"
+            },
+            "aggs": {
+              "cloud_services": {
+                "terms": {"field": "url.domain", "size": 20},
+                "aggs": {
+                  "monthly_usage": {"sum": {"field": "network.bytes"}},
+                  "active_users": {"cardinality": {"field": "source.user.name"}},
+                  "session_count": {"value_count": {"field": "@timestamp"}}
+                }
+              },
+              "adoption_growth": {
+                "derivative": {
+                  "buckets_path": "cloud_services>active_users"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "question": "So sánh sử dụng hệ thống cũ vs nền tảng hiện đại?",
+      "purpose": "Đo thành công migration và mức độ chấp nhận của người dùng",
+      "business_value": "Chứng minh đầu tư hiện đại hóa, lập kế hoạch ngừng sử dụng legacy",
+      "keywords": ["hệ thống cũ", "legacy system", "modern platform", "migration success", "user adoption"],
+      "purpose": "Measure migration success and user adoption",
+      "business_value": "Justify modernization investments, plan legacy decommissioning",
+      "query": {
+        "query": {
+          "range": {"@timestamp": {"gte": "now-90d"}}
+        },
+        "aggs": {
+          "legacy_vs_modern": {
+            "filters": {
+              "filters": {
+                "legacy_systems": {
+                  "bool": {
+                    "should": [
+                      {"wildcard": {"destination.ip": "10.10.*"}},
+                      {"terms": {"network.application": ["Legacy-ERP", "Old-CRM", "Mainframe"]}},
+                      {"terms": {"destination.port": [23, 21, 135]}}
+                    ],
+                    "minimum_should_match": 1
+                  }
+                },
+                "modern_platforms": {
+                  "bool": {
+                    "should": [
+                      {"wildcard": {"url.domain": "*cloud*"}},
+                      {"terms": {"network.application": ["Office365", "Salesforce", "Azure"]}},
+                      {"terms": {"destination.port": [443, 80]}}
+                    ],
+                    "minimum_should_match": 1
+                  }
+                }
+              }
+            },
+            "aggs": {
+              "usage_metrics": {
+                "date_histogram": {
+                  "field": "@timestamp",
+                  "calendar_interval": "1w"
+                },
+                "aggs": {
+                  "user_count": {"cardinality": {"field": "source.user.name"}},
+                  "session_time": {"sum": {"field": "event.duration"}},
+                  "data_volume": {"sum": {"field": "network.bytes"}}
+                }
+              },
+              "migration_progress": {
+                "bucket_script": {
+                  "buckets_path": {
+                    "modern_users": "usage_metrics>user_count",
+                    "total_sessions": "_count"
+                  },
+                  "script": "params.total_sessions > 0 ? (params.modern_users / params.total_sessions) * 100 : 0"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+========================================
+
+TÌNH HUỐNG 20: OPERATIONAL EXCELLENCE & AUTOMATION
+Kịch bản:
+IT Operations team cần metrics để đo lường automation effectiveness và operational maturity.
+
+Phase 1: Automation Impact Assessment
+{
+  "questions": [
+    {
+      "question": "Manual vs automated operations ratio?",
+      "purpose": "Measure automation maturity and ROI",
+      "business_value": "Reduce operational costs, improve reliability",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-60d"}}},
+              {"term": {"event.type": "configuration"}}
+            ]
+          }
+        },
+        "aggs": {
+          "automation_metrics": {
+            "filters": {
+              "filters": {
+                "manual_operations": {
+                  "bool": {
+                    "must_not": [
+                      {"wildcard": {"source.user.name": "*system*"}},
+                      {"wildcard": {"source.user.name": "*service*"}},
+                      {"wildcard": {"source.user.name": "*auto*"}}
+                    ]
+                  }
+                },
+                "automated_operations": {
+                  "bool": {
+                    "should": [
+                      {"wildcard": {"source.user.name": "*system*"}},
+                      {"wildcard": {"source.user.name": "*service*"}},
+                      {"wildcard": {"source.user.name": "*auto*"}}
+                    ],
+                    "minimum_should_match": 1
+                  }
+                }
+              }
+            },
+            "aggs": {
+              "operation_timeline": {
+                "date_histogram": {
+                  "field": "@timestamp",
+                  "calendar_interval": "1w"
+                },
+                "aggs": {
+                  "operation_count": {"value_count": {"field": "@timestamp"}},
+                  "error_rate": {
+                    "filter": {"term": {"event.outcome": "failure"}},
+                    "aggs": {
+                      "error_count": {"value_count": {"field": "@timestamp"}}
+                    }
+                  }
+                }
+              },
+              "automation_ratio": {
+                "bucket_script": {
+                  "buckets_path": {
+                    "automated": "_count",
+                    "total": "#total_operations"
+                  },
+                  "script": "params.total > 0 ? (params.automated / params.total) * 100 : 0"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "question": "Incident response time trends: MTTR improvement tracking?",
+      "purpose": "Measure operational excellence improvements",
+      "business_value": "Demonstrate service quality improvements, reduce business impact",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-180d"}}},
+              {"terms": {"event.action": ["incident-detected", "incident-resolved"]}}
+            ]
+          }
+        },
+        "aggs": {
+          "incident_response_metrics": {
+            "date_histogram": {
+              "field": "@timestamp",
+              "calendar_interval": "1M"
+            },
+            "aggs": {
+              "incident_pairs": {
+                "terms": {"field": "fortinet.firewall.incident_id", "size": 1000},
+                "aggs": {
+                  "detection_time": {
+                    "filter": {"term": {"event.action": "incident-detected"}},
+                    "aggs": {"detected_at": {"min": {"field": "@timestamp"}}}
+                  },
+                  "resolution_time": {
+                    "filter": {"term": {"event.action": "incident-resolved"}},
+                    "aggs": {"resolved_at": {"max": {"field": "@timestamp"}}}
+                  },
+                  "mttr_calculation": {
+                    "bucket_script": {
+                      "buckets_path": {
+                        "detected": "detection_time>detected_at",
+                        "resolved": "resolution_time>resolved_at"
+                      },
+                      "script": "params.resolved - params.detected"
+                    }
+                  }
+                }
+              },
+              "monthly_mttr": {
+                "avg_bucket": {
+                  "buckets_path": "incident_pairs>mttr_calculation"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+========================================
+
+PHẦN II: STRATEGIC PLANNING QUERIES - TRUY VẤN LẬP KẾ HOẠCH CHIẾN LƯỢC
+
+TÌNH HUỐNG 21: CAPACITY PLANNING & FORECASTING
+Kịch bản:
+CTO cần data-driven insights cho infrastructure planning và budget allocation.
+
+Phase 1: Growth Trend Analysis & Forecasting
+{
+  "questions": [
+    {
+      "question": "User growth impact on infrastructure capacity?",
+      "purpose": "Forecast infrastructure scaling needs",
+      "business_value": "Prevent performance issues, optimize CapEx planning",
+      "query": {
+        "query": {
+          "range": {"@timestamp": {"gte": "now-365d"}}
+        },
+        "aggs": {
+          "growth_forecasting": {
+            "date_histogram": {
+              "field": "@timestamp",
+              "calendar_interval": "1M"
+            },
+            "aggs": {
+              "monthly_metrics": {
+                "multi_terms": {
+                  "terms": [
+                    {"field": "observer.name"},
+                    {"field": "network.direction"}
+                  ]
+                },
+                "aggs": {
+                  "active_users": {"cardinality": {"field": "source.user.name"}},
+                  "bandwidth_usage": {"sum": {"field": "network.bytes"}},
+                  "session_count": {"value_count": {"field": "@timestamp"}},
+                  "peak_concurrent": {
+                    "date_histogram": {
+                      "field": "@timestamp",
+                      "fixed_interval": "1h"
+                    },
+                    "aggs": {
+                      "hourly_users": {"cardinality": {"field": "source.user.name"}}
+                    }
+                  }
+                }
+              },
+              "growth_rate": {
+                "derivative": {
+                  "buckets_path": "monthly_metrics>active_users"
+                }
+              },
+              "capacity_utilization": {
+                "bucket_script": {
+                  "buckets_path": {"usage": "monthly_metrics>bandwidth_usage"},
+                  "script": "(params.usage / 10737418240) * 100"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "question": "Application portfolio optimization opportunities?",
+      "purpose": "Identify redundant or underutilized applications",
+      "business_value": "Reduce licensing costs, simplify infrastructure",
+      "query": {
+        "query": {
+          "range": {"@timestamp": {"gte": "now-90d"}}
+        },
+        "aggs": {
+          "application_portfolio": {
+            "terms": {"field": "network.application", "size": 200},
+            "aggs": {
+              "usage_metrics": {
+                "date_histogram": {
+                  "field": "@timestamp",
+                  "calendar_interval": "1w"
+                },
+                "aggs": {
+                  "weekly_users": {"cardinality": {"field": "source.user.name"}},
+                  "weekly_sessions": {"value_count": {"field": "@timestamp"}},
+                  "weekly_data": {"sum": {"field": "network.bytes"}}
+                }
+              },
+              "adoption_trend": {
+                "derivative": {
+                  "buckets_path": "usage_metrics>weekly_users"
+                }
+              },
+              "utilization_score": {
+                "bucket_script": {
+                  "buckets_path": {
+                    "avg_users": "usage_metrics>weekly_users>avg",
+                    "total_users": "#total_company_users"
+                  },
+                  "script": "params.total_users > 0 ? (params.avg_users / params.total_users) * 100 : 0"
+                }
+              },
+              "retirement_candidate": {
+                "bucket_selector": {
+                  "buckets_path": {"utilization": "utilization_score"},
+                  "script": "params.utilization < 5"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+========================================
+
+PHẦN III: EXECUTIVE DASHBOARDS - DASHBOARD ĐIỀU HÀNH
+
+TÌNH HUỐNG 22: C-SUITE EXECUTIVE REPORTING
+Kịch bản:
+Monthly executive briefing cho Board of Directors về IT performance và security posture.
+
+Phase 1: Executive KPI Dashboard
+{
+  "questions": [
+    {
+      "question": "Monthly IT performance scorecard for C-suite?",
+      "purpose": "High-level IT performance summary for executives",
+      "business_value": "Strategic decision making, board reporting",
+      "query": {
+        "query": {
+          "range": {"@timestamp": {"gte": "now-30d"}}
+        },
+        "aggs": {
+          "executive_scorecard": {
+            "filters": {
+              "filters": {
+                "availability": {"term": {"event.outcome": "success"}},
+                "security_events": {"term": {"rule.category": "security"}},
+                "performance_issues": {"range": {"event.duration": {"gte": 5000}}},
+                "cost_drivers": {"range": {"network.bytes": {"gte": 1073741824}}}
+              }
+            },
+            "aggs": {
+              "monthly_summary": {
+                "date_histogram": {
+                  "field": "@timestamp",
+                  "calendar_interval": "1d"
+                },
+                "aggs": {
+                  "daily_availability": {
+                    "bucket_script": {
+                      "buckets_path": {"count": "_count"},
+                      "script": "params.count > 0 ? 99.9 : 100"
+                    }
+                  },
+                  "daily_incidents": {"value_count": {"field": "@timestamp"}},
+                  "daily_cost_impact": {
+                    "sum": {"field": "network.bytes"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+========================================
+
+SUMMARY: BUSINESS VALUE METRICS FRAMEWORK
+
+1. **Financial Metrics**
+   - IT Cost per Employee: Monthly IT spend / Employee count
+   - ROI on Digital Initiatives: (Benefits - Costs) / Costs * 100
+   - Downtime Cost Impact: Hours * Revenue per Hour
+   - Cloud Migration Savings: Legacy costs - Cloud costs
+
+2. **Productivity Metrics** 
+   - Digital Workplace Adoption: Modern tools usage %
+   - Employee Digital Score: Productive vs non-productive time
+   - Remote Work Effectiveness: VPN usage correlation
+   - Automation Ratio: Automated vs manual operations %
+
+3. **Strategic Metrics**
+   - Digital Transformation Progress: Cloud adoption rate
+   - Innovation Index: New technology adoption speed  
+   - Agility Score: Time to deploy new services
+   - Competitive Advantage: Technology capability vs industry
+
+4. **Risk & Compliance Metrics**
+   - Security Posture Score: Threats detected vs mitigated
+   - Compliance Score: Audit findings / total checks * 100
+   - Business Continuity: RTO/RPO achievement rate
+   - Data Protection: GDPR compliance percentage
+
+========================================
+
+RECOMMENDED IMPLEMENTATION ROADMAP
+
+Phase 1 (Month 1-2): Foundation Metrics
+- Implement basic availability and performance monitoring
+- Establish baseline KPIs and thresholds
+- Create automated reporting for operational metrics
+
+Phase 2 (Month 3-4): Business Intelligence Layer  
+- Deploy user behavior analytics
+- Implement cost tracking and optimization queries
+- Create executive dashboards with business context
+
+Phase 3 (Month 5-6): Predictive Analytics
+- Implement capacity planning and forecasting
+- Deploy anomaly detection for business metrics
+- Create strategic planning support systems
+
+Phase 4 (Month 7-12): Advanced Optimization
+- AI-powered insights and recommendations
+- Automated cost optimization actions
+- Predictive business impact modeling
+
+========================================

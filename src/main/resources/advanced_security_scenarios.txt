@@ -1,0 +1,959 @@
+========================================
+CAC TÌNH HUỐNG BẢO MẬT NÂNG CAO & QUY TRÌNH ĐIỀU TRA
+Advanced Security Scenarios & Investigation Playbooks
+Tác giả: Quản trị viên hệ thống - Chuyên gia quản lý log
+Phiên bản: 1.0 - Tháng 10, 2025
+========================================
+
+TÌNH HUỐNG 4: PHÁT HIỆN MỐI ĐE DỌA BỀN VỮNG NÂNG CAO (APT DETECTION)
+Kịch bản: 
+Phát hiện traffic bất thường đến các IP nước ngoài vào lúc ngoài giờ làm việc, 
+kết hợp với các file executable bí ẩn được download.
+
+Giai đoạn 1: Phân tích mô hình dài hạn (Long-term Pattern Analysis)
+{
+  "title": "Tìm kiếm dấu vết APT trong 90 ngày qua",
+  "keywords": ["apt", "phát hiện mối đe dọa", "mô hình dài hạn", "advanced persistent threat"],
+  "questions": [
+    {
+      "question": "Những IP nào kết nối đều đặn vào lúc ngoài giờ làm việc (18h-8h) trong 30 ngày qua?",
+      "purpose": "Phát hiện mô hình tín hiệu C2 (C2 beaconing pattern)",
+      "keywords": ["beacon tín hiệu", "c2 command control", "kết nối liên tục", "khoảng thời gian đều đặn", "ngoài giờ làm việc"],
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-30d"}}},
+              {"script": {
+                "script": "doc['@timestamp'].value.getHour() < 8 || doc['@timestamp'].value.getHour() > 18"
+              }}
+            ]
+          }
+        },
+        "aggs": {
+          "after_hours_ips": {
+            "terms": {"field": "destination.ip", "size": 100},
+            "aggs": {
+              "daily_pattern": {
+                "date_histogram": {
+                  "field": "@timestamp",
+                  "calendar_interval": "1d"
+                }
+              },
+              "consistency_score": {
+                "bucket_script": {
+                  "buckets_path": {"count": "daily_pattern>_count"},
+                  "script": "params.count > 20 ? 1 : 0"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "question": "Phát hiện đường hầm DNS (DNS tunneling): các truy vấn có tên miền dài bất thường?",
+      "purpose": "Tìm kiếm đánh cắp dữ liệu qua DNS hoặc giao tiếp C2",
+      "keywords": ["đường hầm dns", "dns tunneling", "tên miền dài", "đánh cắp dữ liệu", "c2 communication"],
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-7d"}}},
+              {"term": {"network.protocol": "dns"}},
+              {"script": {
+                "script": "doc['url.domain'].value.length() > 50"
+              }}
+            ]
+          }
+        },
+        "aggs": {
+          "suspicious_domains": {
+            "terms": {"field": "url.domain", "size": 50},
+            "aggs": {
+              "query_frequency": {"value_count": {"field": "@timestamp"}},
+              "unique_sources": {"cardinality": {"field": "source.ip"}},
+              "domain_length": {
+                "max": {
+                  "script": "doc['url.domain'].value.length()"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "question": "Tận dụng công cụ hệ thống (Living off the land): Sử dụng PowerShell, WMI, hoặc công cụ hệ thống bất thường?",
+      "purpose": "Phát hiện mã độc không tập tin (fileless malware) và lạm dụng công cụ hợp pháp",
+      "keywords": ["powershell", "wmi", "tận dụng công cụ", "living off the land", "công cụ hệ thống", "fileless malware"],
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-7d"}}}
+            ],
+            "should": [
+              {"wildcard": {"process.name": "*powershell*"}},
+              {"wildcard": {"process.name": "*wmic*"}},
+              {"wildcard": {"process.name": "*certutil*"}},
+              {"wildcard": {"process.name": "*bitsadmin*"}},
+              {"wildcard": {"process.command_line": "*-EncodedCommand*"}},
+              {"wildcard": {"process.command_line": "*DownloadString*"}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "suspicious_processes": {
+            "terms": {"field": "process.name", "size": 20},
+            "aggs": {
+              "by_user": {"terms": {"field": "source.user.name"}},
+              "command_patterns": {"terms": {"field": "process.command_line"}}
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+Giai đoạn 2: Phát hiện di chuyển ngang (Lateral Movement Detection)
+{
+  "keywords": ["di chuyển ngang", "lateral movement", "xâm nhập nội bộ", "credential abuse"],
+  "questions": [
+    {
+      "question": "Có tài khoản nào đột ngột truy cập nhiều máy chủ trong thời gian ngắn?",
+      "purpose": "Phát hiện lạm dụng thông tin đăng nhập sau khi bị xâm nhập",
+      "keywords": ["credential abuse", "lạm dụng đăng nhập", "truy cập đa máy chủ", "thời gian ngắn"],
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-24h"}}},
+              {"term": {"network.direction": "internal"}}
+            ]
+          }
+        },
+        "aggs": {
+          "by_user": {
+            "terms": {"field": "source.user.name", "size": 50},
+            "aggs": {
+              "unique_destinations": {
+                "cardinality": {"field": "destination.ip"}
+              },
+              "destination_details": {
+                "terms": {"field": "destination.ip", "size": 20},
+                "aggs": {
+                  "first_access": {"min": {"field": "@timestamp"}},
+                  "services_accessed": {"terms": {"field": "destination.port"}}
+                }
+              },
+              "suspicious_spread": {
+                "bucket_selector": {
+                  "buckets_path": {"unique_dest": "unique_destinations"},
+                  "script": "params.unique_dest > 10"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "question": "Tấn công Pass-the-Hash: Xác thực từ các workstation bất thường?",
+      "purpose": "Phát hiện tấn công sử dụng hash đăng nhập",
+      "keywords": ["pass-the-hash", "tấn công hash", "xác thực bất thường", "workstation lạ", "ntlm hash"],
+      "purpose": "Phát hiện stolen credential usage",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-24h"}}},
+              {"term": {"event.action": "authentication"}}
+            ]
+          }
+        },
+        "aggs": {
+          "auth_patterns": {
+            "terms": {"field": "source.user.name", "size": 50},
+            "aggs": {
+              "source_machines": {
+                "terms": {"field": "source.ip", "size": 20},
+                "aggs": {
+                  "auth_count": {"value_count": {"field": "@timestamp"}},
+                  "time_spread": {
+                    "date_range": {
+                      "field": "@timestamp",
+                      "ranges": [
+                        {"from": "now-1h"},
+                        {"from": "now-4h", "to": "now-1h"}
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+========================================
+
+TÌNH HUỐNG 5: INSIDER THREAT INVESTIGATION
+Kịch bản:
+HR thông báo nhân viên kỹ thuật cấp cao sẽ được chuyển sang đối thủ cạnh tranh.
+Cần monitor hoạt động trong 30 ngày trước khi chuyển việc.
+
+Phase 1: Data Access Baseline - Thiết lập baseline truy cập dữ liệu
+{
+  "questions": [
+    {
+      "question": "Mô hình truy cập dữ liệu thông thường của user 'nguyenvanb' trong 90 ngày qua?",
+      "purpose": "Xây dựng baseline hành vi bình thường của người dùng",
+      "keywords": ["mô hình truy cập", "baseline behavior", "hành vi bình thường", "insider threat", "user pattern"],
+      "purpose": "Tạo behavioral baseline để so sánh với recent activity",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvanb"}},
+              {"range": {"@timestamp": {"gte": "now-90d", "lt": "now-30d"}}}
+            ]
+          }
+        },
+        "aggs": {
+          "normal_access_pattern": {
+            "date_histogram": {
+              "field": "@timestamp",
+              "calendar_interval": "1d"
+            },
+            "aggs": {
+              "daily_data_volume": {"sum": {"field": "network.bytes"}},
+              "resources_accessed": {"cardinality": {"field": "destination.ip"}},
+              "working_hours_ratio": {
+                "filters": {
+                  "filters": {
+                    "business_hours": {
+                      "script": "doc['@timestamp'].value.getHour() >= 8 && doc['@timestamp'].value.getHour() <= 17"
+                    },
+                    "after_hours": {
+                      "script": "doc['@timestamp'].value.getHour() < 8 || doc['@timestamp'].value.getHour() > 17"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "question": "Hoạt động gần đây (30 ngày qua) có bất thường so với mức cơ bản không?",
+      "purpose": "So sánh hành vi hiện tại với mô hình lịch sử",
+      "keywords": ["hoạt động gần đây", "baseline comparison", "bất thường", "deviation analysis", "hành vi thay đổi"],
+      "purpose": "Phát hiện deviation từ normal behavior",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvanb"}},
+              {"range": {"@timestamp": {"gte": "now-30d"}}}
+            ]
+          }
+        },
+        "aggs": {
+          "recent_pattern": {
+            "date_histogram": {
+              "field": "@timestamp", 
+              "calendar_interval": "1d"
+            },
+            "aggs": {
+              "daily_volume": {"sum": {"field": "network.bytes"}},
+              "new_resources": {
+                "terms": {"field": "destination.ip", "size": 100},
+                "aggs": {
+                  "first_access_ever": {
+                    "filter": {
+                      "range": {"@timestamp": {"gte": "now-30d"}}
+                    }
+                  }
+                }
+              },
+              "file_downloads": {
+                "filter": {"exists": {"field": "file.name"}},
+                "aggs": {
+                  "file_types": {"terms": {"field": "file.extension"}},
+                  "large_files": {
+                    "filter": {"range": {"file.size": {"gte": 10485760}}}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+Phase 2: Intellectual Property Protection - Bảo vệ tài sản trí tuệ
+{
+  "questions": [
+    {
+      "question": "User đã truy cập database chứa source code hoặc IP không?",
+      "purpose": "Xác định truy cập vào tài sản quan trọng",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvanb"}},
+              {"range": {"@timestamp": {"gte": "now-30d"}}}
+            ],
+            "should": [
+              {"terms": {"destination.port": [1433, 3306, 5432, 1521]}},
+              {"wildcard": {"destination.ip": "10.0.10.*"}},
+              {"terms": {"rule.category": ["database", "development", "source-code"]}},
+              {"wildcard": {"url.path": "*git*"}},
+              {"wildcard": {"url.path": "*svn*"}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "critical_access": {
+            "terms": {"field": "destination.ip", "size": 20},
+            "aggs": {
+              "access_frequency": {"value_count": {"field": "@timestamp"}},
+              "data_extracted": {"sum": {"field": "source.bytes"}},
+              "access_times": {
+                "date_histogram": {
+                  "field": "@timestamp",
+                  "fixed_interval": "1h"
+                }
+              },
+              "after_hours_access": {
+                "filter": {
+                  "script": "doc['@timestamp'].value.getHour() < 8 || doc['@timestamp'].value.getHour() > 18"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "question": "Tải xuống hàng loạt (Mass download): Có tải xuống nhiều files trong thời gian ngắn?",
+      "purpose": "Phát hiện việc thu thập dữ liệu hàng loạt",
+      "keywords": ["tải xuống hàng loạt", "mass download", "data collection", "bulk transfer", "dữ liệu nhạy cảm"],
+      "purpose": "Phát hiện bulk data exfiltration",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvanb"}},
+              {"range": {"@timestamp": {"gte": "now-7d"}}},
+              {"exists": {"field": "file.name"}}
+            ]
+          }
+        },
+        "aggs": {
+          "download_sessions": {
+            "date_histogram": {
+              "field": "@timestamp",
+              "fixed_interval": "1h"
+            },
+            "aggs": {
+              "files_per_hour": {"value_count": {"field": "file.name"}},
+              "volume_per_hour": {"sum": {"field": "file.size"}},
+              "file_types": {"terms": {"field": "file.extension"}},
+              "bulk_download_alert": {
+                "bucket_selector": {
+                  "buckets_path": {"file_count": "files_per_hour"},
+                  "script": "params.file_count > 50"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+Phase 3: External Communication Monitoring - Giám sát liên lạc ngoài
+{
+  "questions": [
+    {
+      "question": "Kết nối đến email/cloud services cá nhân?",
+      "purpose": "Phát hiện data transfer qua kênh cá nhân",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvanb"}},
+              {"range": {"@timestamp": {"gte": "now-30d"}}}
+            ],
+            "should": [
+              {"wildcard": {"url.domain": "*gmail.com"}},
+              {"wildcard": {"url.domain": "*yahoo.com"}},
+              {"wildcard": {"url.domain": "*dropbox.com"}},
+              {"wildcard": {"url.domain": "*onedrive.com"}},
+              {"wildcard": {"url.domain": "*googledrive.com"}},
+              {"wildcard": {"url.domain": "*wetransfer.com"}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "personal_services": {
+            "terms": {"field": "url.domain", "size": 20},
+            "aggs": {
+              "upload_volume": {
+                "filter": {"term": {"http.request.method": "POST"}},
+                "aggs": {"total_uploaded": {"sum": {"field": "source.bytes"}}}
+              },
+              "session_duration": {"sum": {"field": "event.duration"}},
+              "frequency": {"value_count": {"field": "@timestamp"}}
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+========================================
+
+TÌNH HUỐNG 6: COMPLIANCE AUDIT - KIỂM TOÁN TUÂN THỦ
+Kịch bản:
+Chuẩn bị cho audit GDPR/SOX/PCI-DSS. Cần chứng minh access control và data protection.
+
+Phase 1: Access Control Compliance - Tuân thủ kiểm soát truy cập
+{
+  "questions": [
+    {
+      "question": "Ai đã truy cập dữ liệu khách hàng (PII) trong 90 ngày qua?",
+      "purpose": "Audit trail cho GDPR compliance",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-90d"}}}
+            ],
+            "should": [
+              {"wildcard": {"destination.ip": "10.20.30.*"}},
+              {"terms": {"rule.category": ["customer-data", "pii", "sensitive"]}},
+              {"terms": {"destination.port": [1433, 3306]}},
+              {"wildcard": {"url.path": "*customer*"}},
+              {"wildcard": {"url.path": "*personal*"}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "pii_access_audit": {
+            "terms": {"field": "source.user.name", "size": 100},
+            "aggs": {
+              "access_details": {
+                "terms": {"field": "destination.ip", "size": 50},
+                "aggs": {
+                  "first_access": {"min": {"field": "@timestamp"}},
+                  "last_access": {"max": {"field": "@timestamp"}},
+                  "total_sessions": {"value_count": {"field": "@timestamp"}},
+                  "data_accessed": {"sum": {"field": "destination.bytes"}},
+                  "business_justification": {
+                    "terms": {"field": "rule.name"}
+                  }
+                }
+              },
+              "role_verification": {
+                "terms": {"field": "source.user.roles"}
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "question": "Sử dụng tài khoản đặc quyền: Tài khoản quản trị có được sử dụng đúng mục đích?",
+      "purpose": "Kiểm tra việc sử dụng tài khoản có quyền cao",
+      "keywords": ["tài khoản đặc quyền", "privileged account", "admin usage", "quyền quản trị", "compliance check"],
+      "purpose": "SOX compliance - privileged access monitoring",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-30d"}}},
+              {"terms": {"source.user.roles": ["administrator", "admin", "root", "sysadmin"]}}
+            ]
+          }
+        },
+        "aggs": {
+          "admin_activity": {
+            "terms": {"field": "source.user.name", "size": 20},
+            "aggs": {
+              "actions_performed": {
+                "terms": {"field": "event.action", "size": 50}
+              },
+              "systems_accessed": {
+                "terms": {"field": "destination.ip", "size": 50},
+                "aggs": {
+                  "access_pattern": {
+                    "date_histogram": {
+                      "field": "@timestamp",
+                      "calendar_interval": "1d"
+                    }
+                  }
+                }
+              },
+              "configuration_changes": {
+                "filter": {"term": {"event.type": "configuration"}},
+                "aggs": {
+                  "changes_made": {"terms": {"field": "fortinet.firewall.cfgobj"}}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+Phase 2: Data Retention & Deletion Audit - Kiểm toán lưu trữ và xóa dữ liệu
+{
+  "questions": [
+    {
+      "question": "Quyền được quên (Right to be forgotten): Dữ liệu của người dùng đã được xóa theo yêu cầu chưa?",
+      "purpose": "Xác minh tuân thủ quy định GDPR về xóa dữ liệu",
+      "keywords": ["quyền được quên", "gdpr compliance", "data deletion", "right to be forgotten", "xóa dữ liệu"],
+      "purpose": "GDPR Article 17 compliance verification",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-30d"}}},
+              {"term": {"event.action": "delete"}}
+            ],
+            "should": [
+              {"wildcard": {"message": "*customer_id:12345*"}},
+              {"wildcard": {"fortinet.firewall.user": "*john.doe*"}},
+              {"wildcard": {"url.query": "*user_data*"}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "deletion_audit": {
+            "date_histogram": {
+              "field": "@timestamp",
+              "calendar_interval": "1d"
+            },
+            "aggs": {
+              "deleted_records": {"value_count": {"field": "@timestamp"}},
+              "deletion_methods": {"terms": {"field": "event.action"}},
+              "performed_by": {"terms": {"field": "source.user.name"}}
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+========================================
+
+TÌNH HUỐNG 7: SUPPLY CHAIN ATTACK INVESTIGATION
+Kịch bản:
+Phát hiện software update từ vendor có chứa malware. Cần trace impact trong hệ thống.
+
+Phase 1: Initial Compromise Detection - Phát hiện compromise ban đầu
+{
+  "questions": [
+    {
+      "question": "Downloads từ vendor domain trong thời gian suspect?",
+      "purpose": "Xác định nguồn gốc compromise",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "2025-09-01", "lt": "2025-09-15"}}},
+              {"wildcard": {"url.domain": "*vendor-domain.com*"}},
+              {"exists": {"field": "file.name"}}
+            ]
+          }
+        },
+        "aggs": {
+          "suspicious_downloads": {
+            "terms": {"field": "file.name", "size": 50},
+            "aggs": {
+              "downloaded_by": {"terms": {"field": "source.user.name"}},
+              "download_time": {"min": {"field": "@timestamp"}},
+              "file_size": {"max": {"field": "file.size"}},
+              "download_sources": {"terms": {"field": "source.ip"}}
+            }
+          }
+        }
+      }
+    },
+    {
+      "question": "Execution của suspicious files: Process nào chạy sau khi download?",
+      "purpose": "Trace malware execution chain",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "2025-09-01"}}},
+              {"wildcard": {"process.name": "*update*"}},
+              {"exists": {"field": "process.parent.name"}}
+            ]
+          }
+        },
+        "aggs": {
+          "process_execution": {
+            "terms": {"field": "process.name", "size": 30},
+            "aggs": {
+              "execution_hosts": {"terms": {"field": "source.ip"}},
+              "parent_processes": {"terms": {"field": "process.parent.name"}},
+              "command_lines": {"terms": {"field": "process.command_line"}},
+              "network_connections": {
+                "filter": {"exists": {"field": "destination.ip"}},
+                "aggs": {
+                  "external_connections": {"terms": {"field": "destination.ip"}}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+Phase 2: Lateral Spread Analysis - Phân tích lan truyền ngang
+{
+  "questions": [
+    {
+      "question": "Infected machines có spread malware sang systems khác không?",
+      "purpose": "Map infection spread pattern",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "2025-09-01"}}},
+              {"term": {"network.direction": "internal"}},
+              {"terms": {"source.ip": ["10.0.0.15", "10.0.0.23", "10.0.0.31"]}}
+            ]
+          }
+        },
+        "aggs": {
+          "infection_spread": {
+            "terms": {"field": "source.ip", "size": 20},
+            "aggs": {
+              "targets": {
+                "terms": {"field": "destination.ip", "size": 100},
+                "aggs": {
+                  "infection_attempts": {"terms": {"field": "destination.port"}},
+                  "success_indicators": {
+                    "filter": {"term": {"event.outcome": "success"}}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+========================================
+
+TÌNH HUỐNG 8: RANSOMWARE INCIDENT RESPONSE
+Kịch bản:
+File servers báo cáo nhiều files bị encrypt. Cần rapid response và containment.
+
+Phase 1: Patient Zero Identification - Xác định nguồn gốc
+{
+  "questions": [
+    {
+      "question": "Machine nào đầu tiên có signs của file encryption?",
+      "purpose": "Tìm Patient Zero để containment",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-6h"}}}
+            ],
+            "should": [
+              {"wildcard": {"file.extension": ".encrypted"}},
+              {"wildcard": {"file.extension": ".locked"}},
+              {"wildcard": {"file.name": "*RANSOM*"}},
+              {"wildcard": {"process.name": "*encrypt*"}},
+              {"terms": {"destination.port": [445, 139, 135]}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "timeline_analysis": {
+            "date_histogram": {
+              "field": "@timestamp",
+              "fixed_interval": "5m"
+            },
+            "aggs": {
+              "affected_machines": {"terms": {"field": "source.ip"}},
+              "file_operations": {"terms": {"field": "event.action"}},
+              "first_indicator": {"min": {"field": "@timestamp"}}
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+Phase 2: Damage Assessment - Đánh giá thiệt hại
+{
+  "questions": [
+    {
+      "question": "Scope của encryption: Bao nhiêu files/systems bị ảnh hưởng?",
+      "purpose": "Quantify damage for recovery planning",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-12h"}}},
+              {"exists": {"field": "file.name"}}
+            ],
+            "should": [
+              {"wildcard": {"event.action": "*encrypt*"}},
+              {"wildcard": {"event.action": "*modify*"}},
+              {"terms": {"file.extension": [".encrypted", ".locked", ".crypto"]}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "damage_assessment": {
+            "terms": {"field": "source.ip", "size": 100},
+            "aggs": {
+              "encrypted_files": {"value_count": {"field": "file.name"}},
+              "total_data_size": {"sum": {"field": "file.size"}},
+              "file_types_affected": {"terms": {"field": "file.extension"}},
+              "critical_systems": {
+                "filter": {
+                  "wildcard": {"file.path": "*critical*"}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+========================================
+
+TÌNH HUỐNG 9: CLOUD SECURITY INCIDENT
+Kịch bản:
+Cloud instances có traffic bất thường và resource consumption spike.
+Nghi ngờ crypto mining hoặc botnet activity.
+
+Phase 1: Resource Abuse Detection - Phát hiện lạm dụng tài nguyên
+{
+  "questions": [
+    {
+      "question": "Cloud instances nào có CPU/network usage bất thường?",
+      "purpose": "Identify compromised cloud resources",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-24h"}}},
+              {"exists": {"field": "cloud.instance.id"}}
+            ]
+          }
+        },
+        "aggs": {
+          "cloud_resource_usage": {
+            "terms": {"field": "cloud.instance.id", "size": 100},
+            "aggs": {
+              "network_volume": {"sum": {"field": "network.bytes"}},
+              "connection_count": {"value_count": {"field": "@timestamp"}},
+              "external_connections": {
+                "filter": {"term": {"network.direction": "outbound"}},
+                "aggs": {
+                  "unique_destinations": {"cardinality": {"field": "destination.ip"}}
+                }
+              },
+              "suspicious_activity": {
+                "bucket_selector": {
+                  "buckets_path": {"volume": "network_volume"},
+                  "script": "params.volume > 10737418240"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "question": "Crypto mining indicators: Connections đến mining pools?",
+      "purpose": "Detect cryptocurrency mining activity",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-24h"}}}
+            ],
+            "should": [
+              {"terms": {"destination.port": [4444, 14444, 25, 8333, 9333]}},
+              {"wildcard": {"url.domain": "*pool*"}},
+              {"wildcard": {"url.domain": "*mining*"}},
+              {"wildcard": {"url.domain": "*crypto*"}},
+              {"wildcard": {"process.name": "*miner*"}},
+              {"wildcard": {"process.name": "*xmrig*"}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "mining_indicators": {
+            "terms": {"field": "destination.ip", "size": 50},
+            "aggs": {
+              "mining_sources": {"terms": {"field": "source.ip"}},
+              "connection_duration": {"sum": {"field": "event.duration"}},
+              "data_volume": {"sum": {"field": "network.bytes"}}
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+========================================
+
+TÌNH HUỐNG 10: WEB APPLICATION ATTACK ANALYSIS
+Kịch bản:
+Web application firewall báo cáo nhiều attack attempts.
+Cần phân tích attack patterns và effectiveness của defenses.
+
+Phase 1: Attack Pattern Analysis - Phân tích mô hình tấn công
+{
+  "questions": [
+    {
+      "question": "SQL Injection attempts: Pattern và success rate?",
+      "purpose": "Analyze SQLi attack effectiveness",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-24h"}}}
+            ],
+            "should": [
+              {"wildcard": {"url.query": "*union*select*"}},
+              {"wildcard": {"url.query": "*drop*table*"}},
+              {"wildcard": {"url.query": "*'*or*1=1*"}},
+              {"wildcard": {"http.request.body.content": "*sql*"}},
+              {"term": {"rule.category": "sql-injection"}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "sqli_analysis": {
+            "terms": {"field": "source.ip", "size": 50},
+            "aggs": {
+              "attack_attempts": {"value_count": {"field": "@timestamp"}},
+              "blocked_attempts": {
+                "filter": {"term": {"event.outcome": "blocked"}}
+              },
+              "successful_attempts": {
+                "filter": {"term": {"event.outcome": "success"}}
+              },
+              "attack_vectors": {"terms": {"field": "url.path"}},
+              "payload_analysis": {"terms": {"field": "url.query"}}
+            }
+          }
+        }
+      }
+    },
+    {
+      "question": "XSS và CSRF attacks: Client-side attack patterns?",
+      "purpose": "Analyze client-side attack vectors",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-24h"}}}
+            ],
+            "should": [
+              {"wildcard": {"url.query": "*<script>*"}},
+              {"wildcard": {"url.query": "*javascript:*"}},
+              {"wildcard": {"url.query": "*onerror*"}},
+              {"wildcard": {"http.request.body.content": "*<iframe*"}},
+              {"terms": {"rule.category": ["xss", "csrf", "client-side-attack"]}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "client_side_attacks": {
+            "date_histogram": {
+              "field": "@timestamp",
+              "fixed_interval": "1h"
+            },
+            "aggs": {
+              "attack_types": {"terms": {"field": "rule.category"}},
+              "targeted_pages": {"terms": {"field": "url.path"}},
+              "attack_success": {
+                "filters": {
+                  "filters": {
+                    "blocked": {"term": {"event.outcome": "blocked"}},
+                    "allowed": {"term": {"event.outcome": "success"}}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+========================================
+SUMMARY & BEST PRACTICES
+========================================
+
+1. **Proactive Hunting Queries**
+   - Baseline normal behavior trước 30-90 ngày
+   - Hunt for deviations từ established patterns
+   - Cross-correlate multiple data sources
+
+2. **Incident Response Timeline**
+   - Phase 1: Initial detection (0-1 hour)
+   - Phase 2: Scope assessment (1-4 hours) 
+   - Phase 3: Containment planning (4-8 hours)
+   - Phase 4: Recovery & lessons learned
+
+3. **Key Metrics to Track**
+   - Mean Time to Detection (MTTD)
+   - Mean Time to Response (MTTR)
+   - False positive rates
+   - Coverage effectiveness
+
+4. **Automation Opportunities**
+   - Threshold-based alerting
+   - Behavioral anomaly detection
+   - Automated containment actions
+   - Report generation
+
+========================================

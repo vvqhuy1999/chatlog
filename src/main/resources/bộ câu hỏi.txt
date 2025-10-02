@@ -1,0 +1,806 @@
+TÌNH HUỐNG 1: ỨNG PHỐ SỰ CỐ - PHÁT HIỆN TÀI KHOẢN BỊ XÂM NHẬP
+Kịch bản:
+Phát hiện tài khoản nguyenvana có hành vi bất thường: đăng nhập từ nhiều địa điểm, truy cập tài nguyên nhạy cảm ngoài giờ làm việc.
+Bộ câu hỏi điều tra (Quy trình điều tra):
+json{
+  "title": "GIAI ĐOẠN 1: Xác định thời điểm và phạm vi",
+  "questions": [
+    {
+      "question": "Dòng thời gian đầy đủ các hoạt động của user nguyenvana trong 7 ngày qua?",
+      "purpose": "Xây dựng dòng thời gian để xác định thời điểm bắt đầu bất thường",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvana"}},
+              {"range": {"@timestamp": {"gte": "now-7d"}}}
+            ]
+          }
+        },
+        "_source": [
+          "@timestamp",
+          "source.ip",
+          "source.geo.country_name",
+          "destination.ip",
+          "destination.port",
+          "event.action",
+          "rule.name",
+          "network.bytes"
+        ],
+        "sort": [{"@timestamp": "asc"}],
+        "size": 1000
+      }
+    },
+    {
+      "question": "User nguyenvana đăng nhập từ bao nhiêu IP khác nhau trong 7 ngày qua?",
+      "purpose": "Phát hiện nhiều địa điểm đăng nhập",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvana"}},
+              {"term": {"event.action": "login"}},
+              {"range": {"@timestamp": {"gte": "now-7d"}}}
+            ]
+          }
+        },
+        "aggs": {
+          "unique_ips": {
+            "terms": {"field": "source.ip", "size": 100},
+            "aggs": {
+              "countries": {"terms": {"field": "source.geo.country_name"}},
+              "first_seen": {"min": {"field": "@timestamp"}},
+              "last_seen": {"max": {"field": "@timestamp"}},
+              "login_count": {"value_count": {"field": "@timestamp"}}
+            }
+          }
+        },
+        "size": 0
+      }
+    },
+    {
+      "question": "Có IP nào đăng nhập đồng thời từ 2 địa điểm khác nhau (di chuyển bất khả thi)?",
+      "purpose": "Phát hiện di chuyển bất khả thi - dấu hiệu tài khoản bị đánh cắp",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvana"}},
+              {"term": {"event.action": "login"}},
+              {"range": {"@timestamp": {"gte": "now-24h"}}}
+            ]
+          }
+        },
+        "aggs": {
+          "login_timeline": {
+            "date_histogram": {
+              "field": "@timestamp",
+              "fixed_interval": "15m"
+            },
+            "aggs": {
+              "unique_countries": {
+                "cardinality": {"field": "source.geo.country_name"}
+              },
+              "countries": {
+                "terms": {"field": "source.geo.country_name"}
+              },
+              "impossible_travel": {
+                "bucket_selector": {
+                  "buckets_path": {"countries": "unique_countries"},
+                  "script": "params.countries > 1"
+                }
+              }
+            }
+          }
+        },
+        "size": 0
+      }
+    }
+  ]
+}
+json{
+  "title": "GIAI ĐOẠN 2: Phân tích hành vi bất thường",
+  "questions": [
+    {
+      "question": "User nguyenvana truy cập những tài nguyên nào khác thường (so với mức cơ bản)?",
+      "purpose": "So sánh hành vi hiện tại với 30 ngày trước",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvana"}},
+              {"range": {"@timestamp": {"gte": "now-24h"}}}
+            ]
+          }
+        },
+        "aggs": {
+          "recent_destinations": {
+            "terms": {"field": "destination.ip", "size": 50},
+            "aggs": {
+              "ports": {"terms": {"field": "destination.port"}},
+              "total_bytes": {"sum": {"field": "network.bytes"}},
+              "protocols": {"terms": {"field": "network.protocol"}}
+            }
+          }
+        },
+        "size": 0
+      }
+    },
+    {
+      "question": "Có đánh cắp dữ liệu không? (Tải lên > 100MB trong thời gian ngắn)",
+      "purpose": "Phát hiện dữ liệu bị đánh cắp",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvana"}},
+              {"term": {"network.direction": "outbound"}},
+              {"range": {"@timestamp": {"gte": "now-24h"}}}
+            ]
+          }
+        },
+        "aggs": {
+          "by_destination": {
+            "terms": {"field": "destination.ip", "size": 20},
+            "aggs": {
+              "total_upload": {"sum": {"field": "source.bytes"}},
+              "session_count": {"value_count": {"field": "@timestamp"}},
+              "avg_session_size": {"avg": {"field": "source.bytes"}},
+              "suspicious_upload": {
+                "bucket_selector": {
+                  "buckets_path": {"upload": "total_upload"},
+                  "script": "params.upload > 104857600"
+                }
+              }
+            }
+          }
+        },
+        "size": 0
+      }
+    },
+    {
+      "question": "User nguyenvana có kết nối đến IP/domain đáng ngờ không?",
+      "purpose": "Kiểm tra kết nối đến máy chủ điều khiển hoặc tên miền độc hại",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvana"}},
+              {"range": {"@timestamp": {"gte": "now-24h"}}}
+            ],
+            "should": [
+              {"exists": {"field": "fortinet.firewall.botnetip"}},
+              {"exists": {"field": "threat.feed.name"}},
+              {"term": {"fortinet.firewall.crlevel": "critical"}},
+              {"term": {"rule.category": "malware"}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "_source": [
+          "@timestamp",
+          "source.ip",
+          "destination.ip",
+          "url.domain",
+          "fortinet.firewall.botnetip",
+          "threat.feed.name",
+          "fortinet.firewall.attack"
+        ],
+        "size": 100
+      }
+    },
+    {
+      "question": "Có dấu hiệu di chuyển ngang không? (Kết nối nội bộ đến nhiều máy chủ)",
+      "purpose": "Phát hiện kẻ tấn công di chuyển ngang trong mạng",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvana"}},
+              {"term": {"network.direction": "internal"}},
+              {"range": {"@timestamp": {"gte": "now-24h"}}}
+            ]
+          }
+        },
+        "aggs": {
+          "internal_destinations": {
+            "terms": {"field": "destination.ip", "size": 100},
+            "aggs": {
+              "destination_ports": {"terms": {"field": "destination.port"}},
+              "first_access": {"min": {"field": "@timestamp"}},
+              "protocols_used": {"terms": {"field": "network.protocol"}}
+            }
+          },
+          "unique_dest_count": {
+            "cardinality": {"field": "destination.ip"}
+          }
+        },
+        "size": 0
+      }
+    }
+  ]
+}
+json{
+  "title": "GIAI ĐOẠN 3: Tìm chỉ số xâm nhập (IoCs)",
+  "questions": [
+    {
+      "question": "Có tài khoản nào khác hoạt động từ cùng IP với nguyenvana không?",
+      "purpose": "Phát hiện tấn công thông tin đăng nhập hoặc xâm nhập chung",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-24h"}}}
+            ],
+            "must": {
+              "terms": {
+                "source.ip": {
+                  "index": "logs-fortinet_fortigate.log-default-*",
+                  "id": "suspicious_ips",
+                  "path": "source.ip"
+                }
+              }
+            },
+            "must_not": [
+              {"term": {"source.user.name": "nguyenvana"}}
+            ]
+          }
+        },
+        "aggs": {
+          "other_users": {
+            "terms": {"field": "source.user.name", "size": 50},
+            "aggs": {
+              "shared_ips": {"terms": {"field": "source.ip"}}
+            }
+          }
+        },
+        "size": 100
+      }
+    },
+    {
+      "question": "Tất cả các files được user nguyenvana tải xuống trong 7 ngày qua?",
+      "purpose": "Phát hiện tải xuống mã độc hoặc chuẩn bị dữ liệu",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvana"}},
+              {"exists": {"field": "file.name"}},
+              {"range": {"@timestamp": {"gte": "now-7d"}}}
+            ]
+          }
+        },
+        "aggs": {
+          "files_downloaded": {
+            "terms": {"field": "file.name", "size": 100},
+            "aggs": {
+              "file_size": {"sum": {"field": "file.size"}},
+              "file_type": {"terms": {"field": "file.extension"}},
+              "download_time": {"max": {"field": "@timestamp"}},
+              "virus_scan": {"terms": {"field": "fortinet.firewall.virus"}}
+            }
+          }
+        },
+        "size": 0
+      }
+    },
+    {
+      "question": "User nguyenvana có tạo user mới hoặc thay đổi permissions không?",
+      "purpose": "Phát hiện leo thang quyền hạn hoặc tạo cửa hậu",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvana"}},
+              {"term": {"event.type": "configuration"}},
+              {"range": {"@timestamp": {"gte": "now-7d"}}}
+            ],
+            "should": [
+              {"match": {"message": "user"}},
+              {"match": {"message": "permission"}},
+              {"match": {"message": "admin"}},
+              {"match": {"message": "role"}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "_source": ["@timestamp", "source.user.name", "message", "fortinet.firewall.cfgattr", "fortinet.firewall.cfgobj"],
+        "size": 100
+      }
+    }
+  ]
+}
+json{
+  "title": "GIAI ĐOẠN 4: Đánh giá tác động - Đánh giá thiệt hại",
+  "questions": [
+    {
+      "question": "Những tài nguyên quan trọng nào đã bị user nguyenvana truy cập?",
+      "purpose": "Xác định phạm vi ảnh hưởng",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvana"}},
+              {"range": {"@timestamp": {"gte": "now-7d"}}}
+            ],
+            "should": [
+              {"wildcard": {"destination.ip": "10.0.0.*"}},
+              {"terms": {"destination.port": [3389, 22, 445, 1433, 3306, 5432]}},
+              {"terms": {"rule.category": ["database", "critical", "production"]}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "critical_resources": {
+            "terms": {"field": "destination.ip", "size": 50},
+            "aggs": {
+              "access_count": {"value_count": {"field": "@timestamp"}},
+              "ports_accessed": {"terms": {"field": "destination.port"}},
+              "data_transferred": {"sum": {"field": "network.bytes"}},
+              "first_access": {"min": {"field": "@timestamp"}},
+              "last_access": {"max": {"field": "@timestamp"}}
+            }
+          }
+        },
+        "size": 0
+      }
+    },
+    {
+      "question": "Có mất dữ liệu không? (Lưu lượng ra ngoài đến các đích bên ngoài)",
+      "purpose": "Đo lường lượng dữ liệu có thể bị đánh cắp",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "nguyenvana"}},
+              {"term": {"network.direction": "outbound"}},
+              {"range": {"@timestamp": {"gte": "now-7d"}}}
+            ],
+            "must_not": [
+              {"terms": {"destination.as.organization.name": ["Google LLC", "Microsoft Corporation", "Amazon.com"]}}
+            ]
+          }
+        },
+        "aggs": {
+          "external_destinations": {
+            "terms": {"field": "destination.ip", "size": 50},
+            "aggs": {
+              "total_data_sent": {"sum": {"field": "source.bytes"}},
+              "country": {"terms": {"field": "destination.geo.country_name"}},
+              "organization": {"terms": {"field": "destination.as.organization.name"}},
+              "protocols": {"terms": {"field": "network.protocol"}},
+              "session_count": {"value_count": {"field": "@timestamp"}}
+            }
+          },
+          "total_external_upload": {
+            "sum": {"field": "source.bytes"}
+          }
+        },
+        "size": 0
+      }
+    }
+  ]
+}
+
+TÌNH HUỐNG 2: SUY GIẢM HIỆU SUẤT - TỐC ĐỘ MẠNG CHẬM
+Kịch bản:
+Users phàn nàn mạng chậm từ 14h chiều nay. Cần điều tra nguyên nhân.
+json{
+  "title": "GIAI ĐOẠN 1: So sánh mức cơ bản - So sánh với bình thường",
+  "questions": [
+    {
+      "question": "Sử dụng băng thông hiện tại so với 7 ngày trước cùng thời điểm?",
+      "purpose": "Xác định có đỉnh lưu lượng bất thường không",
+      "query": {
+        "query": {
+          "bool": {
+            "should": [
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-1h",
+                    "lte": "now"
+                  }
+                }
+              },
+              {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-7d-1h",
+                    "lte": "now-7d"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "aggs": {
+          "by_time_range": {
+            "filters": {
+              "filters": {
+                "current": {"range": {"@timestamp": {"gte": "now-1h"}}},
+                "last_week": {
+                  "range": {
+                    "@timestamp": {
+                      "gte": "now-7d-1h",
+                      "lte": "now-7d"
+                    }
+                  }
+                }
+              }
+            },
+            "aggs": {
+              "total_bandwidth": {"sum": {"field": "network.bytes"}},
+              "total_sessions": {"value_count": {"field": "@timestamp"}},
+              "avg_session_size": {"avg": {"field": "network.bytes"}}
+            }
+          }
+        },
+        "size": 0
+      }
+    },
+    {
+      "question": "Mẫu lưu lượng theo từng 5 phút trong 2 giờ qua?",
+      "purpose": "Vẽ biểu đồ để thấy thời điểm đỉnh lưu lượng",
+      "query": {
+        "query": {
+          "range": {"@timestamp": {"gte": "now-2h"}}
+        },
+        "aggs": {
+          "traffic_timeline": {
+            "date_histogram": {
+              "field": "@timestamp",
+              "fixed_interval": "5m"
+            },
+            "aggs": {
+              "total_bytes": {"sum": {"field": "network.bytes"}},
+              "session_count": {"value_count": {"field": "@timestamp"}},
+              "unique_sources": {"cardinality": {"field": "source.ip"}},
+              "unique_destinations": {"cardinality": {"field": "destination.ip"}},
+              "inbound": {
+                "filter": {"term": {"network.direction": "inbound"}},
+                "aggs": {"bytes": {"sum": {"field": "network.bytes"}}}
+              },
+              "outbound": {
+                "filter": {"term": {"network.direction": "outbound"}},
+                "aggs": {"bytes": {"sum": {"field": "network.bytes"}}}
+              }
+            }
+          }
+        },
+        "size": 0
+      }
+    }
+  ]
+}
+json{
+  "title": "GIAI ĐOẠN 2: Người dùng hàng đầu - Tìm thủ phạm",
+  "questions": [
+    {
+      "question": "Top 20 users tiêu tốn băng thông nhiều nhất trong 2h qua?",
+      "purpose": "Xác định ai đang sử dụng nhiều băng thông",
+      "query": {
+        "query": {
+          "range": {"@timestamp": {"gte": "now-2h"}}
+        },
+        "aggs": {
+          "top_users": {
+            "terms": {
+              "field": "source.user.name",
+              "size": 20,
+              "order": {"total_bandwidth": "desc"}
+            },
+            "aggs": {
+              "total_bandwidth": {"sum": {"field": "network.bytes"}},
+              "session_count": {"value_count": {"field": "@timestamp"}},
+              "top_destinations": {
+                "terms": {"field": "destination.ip", "size": 5},
+                "aggs": {"bytes": {"sum": {"field": "network.bytes"}}}
+              },
+              "top_applications": {
+                "terms": {"field": "network.application", "size": 5},
+                "aggs": {"bytes": {"sum": {"field": "network.bytes"}}}
+              },
+              "upload_vs_download": {
+                "stats": {"field": "source.bytes"}
+              }
+            }
+          }
+        },
+        "size": 0
+      }
+    },
+    {
+      "question": "Top 20 applications đang chiếm bandwidth?",
+      "purpose": "Xác định ứng dụng nào đang sử dụng nhiều",
+      "query": {
+        "query": {
+          "range": {"@timestamp": {"gte": "now-2h"}}
+        },
+        "aggs": {
+          "top_apps": {
+            "terms": {
+              "field": "network.application",
+              "size": 20,
+              "order": {"total_bytes": "desc"}
+            },
+            "aggs": {
+              "total_bytes": {"sum": {"field": "network.bytes"}},
+              "session_count": {"value_count": {"field": "@timestamp"}},
+              "unique_users": {"cardinality": {"field": "source.user.name"}},
+              "avg_session_duration": {"avg": {"field": "event.duration"}},
+              "protocols": {"terms": {"field": "network.protocol"}}
+            }
+          }
+        },
+        "size": 0
+      }
+    },
+    {
+      "question": "Top 20 destination IPs nhận traffic nhiều nhất?",
+      "purpose": "Xác định đích đến nào đang bị tải xuống/tải lên nhiều",
+      "query": {
+        "query": {
+          "range": {"@timestamp": {"gte": "now-2h"}}
+        },
+        "aggs": {
+          "top_destinations": {
+            "terms": {
+              "field": "destination.ip",
+              "size": 20,
+              "order": {"total_bytes": "desc"}
+            },
+            "aggs": {
+              "total_bytes": {"sum": {"field": "network.bytes"}},
+              "inbound_bytes": {"sum": {"field": "destination.bytes"}},
+              "outbound_bytes": {"sum": {"field": "source.bytes"}},
+              "session_count": {"value_count": {"field": "@timestamp"}},
+              "unique_sources": {"cardinality": {"field": "source.ip"}},
+              "country": {"terms": {"field": "destination.geo.country_name"}},
+              "organization": {"terms": {"field": "destination.as.organization.name"}},
+              "top_ports": {"terms": {"field": "destination.port", "size": 5}}
+            }
+          }
+        },
+        "size": 0
+      }
+    }
+  ]
+}
+json{
+  "title": "GIAI ĐOẠN 3: Phát hiện bất thường - Phát hiện bất thường",
+  "questions": [
+    {
+      "question": "Có kết nối nào có throughput bất thường cao (> 10MB/s)?",
+      "purpose": "Phát hiện truyền tải khối lượng lớn hoặc streaming",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-1h"}}},
+              {"range": {"event.duration": {"gt": 0}}}
+            ],
+            "must": {
+              "script": {
+                "script": {
+                  "source": "doc['network.bytes'].value / (doc['event.duration'].value / 1000000000.0) > 10485760",
+                  "lang": "painless"
+                }
+              }
+            }
+          }
+        },
+        "_source": [
+          "@timestamp",
+          "source.ip",
+          "source.user.name",
+          "destination.ip",
+          "network.bytes",
+          "event.duration",
+          "network.application"
+        ],
+        "sort": [{"network.bytes": "desc"}],
+        "size": 50
+      }
+    },
+    {
+      "question": "Có session nào có packet loss cao (> 5%)?",
+      "purpose": "Phát hiện vấn đề về chất lượng mạng",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-1h"}}},
+              {"range": {"fortinet.firewall.packetloss": {"gt": 5}}}
+            ]
+          }
+        },
+        "aggs": {
+          "by_source": {
+            "terms": {"field": "source.ip", "size": 20},
+            "aggs": {
+              "avg_packet_loss": {"avg": {"field": "fortinet.firewall.packetloss"}},
+              "max_packet_loss": {"max": {"field": "fortinet.firewall.packetloss"}},
+              "affected_destinations": {"terms": {"field": "destination.ip"}}
+            }
+          }
+        },
+        "_source": [
+          "@timestamp",
+          "source.ip",
+          "destination.ip",
+          "fortinet.firewall.packetloss",
+          "network.bytes"
+        ],
+        "size": 100
+      }
+    },
+    {
+      "question": "Có P2P hoặc streaming traffic không?",
+      "purpose": "Phát hiện chia sẻ tập tin BitTorrent, phát video trực tuyến",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-2h"}}}
+            ],
+            "should": [
+              {"term": {"rule.category": "p2p"}},
+              {"wildcard": {"network.application": "*torrent*"}},
+              {"wildcard": {"network.application": "*streaming*"}},
+              {"terms": {"destination.port": [6881, 6882, 6883, 6884, 6885]}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "p2p_users": {
+            "terms": {"field": "source.user.name", "size": 20},
+            "aggs": {
+              "total_bandwidth": {"sum": {"field": "network.bytes"}},
+              "applications": {"terms": {"field": "network.application"}},
+              "session_count": {"value_count": {"field": "@timestamp"}}
+            }
+          }
+        },
+        "size": 100
+      }
+    }
+  ]
+}
+json{
+  "title": "GIAI ĐOẠN 4: Kiểm tra tình trạng hạ tầng",
+  "questions": [
+    {
+      "question": "CPU/Memory của các FortiGate devices trong 2h qua?",
+      "purpose": "Kiểm tra hiệu suất tường lửa",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-2h"}}}
+            ],
+            "should": [
+              {"exists": {"field": "fortinet.firewall.cpu"}},
+              {"exists": {"field": "fortinet.firewall.mem"}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "by_device": {
+            "terms": {"field": "observer.name", "size": 10},
+            "aggs": {
+              "cpu_stats": {
+                "stats": {"field": "fortinet.firewall.cpu"}
+              },
+              "mem_stats": {
+                "stats": {"field": "fortinet.firewall.mem"}
+              },
+              "high_cpu_count": {
+                "filter": {"range": {"fortinet.firewall.cpu": {"gte": 80}}}
+              },
+              "high_mem_count": {
+                "filter": {"range": {"fortinet.firewall.mem": {"gte": 80}}}
+              }
+            }
+          }
+        },
+        "size": 0
+      }
+    },
+    {
+      "question": "Traffic distribution theo interfaces?",
+      "purpose": "Xác định interface nào đang bị quá tải",
+      "query": {
+        "query": {
+          "range": {"@timestamp": {"gte": "now-1h"}}
+        },
+        "aggs": {
+          "ingress_interfaces": {
+            "terms": {"field": "observer.ingress.interface.name", "size": 20},
+            "aggs": {
+              "total_bytes": {"sum": {"field": "network.bytes"}},
+              "session_count": {"value_count": {"field": "@timestamp"}},
+              "unique_sources": {"cardinality": {"field": "source.ip"}}
+            }
+          },
+          "egress_interfaces": {
+            "terms": {"field": "observer.egress.interface.name", "size": 20},
+            "aggs": {
+              "total_bytes": {"sum": {"field": "network.bytes"}},
+              "session_count": {"value_count": {"field": "@timestamp"}},
+              "unique_destinations": {"cardinality": {"field": "destination.ip"}}
+            }
+          }
+        },
+        "size": 0
+      }
+    },
+    {
+      "question": "Có session timeout hoặc connection errors không?",
+      "purpose": "Phát hiện connectivity issues",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"range": {"@timestamp": {"gte": "now-1h"}}}
+            ],
+            "should": [
+              {"term": {"event.action": "timeout"}},
+              {"term": {"event.action": "server-rst"}},
+              {"term": {"event.action": "client-rst"}},
+              {"term": {"event.outcome": "failure"}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "error_types": {
+            "terms": {"field": "event.action", "size": 10},
+            "aggs": {
+              "count": {"value_count": {"field": "@timestamp"}},
+              "affected_users": {"terms": {"field": "source.user.name", "size": 10}},
+              "affected_destinations": {"terms": {"field": "destination.ip", "size": 10}}
+            }
+          }
+        },
+        "size": 100
+      }
+    }
+  ]
+}
+
+TÌNH HUỐNG 3: DATA LOSS PREVENTION (DLP) - NGHI NGỜ RÒ RỈ DỮ LIỆU
+Kịch bản:
+Phát hiện một nhân viên sắp nghỉ việc có hành vi upload file lên cloud storage cá nhân.
+json{
+  "title": "GIAI ĐOẠN 1: Giám sát hoạt động tập tin",
+  "questions": [
+    {
+      "question": "User 'lequangh' upload files gì lên cloud storage trong 30 ngày qua?",
+      "purpose": "Xác định files và lượng dữ liệu được upload",
+      "query": {
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"source.user.name": "lequangh"}},
+              {"term": {"network.direction": "outbound"}},
+              {"range": {"@timestamp": {"gte": "now-30d"}}}
+            ],
+            "should": [
+              {"wildcard": {"url.domain": "*dropbox.com"}},
+              {"wildcard": {"url.domain": "*drive.google.com"}},
+              {"wildcard": {"url.domain": "*onedrive.com"}},
+              {"wildcard": {"url.domain": "*box.com"}},
+              {"wildcard": {"url.domain": "*mega.nz"}}
+            ],
+            "minimum_should_match": 1
+          }
+        },
+        "aggs": {
+          "by_cloud_service": {
+            "terms": {"field": "url.domain", "size": 10},
+            "aggs": {
+              "total_upload": {"sum": {"field": "source.bytesRetryThis response paused because Claude reached its max length for a message. Hit continue to nudge Claude along.ContinueClaude can make mistakes. Please double-check responses.es Sonnet 4.5
