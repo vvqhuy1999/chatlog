@@ -52,3 +52,46 @@ elastic:
   api:
     key: ${ELASTIC_API_KEY}
     url: ${ELASTIC_URL}
+
+  datasource:
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 30000
+      leak-detection-threshold: 60000
+  
+  cache:
+    type: simple
+    cache-names: elasticsearch_queries,ai_responses,schema_mappings,query_patterns,session_contexts
+    
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 20
+          fetch_size: 50
+        cache:
+          use_second_level_cache: true
+          use_query_cache: true
+
+# Monitoring configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+# Logging optimization
+logging:
+  level:
+    com.example.chatlog: INFO
+    org.springframework.ai: WARN
+    org.hibernate.SQL: ERROR

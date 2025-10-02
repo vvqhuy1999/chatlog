@@ -17,9 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Service xử lý chế độ so sánh giữa OpenAI và OpenRouter
@@ -37,6 +35,18 @@ public class AiComparisonService {
     @Autowired
     private AiResponseService aiResponseService;
     
+    // Tích hợp các service tối ưu hóa mới
+    @Autowired
+    private QueryOptimizationService queryOptimizationService;
+    
+    @Autowired
+    private SmartContextManager smartContextManager;
+    
+    @Autowired
+    private PerformanceMonitoringService performanceMonitoringService;
+    
+    @Autowired
+    private ChatHistoryService chatHistoryService;
     
     private final ChatClient chatClient;
     
@@ -84,14 +94,50 @@ public class AiComparisonService {
         LocalDateTime now = LocalDateTime.now();
         String dateContext = generateDateContext(now);
         
+        // Performance tracking cho comparison mode
+        Map<String, Long> timingMetrics = new HashMap<>();
+        long overallStartTime = System.currentTimeMillis();
+        
         try {
-            System.out.println("[AiComparisonService] ===== BẮT ĐẦU CHẾ ĐỘ SO SÁNH =====");
+            System.out.println("[AiComparisonService] ===== BẮT ĐẦU CHẾ ĐỘ SO SÁNH VỚI OPTIMIZATION =====");
             System.out.println("[AiComparisonService] Bắt đầu chế độ so sánh cho phiên: " + sessionId);
             System.out.println("[AiComparisonService] Tin nhắn người dùng: " + chatRequest.message());
             System.out.println("[AiComparisonService] Sử dụng ngữ cảnh ngày tháng: " + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
             
-            // --- BƯỚC 1: So sánh quá trình tạo query ---
-            System.out.println("[AiComparisonService] ===== BƯỚC 1: Tạo Elasticsearch Query =====");
+            // --- BƯỚC 0: Xây dựng Smart Context (MỚI) ---
+            System.out.println("[AiComparisonService] ===== BƯỚC 0: Xây dựng Smart Context =====");
+            long contextStartTime = System.currentTimeMillis();
+            
+            SmartContextManager.EnhancedContext enhancedContext;
+            try {
+                // Lấy chat history để build context với safe handling
+                List<com.example.chatlog.entity.ChatMessages> chatHistory = chatHistoryService.getChatHistory(sessionId);
+                enhancedContext = smartContextManager.buildEnhancedContext(
+                    sessionId, chatRequest, chatHistory
+                );
+                
+                timingMetrics.put("context_building_ms", System.currentTimeMillis() - contextStartTime);
+                System.out.println("[AiComparisonService] ✅ Smart context built - Intent: " + enhancedContext.intent.type + 
+                                 ", Relevant messages: " + enhancedContext.relevantMessages.size() + 
+                                 ", Entities: " + enhancedContext.entities.size());
+                                 
+            } catch (Exception contextException) {
+                System.out.println("[AiComparisonService] ⚠️ Warning: Context building failed, using fallback: " + contextException.getMessage());
+                
+                // Fallback context
+                enhancedContext = new SmartContextManager.EnhancedContext(
+                    new SmartContextManager.RequestIntent(SmartContextManager.IntentType.GENERAL, new HashMap<>()),
+                    new ArrayList<>(),
+                    new HashSet<>(),
+                    "FALLBACK_CONTEXT: Context building failed, proceeding without history"
+                );
+                
+                timingMetrics.put("context_building_ms", System.currentTimeMillis() - contextStartTime);
+                System.out.println("[AiComparisonService] ✅ Using fallback context due to error");
+            }
+            
+            // --- BƯỚC 1: So sánh quá trình tạo query với optimization ---
+            System.out.println("[AiComparisonService] ===== BƯỚC 1: Tạo Elasticsearch Query Với Optimization =====");
             
             // Chuẩn bị schema một lần để dùng lại cho cả hai prompt
             String fullSchema = SchemaHint.getSchemaHint();
@@ -146,16 +192,21 @@ public class AiComparisonService {
                 .options(chatOptions)
                 .call()
                 .entity(new ParameterizedTypeReference<>() {});
-            long openaiEndTime = System.currentTimeMillis();
+            long openaiRawEndTime = System.currentTimeMillis();
             
             // Đảm bảo giá trị query được đặt là 1
             if (openaiQuery.getQuery() != 1) {
                 openaiQuery.setQuery(1);
             }
             
-            String openaiQueryString = openaiQuery.getBody();
-            System.out.println("[AiComparisonService] ✅ OPENAI - Query được tạo thành công trong " + (openaiEndTime - openaiStartTime) + "ms");
-            System.out.println("[AiComparisonService] 📝 OPENAI - Query: " + openaiQueryString);
+            // OPTIMIZATION: Áp dụng query optimization cho OpenAI
+            RequestBody optimizedOpenaiQuery = queryOptimizationService.optimizeQuery(openaiQuery, chatRequest);
+            long openaiEndTime = System.currentTimeMillis();
+            
+            String openaiQueryString = optimizedOpenaiQuery.getBody();
+            System.out.println("[AiComparisonService] ✅ OPENAI - Query được tạo và tối ưu trong " + (openaiEndTime - openaiStartTime) + "ms");
+            System.out.println("[AiComparisonService] 🔧 OPENAI - Raw generation: " + (openaiRawEndTime - openaiStartTime) + "ms, Optimization: " + (openaiEndTime - openaiRawEndTime) + "ms");
+            System.out.println("[AiComparisonService] 📝 OPENAI - Optimized Query: " + openaiQueryString);
             
             // Theo dõi thời gian tạo query của OpenRouter (thực sự gọi OpenRouter với temperature khác)
             System.out.println("[AiComparisonService] 🟠 OPENROUTER - Đang tạo Elasticsearch query...");
@@ -171,30 +222,35 @@ public class AiComparisonService {
             
             try {
                 // Gọi trực tiếp ChatClient với options OpenRouter (openrouterChatOptions)
-                openrouterQuery = chatClient
+                RequestBody rawOpenrouterQuery = chatClient
                     .prompt(prompt)
                     .options(openrouterChatOptions)
                     .call()
                     .entity(new ParameterizedTypeReference<>() {});
                     
-                if (openrouterQuery.getQuery() != 1) {
-                    openrouterQuery.setQuery(1);
+                if (rawOpenrouterQuery.getQuery() != 1) {
+                    rawOpenrouterQuery.setQuery(1);
                 }
-                openrouterQueryString = openrouterQuery.getBody();
                 
-                System.out.println("[AiComparisonService] ✅ OPENROUTER - Query được tạo thành công với temperature khác biệt");
+                // OPTIMIZATION: Áp dụng query optimization cho OpenRouter
+                RequestBody optimizedOpenrouterQuery = queryOptimizationService.optimizeQuery(rawOpenrouterQuery, chatRequest);
+                openrouterQuery = optimizedOpenrouterQuery;
+                openrouterQueryString = optimizedOpenrouterQuery.getBody();
+                
+                System.out.println("[AiComparisonService] ✅ OPENROUTER - Query được tạo và tối ưu thành công với temperature khác biệt");
             } catch (Exception e) {
                 if (e.getMessage() != null && (e.getMessage().contains("503") || e.getMessage().contains("upstream connect error"))) {
-                    System.out.println("[AiComparisonService] ⚠️ OPENROUTER - Service tạm thời không khả dụng (HTTP 503), dùng lại query OpenAI: " + e.getMessage());
+                    System.out.println("[AiComparisonService] ⚠️ OPENROUTER - Service tạm thời không khả dụng (HTTP 503), dùng optimized OpenAI query: " + e.getMessage());
                 } else {
-                    System.out.println("[AiComparisonService] ❌ OPENROUTER - Tạo query thất bại, dùng lại query OpenAI: " + e.getMessage());
+                    System.out.println("[AiComparisonService] ❌ OPENROUTER - Tạo query thất bại, dùng optimized OpenAI query: " + e.getMessage());
                 }
-                openrouterQueryString = openaiQueryString; // Fallback to OpenAI query
+                openrouterQuery = optimizedOpenaiQuery; // Fallback to optimized OpenAI query
+                openrouterQueryString = openaiQueryString;
             }
             
             long openrouterEndTime = System.currentTimeMillis();
-            System.out.println("[AiComparisonService] ✅ OPENROUTER - Query được tạo trong " + (openrouterEndTime - openrouterStartTime) + "ms");
-            System.out.println("[AiComparisonService] 📝 OPENROUTER - Query: " + openrouterQueryString);
+            System.out.println("[AiComparisonService] ✅ OPENROUTER - Query được tạo và tối ưu trong " + (openrouterEndTime - openrouterStartTime) + "ms");
+            System.out.println("[AiComparisonService] 📝 OPENROUTER - Optimized Query: " + openrouterQueryString);
             
             // Lưu trữ kết quả tạo query
             Map<String, Object> queryGenerationComparison = new HashMap<>();
@@ -218,12 +274,17 @@ public class AiComparisonService {
             // Thực hiện tìm kiếm Elasticsearch với cả hai query
             Map<String, Object> elasticsearchComparison = new HashMap<>();
             
-            // Tìm kiếm OpenAI
-            System.out.println("[AiComparisonService] 🔵 OPENAI - Đang thực hiện tìm kiếm Elasticsearch...");
-            String[] openaiResults = aiQueryService.getLogData(openaiQuery, chatRequest);
+            // Tìm kiếm OpenAI với optimized query
+            System.out.println("[AiComparisonService] 🔵 OPENAI - Đang thực hiện tìm kiếm Elasticsearch với optimized query...");
+            long openaiSearchStartTime = System.currentTimeMillis();
+            String[] openaiResults = aiQueryService.getLogData(optimizedOpenaiQuery, chatRequest);
             String openaiContent = openaiResults[0];
             String finalOpenaiQuery = openaiResults[1];
-            System.out.println(finalOpenaiQuery);
+            long openaiSearchTime = System.currentTimeMillis() - openaiSearchStartTime;
+            timingMetrics.put("openai_search_ms", openaiSearchTime);
+            
+            System.out.println("[AiComparisonService] 📝 OpenAI Final Query: " + finalOpenaiQuery);
+            System.out.println("[AiComparisonService] ⏱️ OpenAI Search Time: " + openaiSearchTime + "ms");
             
             // Kiểm tra nếu có lỗi trong quá trình tìm kiếm
             if (openaiContent != null && openaiContent.startsWith("❌")) {
@@ -246,12 +307,14 @@ public class AiComparisonService {
                 System.out.println("[AiComparisonService] 🔵 OPENAI - Query thất bại, giữ nguyên lỗi để AI xử lý");
             }
             
-            // Tìm kiếm OpenRouter (sử dụng query riêng từ OpenRouter)
-            System.out.println("[AiComparisonService] 🟠 OPENROUTER - Đang thực hiện tìm kiếm Elasticsearch...");
-            RequestBody openrouterRequestBody = new RequestBody(openrouterQueryString, 1);
-            String[] openrouterResults = aiQueryService.getLogData(openrouterRequestBody, chatRequest);
+            // Tìm kiếm OpenRouter với optimized query
+            System.out.println("[AiComparisonService] 🟠 OPENROUTER - Đang thực hiện tìm kiếm Elasticsearch với optimized query...");
+            long openrouterSearchStartTime = System.currentTimeMillis();
+            String[] openrouterResults = aiQueryService.getLogData(openrouterQuery, chatRequest);
             String openrouterContent = openrouterResults[0];
             String finalOpenrouterQuery = openrouterResults[1];
+            long openrouterSearchTime = System.currentTimeMillis() - openrouterSearchStartTime;
+            timingMetrics.put("openrouter_search_ms", openrouterSearchTime);
             
             // Kiểm tra nếu có lỗi trong quá trình tìm kiếm
             if (openrouterContent != null && openrouterContent.startsWith("❌")) {
@@ -314,23 +377,77 @@ public class AiComparisonService {
             responseGenerationComparison.put("openai", openaiResponseData);
             responseGenerationComparison.put("openrouter", openrouterResponseData);
             
-            // --- Tổng hợp kết quả cuối cùng ---
-            System.out.println("[AiComparisonService] ===== TỔNG HỢP KẾT QUẢ =====");
+            // --- Tổng hợp kết quả cuối cùng với enhanced metrics ---
+            System.out.println("[AiComparisonService] ===== TỔNG HỢP KẾT QUẢ VỚI ENHANCED METRICS =====");
             
+            // Tính toán timing metrics tổng thể
+            long totalProcessingTime = System.currentTimeMillis() - overallStartTime;
+            timingMetrics.put("total_processing_ms", totalProcessingTime);
+            timingMetrics.put("openai_total_ms", openaiEndTime - openaiStartTime + openaiResponseEndTime - openaiResponseStartTime);
+            timingMetrics.put("openrouter_total_ms", openrouterEndTime - openrouterStartTime + openrouterResponseEndTime - openrouterResponseStartTime);
+            
+            // Thống kê optimization impact với safe handling
+            Map<String, Object> optimizationStats = new HashMap<>();
+            try {
+                optimizationStats.put("query_optimization_applied", true);
+                optimizationStats.put("smart_context_used", enhancedContext != null && enhancedContext.relevantMessages.size() > 0);
+                optimizationStats.put("context_entities_count", enhancedContext != null ? enhancedContext.entities.size() : 0);
+                optimizationStats.put("detected_intent", enhancedContext != null ? enhancedContext.intent.type.toString() : "UNKNOWN");
+                optimizationStats.put("query_similarity", openaiQueryString != null && openaiQueryString.equals(openrouterQueryString));
+                optimizationStats.put("data_similarity", openaiContent != null && openaiContent.equals(openrouterContent));
+            } catch (Exception statsException) {
+                System.out.println("[AiComparisonService] Warning: Error creating optimization stats: " + statsException.getMessage());
+                optimizationStats.put("stats_error", true);
+                optimizationStats.put("error_message", statsException.getMessage());
+            }
+            
+            // Thêm các metrics mới vào kết quả với safe handling
             result.put("elasticsearch_comparison", elasticsearchComparison);
             result.put("success", true);
             result.put("query_generation_comparison", queryGenerationComparison);
             result.put("response_generation_comparison", responseGenerationComparison);
             result.put("timestamp", now.toString());
             result.put("user_question", chatRequest.message());
+            result.put("timing_metrics", timingMetrics);
+            result.put("optimization_stats", optimizationStats);
             
-            System.out.println("[AiComparisonService] 🎉 So sánh hoàn thành thành công!");
-            System.out.println("[AiComparisonService] ⏱️ Tổng thời gian OpenAI: " + (openaiEndTime - openaiStartTime + openaiResponseEndTime - openaiResponseStartTime) + "ms");
-            System.out.println("[AiComparisonService] ⏱️ Tổng thời gian OpenRouter: " + (openrouterEndTime - openrouterStartTime + openrouterResponseEndTime - openrouterResponseStartTime) + "ms");
-            System.out.println("[AiComparisonService] 🔍 Sự khác biệt query OpenAI vs OpenRouter: " + (!openaiQueryString.equals(openrouterQueryString) ? "Các query khác nhau được tạo" : "Cùng query được tạo"));
-            System.out.println("[AiComparisonService] 📊 Sự khác biệt dữ liệu OpenAI vs OpenRouter: " + (!openaiContent.equals(openrouterContent) ? "Dữ liệu khác nhau được truy xuất" : "Cùng dữ liệu được truy xuất"));
+            // Enhanced context với null safety
+            try {
+                if (enhancedContext != null) {
+                    result.put("enhanced_context", Map.of(
+                        "intent_type", enhancedContext.intent.type.toString(),
+                        "relevant_messages_count", enhancedContext.relevantMessages.size(),
+                        "entities_count", enhancedContext.entities.size()
+                    ));
+                } else {
+                    result.put("enhanced_context", Map.of(
+                        "intent_type", "FALLBACK",
+                        "relevant_messages_count", 0,
+                        "entities_count", 0,
+                        "context_error", true
+                    ));
+                }
+            } catch (Exception contextStatsException) {
+                System.out.println("[AiComparisonService] Warning: Error adding context stats: " + contextStatsException.getMessage());
+                result.put("enhanced_context", Map.of("error", "Could not build context stats"));
+            }
+            
+            System.out.println("[AiComparisonService] 🎉 So sánh hoàn thành thành công với optimization!");
+            System.out.println("[AiComparisonService] ⏱️ Tổng thời gian processing: " + totalProcessingTime + "ms");
+            System.out.println("[AiComparisonService] ⏱️ Context building: " + timingMetrics.get("context_building_ms") + "ms");
+            System.out.println("[AiComparisonService] ⏱️ OpenAI search: " + timingMetrics.get("openai_search_ms") + "ms");
+            System.out.println("[AiComparisonService] ⏱️ OpenRouter search: " + timingMetrics.get("openrouter_search_ms") + "ms");
+            System.out.println("[AiComparisonService] 🧠 Detected intent: " + enhancedContext.intent.type);
+            System.out.println("[AiComparisonService] 📝 Context entities: " + enhancedContext.entities.size());
+            System.out.println("[AiComparisonService] 🔍 Query optimization impact: " + (openaiQueryString.equals(openrouterQueryString) ? "Cùng optimized pattern" : "Khác biệt được tối ưu"));
+            System.out.println("[AiComparisonService] 📊 Data consistency: " + (openaiContent.equals(openrouterContent) ? "Consistent results" : "Different results detected"));
+            
+            // Ghi nhận performance metrics
+            performanceMonitoringService.recordRequest("comparison_mode", totalProcessingTime, true);
             
         } catch (Exception e) {
+            long errorProcessingTime = System.currentTimeMillis() - overallStartTime;
+            
             System.out.println("[AiComparisonService] ❌ ===== LỖI TRONG CHẾ ĐỘ SO SÁNH =====");
             System.out.println("[AiComparisonService] 💥 Lỗi trong chế độ so sánh: " + e.getMessage());
             e.printStackTrace();
@@ -338,6 +455,10 @@ public class AiComparisonService {
             result.put("success", false);
             result.put("error", e.getMessage());
             result.put("timestamp", now.toString());
+            result.put("processing_time_ms", errorProcessingTime);
+            
+            // Ghi nhận lỗi vào performance metrics
+            performanceMonitoringService.recordRequest("comparison_mode", errorProcessingTime, false);
         }
         
         return result;

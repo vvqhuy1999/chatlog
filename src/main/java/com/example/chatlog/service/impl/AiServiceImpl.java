@@ -49,6 +49,12 @@ public class AiServiceImpl implements AiService {
   @Autowired
   private AiResponseService aiResponseService;
 
+  @Autowired
+  private QueryOptimizationService queryOptimizationService;
+  
+  @Autowired
+  private PerformanceMonitoringService performanceMonitoringService;
+
 
 
   /**
@@ -84,13 +90,19 @@ public class AiServiceImpl implements AiService {
    */
   @Override
   public String handleRequest(Long sessionId, ChatRequest chatRequest) {
+    long startTime = System.currentTimeMillis();
+    boolean success = false;
+    
     try {
       // Bước 1: Tạo Elasticsearch query
       System.out.println("[AiServiceImpl] 🤖 Đang tạo Elasticsearch query...");
       RequestBody requestBody = aiQueryService.generateElasticsearchQuery(sessionId, chatRequest);
       
+      // Bước 1.5: Tối ưu hóa query
+      RequestBody optimizedQuery = queryOptimizationService.optimizeQuery(requestBody, chatRequest);
+      
       // Bước 2: Validation query
-      String validationError = aiQueryService.checkBodyFormat(requestBody);
+      String validationError = aiQueryService.checkBodyFormat(optimizedQuery);
       if (validationError != null) {
         System.out.println("[AiServiceImpl] Query validation failed: " + validationError);
         return validationError;
@@ -98,7 +110,7 @@ public class AiServiceImpl implements AiService {
       
       // Bước 3: Thực hiện tìm kiếm Elasticsearch
       System.out.println("[AiServiceImpl] 🔍 Đang thực hiện tìm kiếm Elasticsearch...");
-      String[] result = aiQueryService.getLogData(requestBody, chatRequest);
+      String[] result = aiQueryService.getLogData(optimizedQuery, chatRequest);
       String content = result[0];
       String fixedQuery = result[1];
       
@@ -114,7 +126,10 @@ public class AiServiceImpl implements AiService {
       
       // Bước 4: Tạo phản hồi AI
       System.out.println("[AiServiceImpl] 💬 Đang tạo phản hồi AI...");
-      return aiResponseService.getAiResponse(sessionId, chatRequest, content, fixedQuery);
+      String response = aiResponseService.getAiResponse(sessionId, chatRequest, content, fixedQuery);
+      
+      success = true;
+      return response;
       
     } catch (Exception e) {
       System.out.println("[AiServiceImpl] ❌ ERROR: " + e.getMessage());
@@ -122,19 +137,60 @@ public class AiServiceImpl implements AiService {
              "Không thể xử lý yêu cầu của bạn.\n\n" +
              "**Chi tiết:** " + e.getMessage() + "\n\n" +
              "💡 **Gợi ý:** Vui lòng thử lại sau hoặc liên hệ admin nếu vấn đề tiếp tục.";
+    } finally {
+      // Ghi nhận performance metrics
+      long responseTime = System.currentTimeMillis() - startTime;
+      performanceMonitoringService.recordRequest("handleRequest", responseTime, success);
     }
   }
 
 
   /**
    * Xử lý yêu cầu của người dùng trong chế độ so sánh, sử dụng cả OpenAI và OpenRouter
+   * Có tích hợp performance monitoring và optimization
    * @param sessionId ID phiên chat để duy trì ngữ cảnh
    * @param chatRequest Yêu cầu từ người dùng
-   * @return Kết quả so sánh giữa hai provider
+   * @return Kết quả so sánh giữa hai provider với metrics chi tiết
    */
   @Override
   public Map<String, Object> handleRequestWithComparison(Long sessionId, ChatRequest chatRequest) {
-    return aiComparisonService.handleRequestWithComparison(sessionId, chatRequest);
+    long startTime = System.currentTimeMillis();
+    boolean success = false;
+    
+    try {
+      System.out.println("[AiServiceImpl] 🔄 Bắt đầu chế độ so sánh với optimization...");
+      
+      // Gọi comparison service với đầy đủ tính năng mới
+      Map<String, Object> result = aiComparisonService.handleRequestWithComparison(sessionId, chatRequest);
+      
+      // Thêm performance metadata vào kết quả
+      long totalResponseTime = System.currentTimeMillis() - startTime;
+      result.put("total_processing_time_ms", totalResponseTime);
+      result.put("optimization_applied", true);
+      
+      success = true;
+      
+      System.out.println("[AiServiceImpl] ✅ Comparison mode completed successfully in " + totalResponseTime + "ms");
+      return result;
+      
+    } catch (Exception e) {
+      System.out.println("[AiServiceImpl] ❌ ERROR in comparison mode: " + e.getMessage());
+      e.printStackTrace();
+      
+      // Tạo error response với format tương tự comparison result
+      Map<String, Object> errorResult = new java.util.HashMap<>();
+      errorResult.put("success", false);
+      errorResult.put("error", "Comparison mode failed: " + e.getMessage());
+      errorResult.put("timestamp", java.time.LocalDateTime.now().toString());
+      errorResult.put("total_processing_time_ms", System.currentTimeMillis() - startTime);
+      
+      return errorResult;
+      
+    } finally {
+      // Ghi nhận performance metrics cho comparison mode
+      long responseTime = System.currentTimeMillis() - startTime;
+      performanceMonitoringService.recordRequest("handleRequestWithComparison", responseTime, success);
+    }
   }
 
 }

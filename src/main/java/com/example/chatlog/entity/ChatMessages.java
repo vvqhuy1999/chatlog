@@ -37,7 +37,7 @@ public class ChatMessages implements Serializable {
 
     // Foreign key relationship với ChatSessions entity
     @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER) // Changed to EAGER to avoid lazy loading issues
     @JoinColumn(name = "session_id", referencedColumnName = "session_id",
         foreignKey = @ForeignKey(name = "fk_message_session"))
     private ChatSessions chatSessions;
