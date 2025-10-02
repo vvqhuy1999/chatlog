@@ -49,21 +49,12 @@ public class AiServiceImpl implements AiService {
   @Autowired
   private AiResponseService aiResponseService;
 
-  // ObjectMapper đã loại bỏ vì không cần thiết trong phiên bản đơn giản
+  @Autowired
+  private QueryOptimizationService queryOptimizationService;
+  
+  @Autowired
+  private PerformanceMonitoringService performanceMonitoringService;
 
-  /**
-   * Lấy thông tin mapping (cấu trúc field) của Elasticsearch index
-   * Chỉ gọi API một lần và cache kết quả để tối ưu hiệu suất
-   * @return String chứa thông tin mapping dạng JSON
-   */
-  public String getFieldLog()
-  {
-    if (fieldLog == null)
-    {
-      fieldLog = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
-    }
-    return fieldLog;
-  }
 
 
   /**
@@ -86,86 +77,53 @@ public class AiServiceImpl implements AiService {
 
   }
 
-  /**
-   * Hàm chính xử lý yêu cầu của người dùng
-   * Quy trình 3 bước:
-   * 1. Phân tích câu hỏi và tạo Elasticsearch query (bắt buộc cho tất cả request)
-   * 2. Thực hiện tìm kiếm Elasticsearch và lấy dữ liệu log
-   * 3. Tóm tắt và trả lời bằng ngôn ngữ tự nhiên
-   *
-   * @param sessionId ID phiên chat để duy trì ngữ cảnh
-   * @param chatRequest Yêu cầu từ người dùng
-   * @return Câu trả lời đã được xử lý
-   */
-  @Override
-  public String handleRequest(Long sessionId, ChatRequest chatRequest) {
-    try {
-      // Bước 1: Tạo Elasticsearch query
-      System.out.println("[AiServiceImpl] 🤖 Đang tạo Elasticsearch query...");
-      RequestBody requestBody = aiQueryService.generateElasticsearchQuery(sessionId, chatRequest);
-      
-      // Bước 2: Validation query
-      String validationError = aiQueryService.checkBodyFormat(requestBody);
-      if (validationError != null) {
-        System.out.println("[AiServiceImpl] Query validation failed: " + validationError);
-        return validationError;
-      }
-      
-      // Bước 3: Thực hiện tìm kiếm Elasticsearch
-      System.out.println("[AiServiceImpl] 🔍 Đang thực hiện tìm kiếm Elasticsearch...");
-      String[] result = aiQueryService.getLogData(requestBody, chatRequest);
-      String content = result[0];
-      String fixedQuery = result[1];
-      
-      // Kiểm tra lỗi từ Elasticsearch
-      if (content != null && content.startsWith("❌")) {
-        return content;
-      }
-      
-      // Kiểm tra kết quả rỗng
-      if (content != null && aiQueryService.isEmptyElasticsearchResult(content)) {
-        System.out.println("[AiServiceImpl] Elasticsearch returned no data, continuing with AI processing");
-      }
-      
-      // Bước 4: Tạo phản hồi AI
-      System.out.println("[AiServiceImpl] 💬 Đang tạo phản hồi AI...");
-      return aiResponseService.getAiResponse(sessionId, chatRequest, content, fixedQuery);
-      
-    } catch (Exception e) {
-      System.out.println("[AiServiceImpl] ❌ ERROR: " + e.getMessage());
-      return "❌ **AI Service Error**\n\n" +
-             "Không thể xử lý yêu cầu của bạn.\n\n" +
-             "**Chi tiết:** " + e.getMessage() + "\n\n" +
-             "💡 **Gợi ý:** Vui lòng thử lại sau hoặc liên hệ admin nếu vấn đề tiếp tục.";
-    }
-  }
 
-
-
-
-  /**
-   * Xử lý yêu cầu với file đính kèm (hình ảnh, tài liệu, v.v.)
-   * Cho phép người dùng gửi file cùng với tin nhắn để AI phân tích
-   *
-   * @param sessionId ID phiên chat để duy trì ngữ cảnh
-   * @param file File được upload bởi người dùng
-   * @param request Yêu cầu kèm theo từ người dùng
-   * @param content Nội dung bổ sung (nếu có)
-   * @return Phản hồi của AI sau khi phân tích file và tin nhắn
-   */
-  public String getAiResponse(Long sessionId, MultipartFile file, ChatRequest request, String content) {
-    return aiResponseService.getAiResponse(sessionId, file, request, content);
-  }
-  
   /**
    * Xử lý yêu cầu của người dùng trong chế độ so sánh, sử dụng cả OpenAI và OpenRouter
+   * Có tích hợp performance monitoring và optimization
    * @param sessionId ID phiên chat để duy trì ngữ cảnh
    * @param chatRequest Yêu cầu từ người dùng
-   * @return Kết quả so sánh giữa hai provider
+   * @return Kết quả so sánh giữa hai provider với metrics chi tiết
    */
   @Override
   public Map<String, Object> handleRequestWithComparison(Long sessionId, ChatRequest chatRequest) {
-    return aiComparisonService.handleRequestWithComparison(sessionId, chatRequest);
+    long startTime = System.currentTimeMillis();
+    boolean success = false;
+    
+    try {
+      System.out.println("[AiServiceImpl] 🔄 Bắt đầu chế độ so sánh với optimization...");
+      
+      // Gọi comparison service với đầy đủ tính năng mới
+      Map<String, Object> result = aiComparisonService.handleRequestWithComparison(sessionId, chatRequest);
+      
+      // Thêm performance metadata vào kết quả
+      long totalResponseTime = System.currentTimeMillis() - startTime;
+      result.put("total_processing_time_ms", totalResponseTime);
+      result.put("optimization_applied", true);
+      
+      success = true;
+      
+      System.out.println("[AiServiceImpl] ✅ Comparison mode completed successfully in " + totalResponseTime + "ms");
+      return result;
+      
+    } catch (Exception e) {
+      System.out.println("[AiServiceImpl] ❌ ERROR in comparison mode: " + e.getMessage());
+      e.printStackTrace();
+      
+      // Tạo error response với format tương tự comparison result
+      Map<String, Object> errorResult = new java.util.HashMap<>();
+      errorResult.put("success", false);
+      errorResult.put("error", "Comparison mode failed: " + e.getMessage());
+      errorResult.put("timestamp", java.time.LocalDateTime.now().toString());
+      errorResult.put("total_processing_time_ms", System.currentTimeMillis() - startTime);
+      
+      return errorResult;
+      
+    } finally {
+      // Ghi nhận performance metrics cho comparison mode
+      long responseTime = System.currentTimeMillis() - startTime;
+      performanceMonitoringService.recordRequest("handleRequestWithComparison", responseTime, success);
+    }
   }
 
 }
