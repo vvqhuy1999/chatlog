@@ -1,9 +1,11 @@
 package com.example.chatlog.service.impl;
 
 import com.example.chatlog.dto.ChatRequest;
+import com.example.chatlog.dto.DataExample;
 import com.example.chatlog.dto.RequestBody;
 import com.example.chatlog.service.LogApiService;
 import com.example.chatlog.utils.SchemaHint;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -15,13 +17,15 @@ import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Service xử lý chuyển đổi query của người dùng sang Elasticsearch DSL
@@ -34,9 +38,101 @@ public class AiQueryService {
     private LogApiService logApiService;
     
     private final ChatClient chatClient;
+    private final ObjectMapper objectMapper;
+    private List<DataExample> exampleLibrary;
     
     public AiQueryService(ChatClient.Builder builder) {
         this.chatClient = builder.build();
+        this.objectMapper = new ObjectMapper();
+        loadExampleLibrary();
+    }
+    
+    /**
+     * Load the example library from fortigate_queries_full.json
+     */
+    private void loadExampleLibrary() {
+        try {
+            ClassPathResource resource = new ClassPathResource("fortigate_queries_full.json");
+            InputStream inputStream = resource.getInputStream();
+            this.exampleLibrary = objectMapper.readValue(inputStream, new TypeReference<List<DataExample>>() {});
+            System.out.println("[AiQueryService] ✅ Loaded " + exampleLibrary.size() + " examples from fortigate_queries_full.json");
+        } catch (IOException e) {
+            System.err.println("[AiQueryService] ❌ Failed to load example library: " + e.getMessage());
+            this.exampleLibrary = new ArrayList<>();
+        }
+    }
+    
+    /**
+     * Find relevant examples based on user query keywords
+     */
+    private List<DataExample> findRelevantExamples(String userQuery) {
+        if (exampleLibrary == null || exampleLibrary.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        String queryLower = userQuery.toLowerCase();
+        List<String> queryWords = Arrays.stream(queryLower.split("\\s+"))
+                .filter(word -> word.length() > 2) // Filter out short words
+                .collect(Collectors.toList());
+        
+        return exampleLibrary.stream()
+                .filter(example -> {
+                    if (example.getKeywords() == null) return false;
+                    
+                    // Check if any keyword matches query words
+                    return Arrays.stream(example.getKeywords())
+                            .anyMatch(keyword -> 
+                                queryWords.stream().anyMatch(word -> 
+                                    keyword.toLowerCase().contains(word) || word.contains(keyword.toLowerCase())
+                                )
+                            );
+                })
+                .sorted((e1, e2) -> {
+                    // Sort by relevance (more keyword matches = higher relevance)
+                    long score1 = Arrays.stream(e1.getKeywords())
+                            .mapToLong(keyword -> 
+                                queryWords.stream()
+                                        .mapToLong(word -> 
+                                            keyword.toLowerCase().contains(word) || word.contains(keyword.toLowerCase()) ? 1 : 0
+                                        ).sum()
+                            ).sum();
+                    
+                    long score2 = Arrays.stream(e2.getKeywords())
+                            .mapToLong(keyword -> 
+                                queryWords.stream()
+                                        .mapToLong(word -> 
+                                            keyword.toLowerCase().contains(word) || word.contains(keyword.toLowerCase()) ? 1 : 0
+                                        ).sum()
+                            ).sum();
+                    
+                    return Long.compare(score2, score1); // Descending order
+                })
+                .limit(5) // Return top 5 most relevant examples
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Build dynamic examples string for the prompt
+     */
+    private String buildDynamicExamples(String userQuery) {
+        List<DataExample> relevantExamples = findRelevantExamples(userQuery);
+        
+        if (relevantExamples.isEmpty()) {
+            return "No specific examples found for this query type.";
+        }
+        
+        StringBuilder examples = new StringBuilder();
+        examples.append("RELEVANT EXAMPLES FROM KNOWLEDGE BASE:\n\n");
+        
+        for (int i = 0; i < relevantExamples.size(); i++) {
+            DataExample example = relevantExamples.get(i);
+            examples.append("Example ").append(i + 1).append(":\n");
+            examples.append("Question: ").append(example.getQuestion()).append("\n");
+            examples.append("Keywords: ").append(String.join(", ", example.getKeywords())).append("\n");
+            examples.append("Query: ").append(example.getQuery().toPrettyString()).append("\n\n");
+        }
+        
+        return examples.toString();
     }
     
     /**
@@ -81,14 +177,16 @@ public class AiQueryService {
         LocalDateTime now = LocalDateTime.now();
         String dateContext = generateDateContext(now);
         
-        // Sử dụng QueryPromptTemplate với các placeholder thông qua PromptConverter
-        Map<String, Object> dynamicInputs = new HashMap<>();
-        String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPromptWithAllTemplates(
+        // Build dynamic examples from knowledge base
+        String dynamicExamples = buildDynamicExamples(chatRequest.message());
+        
+        // Use simplified QueryPromptTemplate with dynamic examples
+        String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPrompt(
             chatRequest.message(),
             dateContext,
             SchemaHint.getSchemaHint(),
             SchemaHint.getRoleNormalizationRules(),
-            dynamicInputs
+            dynamicExamples
         );
         SystemMessage systemMessage = new SystemMessage(queryPrompt);
         

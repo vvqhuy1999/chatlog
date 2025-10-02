@@ -110,14 +110,14 @@ public class AiComparisonService {
             // Chuẩn bị schema một lần để dùng lại cho cả hai prompt
             String fullSchema = SchemaHint.getSchemaHint();
             
-            // Sử dụng QueryPromptTemplate: đưa toàn bộ thư viện + ví dụ động (nếu có)
-            Map<String, Object> dynamicInputs = new HashMap<>();
-            String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPromptWithAllTemplates(
+            // Sử dụng QueryPromptTemplate với dynamic examples
+            String dynamicExamples = "No specific examples available for comparison mode.";
+            String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPrompt(
                 chatRequest.message(),
                 dateContext,
-                null,
+                fullSchema,
                 SchemaHint.getRoleNormalizationRules(),
-                dynamicInputs
+                dynamicExamples
             );
             
             // Tạo system prompt đầy đủ từ PromptTemplate với toàn bộ SchemaHint để bổ sung ngữ cảnh
