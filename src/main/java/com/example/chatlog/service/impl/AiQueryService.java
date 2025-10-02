@@ -99,6 +99,7 @@ public class AiQueryService {
         UserMessage userMessage = new UserMessage(chatRequest.message());
         
         Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, sampleLogMsg, userMessage));
+        System.out.println("Prompt very long: " + prompt);
         
         ChatOptions chatOptions = ChatOptions.builder()
             .temperature(0.0D)

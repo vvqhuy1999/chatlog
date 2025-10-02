@@ -81,7 +81,7 @@ public class QueryTemplates {
                 "by_user": {
                   "terms": {
                     "field": "source.user.name",
-                    "size": 10,
+                    "size": 50,
                     "order": {
                       "unique_ports": "desc"
                     }
@@ -416,7 +416,7 @@ public class QueryTemplates {
               },
               "aggs": {
                 "top_blocked_sources": {
-                  "terms": { "field": "source.ip", "size": 10 }
+                  "terms": { "field": "source.ip", "size": 50 }
                 }
               }
             }
@@ -442,7 +442,7 @@ public class QueryTemplates {
                   },
                   "aggs": {
                     "by_dst": {
-                      "terms": { "field": "destination.ip", "size": 10, "order": { "bytes_sum": "desc" } },
+                      "terms": { "field": "destination.ip", "size": 50, "order": { "bytes_sum": "desc" } },
                       "aggs": {
                         "bytes_sum": { "sum": { "field": "network.bytes" } }
                       }
@@ -529,7 +529,7 @@ public class QueryTemplates {
      */
     public static final String TOP_BLOCKING_RULES = """
             {
-              "size": 0,
+              "size": 50,
               "query": {
                 "bool": {
                   "filter": [
@@ -540,7 +540,7 @@ public class QueryTemplates {
               },
               "aggs": {
                 "rules": {
-                  "terms": { "field": "rule.name", "size": 10 }
+                  "terms": { "field": "rule.name", "size": 50 }
                 }
               }
             }
@@ -734,7 +734,7 @@ public class QueryTemplates {
               },
               "aggs": {
                 "by_user": {
-                  "terms": { "field": "source.user.name", "size": 10 }
+                  "terms": { "field": "source.user.name", "size": 50 }
                 }
               }
             }
@@ -867,7 +867,7 @@ public class QueryTemplates {
               },
               "aggs": {
                 "by_user": {
-                  "terms": { "field": "source.user.name", "size": 10 }
+                  "terms": { "field": "source.user.name", "size": 50 }
                 }
               }
             }
@@ -914,7 +914,7 @@ public class QueryTemplates {
               },
               "aggs": {
                 "blocked_users": {
-                  "terms": { "field": "source.user.name", "size": 10 }
+                  "terms": { "field": "source.user.name", "size": 50 }
                 }
               }
             }
@@ -958,7 +958,7 @@ public class QueryTemplates {
               },
               "aggs": {
                 "blocked_icmp": {
-                  "terms": { "field": "source.user.name", "size": 10 },
+                  "terms": { "field": "source.user.name", "size": 50 },
                   "aggs": {
                     "pkt_sum": { "sum": { "field": "network.packets" } }
                   }
@@ -1036,7 +1036,7 @@ public class QueryTemplates {
               },
               "aggs": {
                 "top_users": {
-                  "terms": { "field": "source.user.name", "size": 10 }
+                  "terms": { "field": "source.user.name", "size": 50 }
                 }
               }
             }
@@ -1139,6 +1139,48 @@ public class QueryTemplates {
                   ]
                 }
               }
+            }
+            """;
+
+    /**
+     * Botnet detection query template
+     * CRITICAL: Uses "exists" query, NOT "term" with "true" value
+     */
+    public static final String BOTNET_DETECTION = """
+            {
+              "query": {
+                "bool": {
+                  "filter": [
+                    {
+                      "exists": {
+                        "field": "fortinet.firewall.botnetip"
+                      }
+                    },
+                    {
+                      "range": {
+                        "@timestamp": {
+                          "gte": "now-24h"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "_source": [
+                "@timestamp",
+                "source.ip",
+                "destination.ip",
+                "fortinet.firewall.botnetip",
+                "fortinet.firewall.botnetdomain",
+                "rule.name",
+                "action"
+              ],
+              "sort": [
+                {
+                  "@timestamp": "desc"
+                }
+              ],
+              "size": 50
             }
             """;
 }

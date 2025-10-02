@@ -115,6 +115,8 @@ public class SystemPromptTemplate {
                 - Chỉ trả về đối tượng truy vấn JSON
                 - Không giải thích, không bọc, không nhiều truy vấn
                 - Cú pháp JSON hợp lệ là bắt buộc
+                - BẮT BUỘC: Query không có aggregation phải có "size": 50
+                - BẮT BUỘC: Query có aggregation (aggs) phải có "size": 0
                 
                 XỬ LÝ THỜI GIAN (Ưu tiên #1)
                 Ngữ cảnh hiện tại: %s
@@ -245,7 +247,7 @@ public class SystemPromptTemplate {
             "complexityLevel", "Intermediate - Hỗ trợ aggregation và nested queries",
             "maxSize", "1000",
             "queryExamples", """
-                Search: {"query":{"bool":{"must":[{"match":{"message":"error"}}],"filter":[{"range":{"@timestamp":{"gte":"now-1h"}}}]}},"size":10}
+                Search: {"query":{"bool":{"must":[{"match":{"message":"error"}}],"filter":[{"range":{"@timestamp":{"gte":"now-1h"}}}]}} ,"size":50}
                 
                 Aggregation: {"query":{"match_all":{}},"aggs":{"levels":{"terms":{"field":"level.keyword","size":5}}},"size":0}
                 """

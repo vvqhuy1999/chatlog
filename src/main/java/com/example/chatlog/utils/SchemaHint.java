@@ -791,6 +791,16 @@ public class SchemaHint {
       - fortinet.firewall.vulnid (keyword, vulnerability identifier)
       - fortinet.firewall.vulnname (keyword, vulnerability name)
       
+      CRITICAL BOTNET FIELD USAGE:
+      - fortinet.firewall.botnetip (ip) - Contains the actual botnet IP address when detected
+      - fortinet.firewall.botnetdomain (keyword) - Contains the botnet domain name
+      - To find botnet activity: Use {"exists": {"field": "fortinet.firewall.botnetip"}}
+      - NEVER use {"term": {"fortinet.firewall.botnetip": "true"}} - this is WRONG
+      - These fields only exist when botnet is detected, so use "exists" query
+      
+      Example correct query for botnet:
+      {"query":{"bool":{"filter":[{"exists":{"field":"fortinet.firewall.botnetip"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"_source":["@timestamp","source.ip","fortinet.firewall.botnetip","fortinet.firewall.botnetdomain"],"size":50}
+      
       === 8. USER / IDENTITY / EMAIL ===
       - email (object, email information)
       - email.cc (object, email CC recipients)
@@ -867,6 +877,7 @@ public class SchemaHint {
       - For terms aggregation, check if field supports aggregation
       - If unsure about field type, use simple field name without .keyword
       - Example: use "source.user.name" not "source.user.name.keyword"
+      - Non-aggregation queries MUST set "size": 50; aggregation queries MUST set "size": 0
       
       Default time filter: @timestamp >= NOW() - {hours} HOURS unless the question specifies otherwise.
       When counting or grouping, return meaningful columns (e.g., user.name, source.user.roles, source.ip, count, last_seen).
@@ -980,7 +991,7 @@ public class SchemaHint {
   public static String getAdminRoleExample() {
     return """
         Question: "hôm ngày 11-09 có roles admin nào vào hệ thống hay ko?"
-        Response: {"body":"{\\"query\\":{\\"bool\\":{\\"must\\":[{\\"term\\":{\\"source.user.roles\\":\\"Administrator\\"}},{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-11T00:00:00.000+07:00\\",\\"lte\\":\\"2025-09-11T23:59:59.999+07:00\\"}}}]}},\\"size\\":10}","query":1}
+        Response: {"body":"{\\"query\\":{\\"bool\\":{\\"must\\":[{\\"term\\":{\\"source.user.roles\\":\\"Administrator\\"}},{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-11T00:00:00.000+07:00\\",\\"lte\\":\\"2025-09-11T23:59:59.999+07:00\\"}}}]}} ,\\"size\\":50}","query":1}
         """;
   }
 
@@ -993,15 +1004,15 @@ public class SchemaHint {
         
         🔥 Pattern 1: "Top IP destinations by traffic"
         Q: "IP đích nào nhận nhiều traffic nhất hôm nay?"
-        ✅ {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_destinations":{"terms":{"field":"destination.ip","size":10,"order":{"total_bytes":"desc"}},"aggs":{"total_bytes":{"sum":{"field":"network.bytes"}}}}},"size":0}
+        ✅ {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_destinations":{"terms":{"field":"destination.ip","size":50,"order":{"total_bytes":"desc"}},"aggs":{"total_bytes":{"sum":{"field":"network.bytes"}}}}},"size":0}
         
         🌍 Pattern 2: "Vietnam outbound traffic" (CRITICAL)
         Q: "Kết nối từ Việt Nam ra nước ngoài trong 6 giờ qua"
-        ✅ {"query":{"bool":{"must":[{"term":{"network.direction":"outbound"}},{"term":{"source.geo.country_name":"Vietnam"}}],"must_not":[{"term":{"destination.geo.country_name":"Vietnam"}}],"filter":[{"range":{"@timestamp":{"gte":"now-6h"}}}]}},"size":10}
+        ✅ {"query":{"bool":{"must":[{"term":{"network.direction":"outbound"}},{"term":{"source.geo.country_name":"Vietnam"}}],"must_not":[{"term":{"destination.geo.country_name":"Vietnam"}}],"filter":[{"range":{"@timestamp":{"gte":"now-6h"}}}]}},"size":50}
         
         📈 Pattern 3: "Top organizations by bytes"
         Q: "Tổ chức nào được truy cập nhiều nhất theo bytes?"
-        ✅ {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_orgs":{"terms":{"field":"destination.as.organization.name","size":10,"order":{"total_bytes":"desc"}},"aggs":{"total_bytes":{"sum":{"field":"network.bytes"}}}}},"size":0}
+        ✅ {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_orgs":{"terms":{"field":"destination.as.organization.name","size":50,"order":{"total_bytes":"desc"}},"aggs":{"total_bytes":{"sum":{"field":"network.bytes"}}}}},"size":0}
         
         💡 KEY RULES:
         - Vietnam outbound = source:Vietnam + must_not destination:Vietnam + direction:outbound
@@ -1044,7 +1055,7 @@ public class SchemaHint {
           },
           "aggs": {
             "top_attacks": {
-              "terms": { "field": "fortinet.firewall.attack", "size": 10 },
+              "terms": { "field": "fortinet.firewall.attack", "size": 50 },
               "aggs": {
                 "risk_levels": { "terms": { "field": "fortinet.firewall.crlevel" } }
               }
@@ -1065,16 +1076,40 @@ public class SchemaHint {
           },
           "aggs": {
             "risk_distribution": {
-              "terms": { "field": "fortinet.firewall.crlevel", "size": 10 }
+              "terms": { "field": "fortinet.firewall.crlevel", "size": 50 }
             }
           },
           "size": 0
         }
         
+        4. Botnet detection events (CRITICAL - Use correct field usage):
+        Question: "Tìm các hoạt động botnet trong 24 giờ qua"
+        Correct Query Structure:
+        {
+          "query": {
+            "bool": {
+              "filter": [
+                { "range": { "@timestamp": { "gte": "now-24h" } } },
+                { "exists": { "field": "fortinet.firewall.botnetip" } }
+              ]
+            }
+          },
+          "_source": ["@timestamp", "source.ip", "fortinet.firewall.botnetip", "fortinet.firewall.botnetdomain"],
+          "sort": [{ "@timestamp": "desc" }],
+          "size": 50
+        }
+        
+        ❌ WRONG botnet query (DO NOT USE):
+        {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.botnetip":"true"}}]}}}
+        
+        ✅ CORRECT botnet query (USE THIS):
+        {"query":{"bool":{"filter":[{"exists":{"field":"fortinet.firewall.botnetip"}}]}}}
+        
         IPS FIELD MAPPINGS:
         - "mức rủi ro", "risk level", "crlevel" → use "fortinet.firewall.crlevel"
         - "attack", "tấn công", "signature" → use "fortinet.firewall.attack"
         - "attack ID", "signature ID" → use "fortinet.firewall.attackid"
+        - "botnet", "botnet activity" → use "exists" query on "fortinet.firewall.botnetip"
         - For multiple risk levels, use "terms" filter: {"terms": {"fortinet.firewall.crlevel": ["high", "critical"]}}
         """;
   }
@@ -1104,7 +1139,7 @@ public class SchemaHint {
               ]
             }
           },
-          "size": 10
+          "size": 50
         }
         
         2. Inbound traffic to Vietnam from foreign countries:
@@ -1125,7 +1160,7 @@ public class SchemaHint {
               ]
             }
           },
-          "size": 10
+          "size": 50
         }
         
         3. Internal Vietnam traffic:
@@ -1144,7 +1179,7 @@ public class SchemaHint {
               ]
             }
           },
-          "size": 10
+          "size": 50
         }
         
         CRITICAL GEOGRAPHIC RULES:
@@ -1178,7 +1213,7 @@ public class SchemaHint {
           },
           "aggs": {
             "top_rules": {
-              "terms": { "field": "rule.name", "size": 10 }
+              "terms": { "field": "rule.name", "size": 50 }
             }
           },
           "size": 0
@@ -1198,7 +1233,7 @@ public class SchemaHint {
           },
           "aggs": {
             "rules_by_traffic": {
-              "terms": { "field": "rule.name", "size": 10, "order": { "total_bytes": "desc" } },
+              "terms": { "field": "rule.name", "size": 50, "order": { "total_bytes": "desc" } },
               "aggs": {
                 "total_bytes": { "sum": { "field": "network.bytes" } }
               }
@@ -1220,7 +1255,7 @@ public class SchemaHint {
           },
           "aggs": {
             "rules_by_connections": {
-              "terms": { "field": "rule.name", "size": 10 }
+              "terms": { "field": "rule.name", "size": 50 }
             }
           },
           "size": 0
@@ -1232,7 +1267,7 @@ public class SchemaHint {
         - Use "rule.name" for rule names, NOT "fortinet.firewall.ruleid"
         - For "nhiều nhất" questions, default terms aggregation sorts by count automatically
         - Don't create complex nested aggregations unless specifically needed
-        - Use simple terms agg: {"terms": {"field": "rule.name", "size": 10}}
+        - Use simple terms agg: {"terms": {"field": "rule.name", "size": 50}}
         """;
   }
 
@@ -1262,7 +1297,7 @@ public class SchemaHint {
         
         🏆 Pattern 4: "Top users by activity"
         Q: "User nào hoạt động nhiều nhất hôm nay?"
-        ✅ {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_users":{"terms":{"field":"source.user.name","size":10}}},"size":0}
+        ✅ {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_users":{"terms":{"field":"source.user.name","size":50}}},"size":0}
         
         🚨 CRITICAL COUNTING KEYWORDS:
         "tổng", "count", "bao nhiêu", "số lượng", "đếm" → ALWAYS use value_count + size:0
@@ -1280,32 +1315,32 @@ public class SchemaHint {
         🚀 QUICK PATTERNS REFERENCE:
         
         📋 BASIC SEARCHES:
-        • User logs: {"query":{"bool":{"filter":[{"term":{"source.user.name":"USERNAME"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
-        • Admin activity: {"query":{"bool":{"filter":[{"term":{"source.user.roles":"Administrator"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
-        • Blocked traffic: {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.action":"deny"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
+        • User logs: {"query":{"bool":{"filter":[{"term":{"source.user.name":"USERNAME"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
+        • Admin activity: {"query":{"bool":{"filter":[{"term":{"source.user.roles":"Administrator"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
+        • Blocked traffic: {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.action":"deny"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
         
         📊 COUNTING QUERIES:
         • Count total: {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"total":{"value_count":{"field":"@timestamp"}}},"size":0}
         • Count by user: {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"by_user":{"terms":{"field":"source.user.name"}}},"size":0}
         
         🔍 ANALYSIS QUERIES:
-        • Users for IP: {"query":{"bool":{"filter":[{"term":{"source.ip":"10.6.99.78"}}]}},"aggs":{"users":{"terms":{"field":"source.user.name","size":10}}},"size":0}
-        • IPs for user: {"query":{"bool":{"filter":[{"term":{"source.user.name":"USERNAME"}}]}},"aggs":{"ips":{"terms":{"field":"source.ip","size":10}}},"size":0}
+        • Users for IP: {"query":{"bool":{"filter":[{"term":{"source.ip":"10.6.99.78"}}]}},"aggs":{"users":{"terms":{"field":"source.user.name","size":50}}},"size":0}
+        • IPs for user: {"query":{"bool":{"filter":[{"term":{"source.user.name":"USERNAME"}}]}},"aggs":{"ips":{"terms":{"field":"source.ip","size":50}}},"size":0}
         
         🔝 TOP RANKINGS:
-        • Top destinations: {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_dst":{"terms":{"field":"destination.ip","size":10}}},"size":0}
-        • Top rules: {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_rules":{"terms":{"field":"rule.name","size":10}}},"size":0}
+        • Top destinations: {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_dst":{"terms":{"field":"destination.ip","size":50}}},"size":0}
+        • Top rules: {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_rules":{"terms":{"field":"rule.name","size":50}}},"size":0}
         
         🌍 GEOGRAPHIC:
         • Vietnam outbound: [Moved to QueryTemplates.OUTBOUND_CONNECTIONS_FROM_VIETNAM]
         
         🔄 NAT QUERIES:
         • DNAT to server: [See QueryTemplates.getDnatSessionsToInternalServer()]
-        • SNAT from IP: {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.trandisp":"snat"}},{"term":{"source.ip":"192.168.1.100"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
+        • SNAT from IP: {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.trandisp":"snat"}},{"term":{"source.ip":"192.168.1.100"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
         
         🔐 PROTOCOL QUERIES:
         • RDP from WAN: [Moved to QueryTemplates.RDP_TRAFFIC_FROM_WAN]
-        • SSH to server: {"query":{"bool":{"filter":[{"term":{"destination.port":22}},{"term":{"destination.ip":"10.0.0.10"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":10}
+        • SSH to server: {"query":{"bool":{"filter":[{"term":{"destination.port":22}},{"term":{"destination.ip":"10.0.0.10"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
         
         🚨 SECURITY THREAT DETECTION:
         • Brute force login: [Moved to QueryTemplates.BRUTE_FORCE_DETECTION]
