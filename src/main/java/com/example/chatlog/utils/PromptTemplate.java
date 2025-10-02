@@ -32,9 +32,6 @@ public class PromptTemplate {
      */
     public static String getSystemPrompt(String dateContext,
         String roleNormalizationRules,String fieldCatalog, String categoryGuides,
-        String networkTrafficExamples, String ipsSecurityExamples,
-        String adminRoleExample, String geographicExamples,
-        String firewallRuleExamples, String countingExamples,
         String quickPatterns) {
         return String.format("""
                 Elasticsearch Query Generator - Optimized System Prompt
@@ -96,53 +93,7 @@ public class PromptTemplate {
                 - "IP đích nào được truy cập nhiều nhất" → terms agg on destination.ip
                 - "Quốc gia nào có traffic nhiều nhất" → terms agg on source.geo.country_name
                 
-                Mandatory Structure for Analysis:
-                {
-                  "query": {
-                    "bool": {
-                      "filter": [
-                        // Add filters based on context
-                      ]
-                    }
-                  },
-                  "aggs": {
-                    "analysis_field": {
-                      "terms": {
-                        "field": "field_to_analyze",
-                        "size": 50
-                      }
-                    }
-                  },
-                  "size": 0
-                }
-                
-                SECURITY THREAT DETECTION ⭐ CRITICAL
-                Triggers: "brute force", "port scanning", "botnet", "quá nhiều", "bất thường", "suspicious"
-                Advanced Aggregation Patterns:
-                
-                1. BRUTE FORCE DETECTION:
-                - "quá nhiều login failure" → terms agg + bucket_selector (threshold > 10)
-                - Structure: {"aggs":{"by_ip":{"terms":{"field":"source.ip"},"aggs":{"fail_count":{"value_count":{"field":"event.outcome"}},"brute_force":{"bucket_selector":{"buckets_path":{"c":"fail_count"},"script":"params.c > 10"}}}}}}
-                
-                2. PORT SCANNING DETECTION:
-                - "quét port", "nhiều port khác nhau" → cardinality agg + bucket_selector
-                - Structure: {"aggs":{"by_user":{"terms":{"field":"source.user.name"},"aggs":{"unique_ports":{"cardinality":{"field":"destination.port"}},"port_scan":{"bucket_selector":{"buckets_path":{"p":"unique_ports"},"script":"params.p > 10"}}}}}}
-                
-                3. DATA EXFILTRATION:
-                - "upload quá nhiều", "exfiltration" → sum agg + bucket_selector (1GB = 1073741824)
-                - Structure: {"aggs":{"by_user":{"terms":{"field":"source.user.name"},"aggs":{"bytes_sent":{"sum":{"field":"network.bytes"}},"big_upload":{"bucket_selector":{"buckets_path":{"b":"bytes_sent"},"script":"params.b > 1073741824"}}}}}}
-                
-                4. BOTNET DETECTION ⭐ CRITICAL:
-                - "botnet", "botnet activity" → use "exists" query on "fortinet.firewall.botnetip"
-                - NEVER use {"term": {"fortinet.firewall.botnetip": "true"}} - this is WRONG
-                - Structure: {"query":{"bool":{"filter":[{"exists":{"field":"fortinet.firewall.botnetip"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}}}
-                
-                5. SUSPICIOUS TRAFFIC VOLUME:
-                - "quá nhiều gói ICMP", "bất thường" → sum agg + bucket_selector
-                - Structure: {"aggs":{"by_source":{"terms":{"field":"source.ip"},"aggs":{"pkt_sum":{"sum":{"field":"network.packets"}},"heavy_senders":{"bucket_selector":{"buckets_path":{"p":"pkt_sum"},"script":"params.p > 10000"}}}}}}
-                
-                COUNTING + USER Example:
-                - "tổng log của QuynhTX hôm nay" → filter by user.name + time + counting agg
+              
                 
                 ROLE NORMALIZATION
                 Always: admin/administrator/ad → "Administrator" (capitalized)
@@ -248,58 +199,7 @@ public class PromptTemplate {
                 - Default size: 50 (except counting: size: 0)
                 - Prefer now-24h over absolute timestamps
                 - Use field names without .keyword unless necessary
-
-                EXAMPLE PATTERNS
                 
-                Basic Searches
-                // User activity today
-                {"query":{"bool":{"filter":[{"term":{"source.user.name":"USERNAME"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
-                
-                // Admin logs
-                {"query":{"bool":{"filter":[{"term":{"source.user.roles":"Administrator"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
-                
-                Counting Queries
-                // Count total logs
-                {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"total_count":{"value_count":{"field":"@timestamp"}}},"size":0}
-                
-                // Count user logs with specific date  
-                {"query":{"bool":{"filter":[{"term":{"source.user.name":"QuynhTX"}},{"range":{"@timestamp":{"gte":"2025-09-19T00:00:00.000+07:00","lte":"2025-09-19T23:59:59.999+07:00"}}}]}},"aggs":{"total_count":{"value_count":{"field":"@timestamp"}}},"size":0}
-                
-                Analysis Queries
-                // Find users associated with specific IP
-                {"query":{"bool":{"filter":[{"term":{"source.ip":"10.6.99.78"}}]}},"aggs":{"user_names":{"terms":{"field":"source.user.name","size":50}}},"size":0}
-                
-                Top Rankings
-                // Top destinations by traffic
-                {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_destinations":{"terms":{"field":"destination.ip","size":50,"order":{"total_bytes":"desc"}},"aggs":{"total_bytes":{"sum":{"field":"network.bytes"}}}}},"size":0}
-                
-                Geographic Analysis
-                // Vietnam outbound traffic
-                {"query":{"bool":{"must":[{"term":{"source.geo.country_name":"Vietnam"}}],"must_not":[{"term":{"destination.geo.country_name":"Vietnam"}}],"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
-                
-                Firewall Rules
-                // Top blocking rules
-                {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.action":"deny"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"aggs":{"top_rules":{"terms":{"field":"rule.name","size":50}}},"size":0}
-                
-                SPECIFIC EXAMPLES
-                
-                Network Traffic
-                %s
-                
-                IPS Security
-                %s
-                
-                Admin Roles
-                %s
-                
-                Geographic
-                %s
-                
-                Firewall Rules
-                %s
-                
-                Counting
-                %s
                 
                 QUICK REFERENCE PATTERNS
                 %s
@@ -313,12 +213,6 @@ public class PromptTemplate {
             roleNormalizationRules,
             fieldCatalog,
             categoryGuides,
-            networkTrafficExamples,
-            ipsSecurityExamples,
-            adminRoleExample,
-            geographicExamples,
-            firewallRuleExamples,
-            countingExamples,
             quickPatterns);
     }
 
@@ -335,18 +229,11 @@ public class PromptTemplate {
                 2. roleNormalizationRules - String from SchemaHint.getRoleNormalizationRules()
                 3. fieldCatalog - String from SchemaHint.getSchemaHint()
                 4. categoryGuides - String from SchemaHint.getCategoryGuides()
-                5. networkTrafficExamples - String from SchemaHint.getNetworkTrafficExamples()
-                6. ipsSecurityExamples - String from SchemaHint.getIPSSecurityExamples()
-                7. adminRoleExample - String from SchemaHint.getAdminRoleExample()
-                8. geographicExamples - String from SchemaHint.getGeographicExamples()
-                9. firewallRuleExamples - String from SchemaHint.getFirewallRuleExamples()
-                10. countingExamples - String from SchemaHint.getCountingExamples()
-                11. quickPatterns - String from SchemaHint.getQuickPatterns()
+                5. quickPatterns - String from SchemaHint.getQuickPatterns()
                 
                 Usage example:
                 String prompt = PromptTemplate.getSystemPrompt(
-                    dateContext, roleRules, categoryGuides, networkExamples, ipsExamples, 
-                    adminExample, geoExamples, firewallExamples, countingExamples, fieldCatalog, quickPatterns);
+                    dateContext, roleRules, fieldCatalog, categoryGuides, quickPatterns);
                 """;
     }
 

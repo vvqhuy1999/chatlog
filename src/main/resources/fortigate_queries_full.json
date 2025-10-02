@@ -4352,5 +4352,59 @@
       },
       "size": 0
     }
+  },
+  {
+    "question": "Tìm xem user nào chỉnh sửa trong CNHN_ZONE",
+    "keywords": [
+      "user",
+      "chỉnh sửa",
+      "CNHN_ZONE"
+    ],
+    "query": {
+      "size": 50,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "exists": {
+                "field": "fortinet.firewall.cfgattr"
+              }
+            },
+            {
+              "match": {
+                "message": "CNHN_ZONE"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Đếm tổng số log trong ngày hôm nay",
+    "keywords": ["đếm", "tổng số", "log", "hôm nay"],
+    "query": {
+      "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now/d" } } } ] } },
+      "aggs": { "total_count": { "value_count": { "field": "@timestamp" } } },
+      "size": 0
+    }
+  },
+  {
+    "question": "Có tổng cộng bao nhiêu log của user 'tanln' trong 24 giờ qua?",
+    "keywords": ["tổng cộng", "bao nhiêu", "log", "user", "tanln", "24 giờ qua"],
+    "query": {
+      "query": { "bool": { "filter": [ { "term": { "source.user.name": "tanln" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } },
+      "aggs": { "total_count": { "value_count": { "field": "@timestamp" } } },
+      "size": 0
+    }
+  },
+  {
+    "question": "Thống kê tổng số log từ địa chỉ IP 192.168.1.100 trong tuần này",
+    "keywords": ["thống kê", "tổng số", "log", "địa chỉ ip", "192.168.1.100", "tuần này"],
+    "query": {
+      "query": { "bool": { "filter": [ { "term": { "source.ip": "192.168.1.100" } }, { "range": { "@timestamp": { "gte": "now/w" } } } ] } },
+      "aggs": { "total_count": { "value_count": { "field": "@timestamp" } } },
+      "size": 0
+    }
   }
 ]

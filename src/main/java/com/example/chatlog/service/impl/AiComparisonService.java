@@ -142,8 +142,8 @@ public class AiComparisonService {
             String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPrompt(
                 chatRequest.message(),
                 dateContext,
-                fullSchema,
-                SchemaHint.getRoleNormalizationRules(),
+                null,
+                null,
                 dynamicExamples
             );
             
@@ -153,12 +153,6 @@ public class AiComparisonService {
                 SchemaHint.getRoleNormalizationRules(),
                 fullSchema,
                 SchemaHint.getCategoryGuides(),
-                SchemaHint.getNetworkTrafficExamples(),
-                SchemaHint.getIPSSecurityExamples(),
-                SchemaHint.getAdminRoleExample(),
-                SchemaHint.getGeographicExamples(),
-                SchemaHint.getFirewallRuleExamples(),
-                SchemaHint.getCountingExamples(),
                 SchemaHint.getQuickPatterns()
             );
             
@@ -174,7 +168,10 @@ public class AiComparisonService {
             
             System.out.println("---------------------------------------------------------------------------------------");
             Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, sampleLogMsg, userMessage));
-            
+
+            System.out.println("Prompt very long: " + prompt);
+
+
             ChatOptions chatOptions = ChatOptions.builder()
                 .temperature(0.0D)
                 .build();
