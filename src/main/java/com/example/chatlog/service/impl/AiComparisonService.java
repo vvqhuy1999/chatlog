@@ -40,13 +40,7 @@ public class AiComparisonService {
     private QueryOptimizationService queryOptimizationService;
     
     @Autowired
-    private SmartContextManager smartContextManager;
-    
-    @Autowired
     private PerformanceMonitoringService performanceMonitoringService;
-    
-    @Autowired
-    private ChatHistoryService chatHistoryService;
     
     private final ChatClient chatClient;
     
@@ -104,37 +98,11 @@ public class AiComparisonService {
             System.out.println("[AiComparisonService] Tin nhắn người dùng: " + chatRequest.message());
             System.out.println("[AiComparisonService] Sử dụng ngữ cảnh ngày tháng: " + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
             
-            // --- BƯỚC 0: Xây dựng Smart Context (MỚI) ---
-            System.out.println("[AiComparisonService] ===== BƯỚC 0: Xây dựng Smart Context =====");
-            long contextStartTime = System.currentTimeMillis();
-            
-            SmartContextManager.EnhancedContext enhancedContext;
-            try {
-                // Lấy chat history để build context với safe handling
-                List<com.example.chatlog.entity.ChatMessages> chatHistory = chatHistoryService.getChatHistory(sessionId);
-                enhancedContext = smartContextManager.buildEnhancedContext(
-                    sessionId, chatRequest, chatHistory
-                );
-                
-                timingMetrics.put("context_building_ms", System.currentTimeMillis() - contextStartTime);
-                System.out.println("[AiComparisonService] ✅ Smart context built - Intent: " + enhancedContext.intent.type + 
-                                 ", Relevant messages: " + enhancedContext.relevantMessages.size() + 
-                                 ", Entities: " + enhancedContext.entities.size());
-                                 
-            } catch (Exception contextException) {
-                System.out.println("[AiComparisonService] ⚠️ Warning: Context building failed, using fallback: " + contextException.getMessage());
-                
-                // Fallback context
-                enhancedContext = new SmartContextManager.EnhancedContext(
-                    new SmartContextManager.RequestIntent(SmartContextManager.IntentType.GENERAL, new HashMap<>()),
-                    new ArrayList<>(),
-                    new HashSet<>(),
-                    "FALLBACK_CONTEXT: Context building failed, proceeding without history"
-                );
-                
-                timingMetrics.put("context_building_ms", System.currentTimeMillis() - contextStartTime);
-                System.out.println("[AiComparisonService] ✅ Using fallback context due to error");
-            }
+            // DISABLED: Smart Context Building để tránh lazy loading issues
+            // Lý do: ChatSessions.chatMessages collection gây "could not initialize proxy - no Session" error
+            // Solution: Bỏ smart context building, chỉ dùng query optimization
+            System.out.println("[AiComparisonService] ℹ️ Smart Context Building: DISABLED to prevent lazy loading errors");
+            timingMetrics.put("context_building_ms", 0L);
             
             // --- BƯỚC 1: So sánh quá trình tạo query với optimization ---
             System.out.println("[AiComparisonService] ===== BƯỚC 1: Tạo Elasticsearch Query Với Optimization =====");
@@ -386,13 +354,13 @@ public class AiComparisonService {
             timingMetrics.put("openai_total_ms", openaiEndTime - openaiStartTime + openaiResponseEndTime - openaiResponseStartTime);
             timingMetrics.put("openrouter_total_ms", openrouterEndTime - openrouterStartTime + openrouterResponseEndTime - openrouterResponseStartTime);
             
-            // Thống kê optimization impact với safe handling
+            // Thống kê optimization impact (simplified)
             Map<String, Object> optimizationStats = new HashMap<>();
             try {
                 optimizationStats.put("query_optimization_applied", true);
-                optimizationStats.put("smart_context_used", enhancedContext != null && enhancedContext.relevantMessages.size() > 0);
-                optimizationStats.put("context_entities_count", enhancedContext != null ? enhancedContext.entities.size() : 0);
-                optimizationStats.put("detected_intent", enhancedContext != null ? enhancedContext.intent.type.toString() : "UNKNOWN");
+                optimizationStats.put("smart_context_used", false); // Disabled để avoid lazy loading
+                optimizationStats.put("context_entities_count", 0);
+                optimizationStats.put("detected_intent", "GENERAL");
                 optimizationStats.put("query_similarity", openaiQueryString != null && openaiQueryString.equals(openrouterQueryString));
                 optimizationStats.put("data_similarity", openaiContent != null && openaiContent.equals(openrouterContent));
             } catch (Exception statsException) {
@@ -411,22 +379,14 @@ public class AiComparisonService {
             result.put("timing_metrics", timingMetrics);
             result.put("optimization_stats", optimizationStats);
             
-            // Enhanced context với null safety
+            // Enhanced context (disabled)
             try {
-                if (enhancedContext != null) {
-                    result.put("enhanced_context", Map.of(
-                        "intent_type", enhancedContext.intent.type.toString(),
-                        "relevant_messages_count", enhancedContext.relevantMessages.size(),
-                        "entities_count", enhancedContext.entities.size()
-                    ));
-                } else {
-                    result.put("enhanced_context", Map.of(
-                        "intent_type", "FALLBACK",
-                        "relevant_messages_count", 0,
-                        "entities_count", 0,
-                        "context_error", true
-                    ));
-                }
+                result.put("enhanced_context", Map.of(
+                    "intent_type", "DISABLED",
+                    "relevant_messages_count", 0,
+                    "entities_count", 0,
+                    "context_disabled", true
+                ));
             } catch (Exception contextStatsException) {
                 System.out.println("[AiComparisonService] Warning: Error adding context stats: " + contextStatsException.getMessage());
                 result.put("enhanced_context", Map.of("error", "Could not build context stats"));
@@ -437,8 +397,8 @@ public class AiComparisonService {
             System.out.println("[AiComparisonService] ⏱️ Context building: " + timingMetrics.get("context_building_ms") + "ms");
             System.out.println("[AiComparisonService] ⏱️ OpenAI search: " + timingMetrics.get("openai_search_ms") + "ms");
             System.out.println("[AiComparisonService] ⏱️ OpenRouter search: " + timingMetrics.get("openrouter_search_ms") + "ms");
-            System.out.println("[AiComparisonService] 🧠 Detected intent: " + enhancedContext.intent.type);
-            System.out.println("[AiComparisonService] 📝 Context entities: " + enhancedContext.entities.size());
+            System.out.println("[AiComparisonService] 🧠 Context building: DISABLED");
+            System.out.println("[AiComparisonService] 📝 Smart features: DISABLED to avoid lazy loading");
             System.out.println("[AiComparisonService] 🔍 Query optimization impact: " + (openaiQueryString.equals(openrouterQueryString) ? "Cùng optimized pattern" : "Khác biệt được tối ưu"));
             System.out.println("[AiComparisonService] 📊 Data consistency: " + (openaiContent.equals(openrouterContent) ? "Consistent results" : "Different results detected"));
             
