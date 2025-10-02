@@ -1,10 +1,13 @@
 package com.example.chatlog.service.impl;
 
 import com.example.chatlog.dto.ChatRequest;
+import com.example.chatlog.dto.DataExample;
 import com.example.chatlog.dto.RequestBody;
 import com.example.chatlog.enums.ModelProvider;
 import com.example.chatlog.service.LogApiService;
 import com.example.chatlog.utils.SchemaHint;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -13,11 +16,15 @@ import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Service xử lý chế độ so sánh giữa OpenAI và OpenRouter
@@ -35,6 +42,8 @@ public class AiComparisonService {
     @Autowired
     private AiResponseService aiResponseService;
     
+    private final ObjectMapper objectMapper;
+    private List<DataExample> exampleLibrary;
     // Tích hợp các service tối ưu hóa mới
     @Autowired
     private QueryOptimizationService queryOptimizationService;
@@ -44,8 +53,26 @@ public class AiComparisonService {
     
     private final ChatClient chatClient;
     
+    @Autowired
     public AiComparisonService(ChatClient.Builder builder) {
+        this.objectMapper = new ObjectMapper();
         this.chatClient = builder.build();
+        loadExampleLibrary();
+    }
+    
+    /**
+     * Load the example library from fortigate_queries_full.json
+     */
+    private void loadExampleLibrary() {
+        try {
+            ClassPathResource resource = new ClassPathResource("fortigate_queries_full.json");
+            InputStream inputStream = resource.getInputStream();
+            this.exampleLibrary = objectMapper.readValue(inputStream, new TypeReference<List<DataExample>>() {});
+            System.out.println("[AiComparisonService] ✅ Loaded " + exampleLibrary.size() + " examples from fortigate_queries_full.json");
+        } catch (IOException e) {
+            System.err.println("[AiComparisonService] ❌ Failed to load example library: " + e.getMessage());
+            this.exampleLibrary = new ArrayList<>();
+        }
     }
     
     /**
@@ -111,7 +138,7 @@ public class AiComparisonService {
             String fullSchema = SchemaHint.getSchemaHint();
             
             // Sử dụng QueryPromptTemplate với dynamic examples
-            String dynamicExamples = "No specific examples available for comparison mode.";
+            String dynamicExamples = buildDynamicExamples(chatRequest.message());
             String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPrompt(
                 chatRequest.message(),
                 dateContext,
@@ -420,6 +447,137 @@ public class AiComparisonService {
             // Ghi nhận lỗi vào performance metrics
             performanceMonitoringService.recordRequest("comparison_mode", errorProcessingTime, false);
         }
+        
+        return result;
+    }
+    
+    /**
+     * Find relevant examples based on user query keywords
+     */
+    private List<DataExample> findRelevantExamples(String userQuery) {
+        System.out.println("\n🔍 ===== QUERY MATCHING PROCESS =====");
+        System.out.println("📝 User Query: \"" + userQuery + "\"");
+        
+        if (exampleLibrary == null || exampleLibrary.isEmpty()) {
+            System.out.println("❌ Knowledge base is empty or not loaded");
+            return new ArrayList<>();
+        }
+        
+        System.out.println("📚 Knowledge base contains " + exampleLibrary.size() + " examples");
+        
+        // Step 1: Extract keywords
+        String queryLower = userQuery.toLowerCase();
+        List<String> queryWords = Arrays.stream(queryLower.split("\\s+"))
+                .filter(word -> word.length() > 2) // Filter out short words
+                .collect(Collectors.toList());
+        
+        System.out.println("🔤 Step 1 - Extracted keywords: " + queryWords);
+        
+        // Step 2: Find matching examples with detailed logging
+        List<DataExample> matchingExamples = new ArrayList<>();
+        Map<DataExample, Integer> exampleScores = new HashMap<>();
+        
+        System.out.println("\n🔍 Step 2 - Searching through knowledge base:");
+        for (int i = 0; i < exampleLibrary.size(); i++) {
+            DataExample example = exampleLibrary.get(i);
+            if (example.getKeywords() == null) continue;
+            
+            int score = 0;
+            List<String> matchedKeywords = new ArrayList<>();
+            
+            System.out.printf("  📋 Example %d: %s\n", i + 1, 
+                example.getQuestion().substring(0, Math.min(60, example.getQuestion().length())) + "...");
+            System.out.printf("     Keywords: %s\n", String.join(", ", example.getKeywords()));
+            
+            // Calculate score for this example
+            for (String keyword : example.getKeywords()) {
+                for (String queryWord : queryWords) {
+                    boolean isMatch = keyword.toLowerCase().contains(queryWord) || 
+                                    queryWord.contains(keyword.toLowerCase());
+                    if (isMatch) {
+                        score++;
+                        matchedKeywords.add(keyword);
+                        System.out.printf("     ✅ Match: '%s' ↔ '%s'\n", queryWord, keyword);
+                    }
+                }
+            }
+            
+            if (score > 0) {
+                matchingExamples.add(example);
+                exampleScores.put(example, score);
+                System.out.printf("     🎯 Total Score: %d | Matched: %s\n", 
+                    score, String.join(", ", matchedKeywords));
+            } else {
+                System.out.printf("     ❌ No matches found\n");
+            }
+            System.out.println();
+        }
+        
+        System.out.println("📊 Step 3 - Sorting by relevance score:");
+        
+        // Step 3: Sort by score
+        List<DataExample> sortedExamples = matchingExamples.stream()
+                .sorted((e1, e2) -> {
+                    int score1 = exampleScores.get(e1);
+                    int score2 = exampleScores.get(e2);
+                    System.out.printf("  🔄 Comparing: Score %d vs %d\n", score1, score2);
+                    return Integer.compare(score2, score1); // Descending order
+                })
+                .limit(5) // Return top 5 most relevant examples
+                .collect(Collectors.toList());
+        
+        System.out.println("\n🎯 Step 4 - Final Results (Top " + sortedExamples.size() + "):");
+        for (int i = 0; i < sortedExamples.size(); i++) {
+            DataExample example = sortedExamples.get(i);
+            int score = exampleScores.get(example);
+            System.out.printf("  %d. Score: %d | %s\n", 
+                i + 1, score, example.getQuestion());
+            System.out.printf("     Keywords: %s\n", 
+                String.join(", ", example.getKeywords()));
+        }
+        
+        System.out.println("✅ Query matching process completed\n");
+        return sortedExamples;
+    }
+    
+    /**
+     * Build dynamic examples string for the prompt
+     */
+    private String buildDynamicExamples(String userQuery) {
+        System.out.println("\n📝 ===== BUILDING DYNAMIC EXAMPLES =====");
+        System.out.println("🔍 Finding relevant examples for: \"" + userQuery + "\"");
+        
+        List<DataExample> relevantExamples = findRelevantExamples(userQuery);
+        
+        if (relevantExamples.isEmpty()) {
+            System.out.println("⚠️ No relevant examples found, using fallback message");
+            return "No specific examples found for this query type.";
+        }
+        
+        System.out.println("🔨 Building dynamic examples string for AI prompt:");
+        System.out.println("   - Found " + relevantExamples.size() + " relevant examples");
+        
+        StringBuilder examples = new StringBuilder();
+        examples.append("RELEVANT EXAMPLES FROM KNOWLEDGE BASE:\n\n");
+        
+        for (int i = 0; i < relevantExamples.size(); i++) {
+            DataExample example = relevantExamples.get(i);
+            System.out.printf("   📄 Adding Example %d: %s\n", 
+                i + 1, example.getQuestion().substring(0, Math.min(50, example.getQuestion().length())) + "...");
+            System.out.printf("      Keywords: %s\n", String.join(", ", example.getKeywords()));
+            
+            examples.append("Example ").append(i + 1).append(":\n");
+            examples.append("Question: ").append(example.getQuestion()).append("\n");
+            examples.append("Keywords: ").append(String.join(", ", example.getKeywords())).append("\n");
+            examples.append("Query: ").append(example.getQuery().toPrettyString()).append("\n\n");
+        }
+        
+        String result = examples.toString();
+        System.out.println("✅ Dynamic examples built successfully");
+        System.out.println("📏 Total length: " + result.length() + " characters");
+        System.out.println("📋 Preview (first 300 chars):");
+        System.out.println("   " + result.substring(0, Math.min(300, result.length())) + "...");
+        System.out.println("🎯 ===== DYNAMIC EXAMPLES COMPLETED =====\n");
         
         return result;
     }

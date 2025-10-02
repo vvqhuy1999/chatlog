@@ -41,6 +41,7 @@ public class AiQueryService {
     private final ObjectMapper objectMapper;
     private List<DataExample> exampleLibrary;
     
+    @Autowired
     public AiQueryService(ChatClient.Builder builder) {
         this.chatClient = builder.build();
         this.objectMapper = new ObjectMapper();
@@ -66,73 +67,131 @@ public class AiQueryService {
      * Find relevant examples based on user query keywords
      */
     private List<DataExample> findRelevantExamples(String userQuery) {
+        System.out.println("\n🔍 ===== QUERY MATCHING PROCESS =====");
+        System.out.println("📝 User Query: \"" + userQuery + "\"");
+        
         if (exampleLibrary == null || exampleLibrary.isEmpty()) {
+            System.out.println("❌ Knowledge base is empty or not loaded");
             return new ArrayList<>();
         }
         
+        System.out.println("📚 Knowledge base contains " + exampleLibrary.size() + " examples");
+        
+        // Step 1: Extract keywords
         String queryLower = userQuery.toLowerCase();
         List<String> queryWords = Arrays.stream(queryLower.split("\\s+"))
                 .filter(word -> word.length() > 2) // Filter out short words
                 .collect(Collectors.toList());
         
-        return exampleLibrary.stream()
-                .filter(example -> {
-                    if (example.getKeywords() == null) return false;
-                    
-                    // Check if any keyword matches query words
-                    return Arrays.stream(example.getKeywords())
-                            .anyMatch(keyword -> 
-                                queryWords.stream().anyMatch(word -> 
-                                    keyword.toLowerCase().contains(word) || word.contains(keyword.toLowerCase())
-                                )
-                            );
-                })
+        System.out.println("🔤 Step 1 - Extracted keywords: " + queryWords);
+        
+        // Step 2: Find matching examples with detailed logging
+        List<DataExample> matchingExamples = new ArrayList<>();
+        Map<DataExample, Integer> exampleScores = new HashMap<>();
+        
+        System.out.println("\n🔍 Step 2 - Searching through knowledge base:");
+        for (int i = 0; i < exampleLibrary.size(); i++) {
+            DataExample example = exampleLibrary.get(i);
+            if (example.getKeywords() == null) continue;
+            
+            int score = 0;
+            List<String> matchedKeywords = new ArrayList<>();
+            
+            System.out.printf("  📋 Example %d: %s\n", i + 1, 
+                example.getQuestion().substring(0, Math.min(60, example.getQuestion().length())) + "...");
+            System.out.printf("     Keywords: %s\n", String.join(", ", example.getKeywords()));
+            
+            // Calculate score for this example
+            for (String keyword : example.getKeywords()) {
+                for (String queryWord : queryWords) {
+                    boolean isMatch = keyword.toLowerCase().contains(queryWord) || 
+                                    queryWord.contains(keyword.toLowerCase());
+                    if (isMatch) {
+                        score++;
+                        matchedKeywords.add(keyword);
+                        System.out.printf("     ✅ Match: '%s' ↔ '%s'\n", queryWord, keyword);
+                    }
+                }
+            }
+            
+            if (score > 0) {
+                matchingExamples.add(example);
+                exampleScores.put(example, score);
+                System.out.printf("     🎯 Total Score: %d | Matched: %s\n", 
+                    score, String.join(", ", matchedKeywords));
+            } else {
+                System.out.printf("     ❌ No matches found\n");
+            }
+            System.out.println();
+        }
+        
+        System.out.println("📊 Step 3 - Sorting by relevance score:");
+        
+        // Step 3: Sort by score
+        List<DataExample> sortedExamples = matchingExamples.stream()
                 .sorted((e1, e2) -> {
-                    // Sort by relevance (more keyword matches = higher relevance)
-                    long score1 = Arrays.stream(e1.getKeywords())
-                            .mapToLong(keyword -> 
-                                queryWords.stream()
-                                        .mapToLong(word -> 
-                                            keyword.toLowerCase().contains(word) || word.contains(keyword.toLowerCase()) ? 1 : 0
-                                        ).sum()
-                            ).sum();
-                    
-                    long score2 = Arrays.stream(e2.getKeywords())
-                            .mapToLong(keyword -> 
-                                queryWords.stream()
-                                        .mapToLong(word -> 
-                                            keyword.toLowerCase().contains(word) || word.contains(keyword.toLowerCase()) ? 1 : 0
-                                        ).sum()
-                            ).sum();
-                    
-                    return Long.compare(score2, score1); // Descending order
+                    int score1 = exampleScores.get(e1);
+                    int score2 = exampleScores.get(e2);
+//                    System.out.printf("  🔄 Comparing: Score %d vs %d\n", score1, score2);
+                    return Integer.compare(score2, score1); // Descending order
                 })
                 .limit(5) // Return top 5 most relevant examples
                 .collect(Collectors.toList());
+        
+        System.out.println("\n🎯 Step 4 - Final Results (Top " + sortedExamples.size() + "):");
+        for (int i = 0; i < sortedExamples.size(); i++) {
+            DataExample example = sortedExamples.get(i);
+            int score = exampleScores.get(example);
+            System.out.printf("  %d. Score: %d | %s\n", 
+                i + 1, score, example.getQuestion());
+            System.out.printf("     Keywords: %s\n", 
+                String.join(", ", example.getKeywords()));
+        }
+        
+        System.out.println("✅ Query matching process completed\n");
+        return sortedExamples;
     }
     
     /**
      * Build dynamic examples string for the prompt
      */
     private String buildDynamicExamples(String userQuery) {
+        System.out.println("\n📝 ===== BUILDING DYNAMIC EXAMPLES =====");
+        System.out.println("🔍 Finding relevant examples for: \"" + userQuery + "\"");
+        
         List<DataExample> relevantExamples = findRelevantExamples(userQuery);
         
         if (relevantExamples.isEmpty()) {
+            System.out.println("⚠️ No relevant examples found, using fallback message");
             return "No specific examples found for this query type.";
         }
+        
+        System.out.println("🔨 Building dynamic examples string for AI prompt:");
+        System.out.println("   - Found " + relevantExamples.size() + " relevant examples");
         
         StringBuilder examples = new StringBuilder();
         examples.append("RELEVANT EXAMPLES FROM KNOWLEDGE BASE:\n\n");
         
         for (int i = 0; i < relevantExamples.size(); i++) {
             DataExample example = relevantExamples.get(i);
+            System.out.printf("   📄 Adding Example %d: %s\n", 
+                i + 1, example.getQuestion().substring(0, Math.min(50, example.getQuestion().length())) + "...");
+            System.out.printf("      Keywords: %s\n", String.join(", ", example.getKeywords()));
+            
             examples.append("Example ").append(i + 1).append(":\n");
             examples.append("Question: ").append(example.getQuestion()).append("\n");
             examples.append("Keywords: ").append(String.join(", ", example.getKeywords())).append("\n");
             examples.append("Query: ").append(example.getQuery().toPrettyString()).append("\n\n");
         }
         
-        return examples.toString();
+        String result = examples.toString();
+        System.out.println("✅ Dynamic examples built successfully");
+        System.out.println("📏 Total length: " + result.length() + " characters");
+        System.out.println("📋 Preview (first 300 chars):");
+        System.out.println("   " + result.substring(0, Math.min(300, result.length())) + "...");
+        System.out.println("🎯 ===== DYNAMIC EXAMPLES COMPLETED =====\n");
+        
+        return result;
     }
     
     /**
@@ -207,22 +266,51 @@ public class AiQueryService {
             String queryConversationId = sessionId + "_query_generation";
             
             System.out.println("[AiQueryService] 🤖 Đang gọi AI để tạo Elasticsearch query...");
-            RequestBody requestBody = chatClient
+            
+            // Get raw response from AI
+            String rawResponse = chatClient
                 .prompt(prompt)
                 .options(chatOptions)
                 .advisors(advisorSpec -> advisorSpec.param(
                     ChatMemory.CONVERSATION_ID, queryConversationId
                 ))
                 .call()
-                .entity(new ParameterizedTypeReference<>() {});
+                .content();
             
-            // Đảm bảo query luôn là 1 (bắt buộc tìm kiếm)
-            if (requestBody.getQuery() != 1) {
-                System.out.println("[AiQueryService] Setting query=1 (was " + requestBody.getQuery() + ")");
-                requestBody.setQuery(1);
+            System.out.println("[AiQueryService] Raw AI response: " + rawResponse);
+            
+            // Clean the response
+            String cleanedResponse = rawResponse.trim();
+            
+            // Remove markdown code blocks if present
+            if (cleanedResponse.startsWith("```json")) {
+                cleanedResponse = cleanedResponse.substring(7);
+            }
+            if (cleanedResponse.startsWith("```")) {
+                cleanedResponse = cleanedResponse.substring(3);
+            }
+            if (cleanedResponse.endsWith("```")) {
+                cleanedResponse = cleanedResponse.substring(0, cleanedResponse.length() - 3);
+            }
+            cleanedResponse = cleanedResponse.trim();
+            
+            System.out.println("[AiQueryService] Cleaned response: " + cleanedResponse);
+            
+            // Validate JSON syntax
+            try {
+                new ObjectMapper().readTree(cleanedResponse);
+                System.out.println("[AiQueryService] ✅ Valid JSON syntax");
+            } catch (Exception jsonException) {
+                System.out.println("[AiQueryService] ❌ Invalid JSON: " + jsonException.getMessage());
+                throw new RuntimeException("AI returned invalid JSON: " + cleanedResponse, jsonException);
             }
             
-            System.out.println("[AiQueryService] Generated query body: " + requestBody.getBody());
+            // Create RequestBody with the cleaned JSON
+            RequestBody requestBody = new RequestBody();
+            requestBody.setQuery(1); // Always set to 1 for search
+            requestBody.setBody(cleanedResponse);
+            
+            System.out.println("[AiQueryService] ✅ Generated valid query: " + cleanedResponse);
             return requestBody;
             
         } catch (Exception e) {
@@ -612,18 +700,52 @@ public class AiQueryService {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode jsonNode = mapper.readTree(query);
             
-            // Check if aggs is incorrectly placed inside query
+            // Fix: Ensure bool must/should/filter are arrays
+            if (jsonNode.has("query") && jsonNode.get("query").has("bool")) {
+                JsonNode boolNode = jsonNode.get("query").get("bool");
+                ObjectNode fixedBoolNode = boolNode.deepCopy();
+                boolean needsFix = false;
+                
+                // Fix must field - should be array
+                if (boolNode.has("must") && !boolNode.get("must").isArray()) {
+                    ObjectNode mustArray = mapper.createObjectNode();
+                    mustArray.set("0", boolNode.get("must"));
+                    fixedBoolNode.set("must", mustArray);
+                    needsFix = true;
+                }
+                
+                // Fix should field - should be array
+                if (boolNode.has("should") && !boolNode.get("should").isArray()) {
+                    ObjectNode shouldArray = mapper.createObjectNode();
+                    shouldArray.set("0", boolNode.get("should"));
+                    fixedBoolNode.set("should", shouldArray);
+                    needsFix = true;
+                }
+                
+                if (needsFix) {
+                    ObjectNode fixedQuery = jsonNode.deepCopy();
+                    ObjectNode fixedQueryNode = fixedQuery.get("query").deepCopy();
+                    fixedQueryNode.set("bool", fixedBoolNode);
+                    fixedQuery.set("query", fixedQueryNode);
+                    
+                    String fixedQueryString = mapper.writeValueAsString(fixedQuery);
+                    System.out.println("[AiQueryService] Fixed query structure - converted must/should to arrays");
+                    return fixedQueryString;
+                }
+            }
+            
+            // Fix: Move aggs from inside query to root level
             if (jsonNode.has("query")) {
                 JsonNode queryNode = jsonNode.get("query");
                 
-                // Fix: Move aggs from inside query to root level
                 if (queryNode.has("aggs")) {
                     JsonNode aggsNode = queryNode.get("aggs");
                     
                     // Create a new root object with aggs moved out
                     ObjectNode fixedQuery = mapper.createObjectNode();
-                    fixedQuery.set("query", queryNode.deepCopy());
-                    fixedQuery.remove("aggs"); // Remove aggs from query
+                    ObjectNode newQueryNode = queryNode.deepCopy();
+                    newQueryNode.remove("aggs");
+                    fixedQuery.set("query", newQueryNode);
                     fixedQuery.set("aggs", aggsNode);
                     
                     // Copy other root-level fields
@@ -636,34 +758,6 @@ public class AiQueryService {
                     String fixedQueryString = mapper.writeValueAsString(fixedQuery);
                     System.out.println("[AiQueryService] Fixed query structure - moved aggs to root level");
                     return fixedQueryString;
-                }
-                
-                // Fix: Move aggs from inside bool to root level
-                if (queryNode.has("bool")) {
-                    JsonNode boolNode = queryNode.get("bool");
-                    if (boolNode.has("aggs")) {
-                        JsonNode aggsNode = boolNode.get("aggs");
-                        
-                        // Create a new root object with aggs moved out
-                        ObjectNode fixedQuery = mapper.createObjectNode();
-                        ObjectNode newQueryNode = queryNode.deepCopy();
-                        ObjectNode newBoolNode = boolNode.deepCopy();
-                        newBoolNode.remove("aggs");
-                        newQueryNode.set("bool", newBoolNode);
-                        fixedQuery.set("query", newQueryNode);
-                        fixedQuery.set("aggs", aggsNode);
-                        
-                        // Copy other root-level fields
-                        jsonNode.fieldNames().forEachRemaining(fieldName -> {
-                            if (!fieldName.equals("query") && !fieldName.equals("aggs")) {
-                                fixedQuery.set(fieldName, jsonNode.get(fieldName));
-                            }
-                        });
-                        
-                        String fixedQueryString = mapper.writeValueAsString(fixedQuery);
-                        System.out.println("[AiQueryService] Fixed query structure - moved aggs from bool to root level");
-                        return fixedQueryString;
-                    }
                 }
             }
             
