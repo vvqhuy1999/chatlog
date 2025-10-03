@@ -56,10 +56,10 @@ public class AiQueryService {
         
         // Define all knowledge base files to load
         String[] knowledgeBaseFiles = {
-//            "fortigate_queries_full.json",
-//            "advanced_security_scenarios.json",
-//            "network_forensics_performance.json",
-//            "business_intelligence_operations.json",
+            "fortigate_queries_full.json",
+            "advanced_security_scenarios.json",
+            "network_forensics_performance.json",
+            "business_intelligence_operations.json",
             "incident_response_playbooks.json"
         };
         
