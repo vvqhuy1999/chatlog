@@ -61,16 +61,41 @@ public class AiComparisonService {
     }
     
     /**
-     * Load the example library from fortigate_queries_full.json
+     * Load the example library from multiple JSON knowledge base files
      */
     private void loadExampleLibrary() {
-        try {
-            ClassPathResource resource = new ClassPathResource("fortigate_queries_full.json");
-            InputStream inputStream = resource.getInputStream();
-            this.exampleLibrary = objectMapper.readValue(inputStream, new TypeReference<List<DataExample>>() {});
-            System.out.println("[AiComparisonService] ✅ Loaded " + exampleLibrary.size() + " examples from fortigate_queries_full.json");
-        } catch (IOException e) {
-            System.err.println("[AiComparisonService] ❌ Failed to load example library: " + e.getMessage());
+        this.exampleLibrary = new ArrayList<>();
+        
+        // Define all knowledge base files to load (same as AiQueryService)
+        String[] knowledgeBaseFiles = {
+            "fortigate_queries_full.json",
+            "advanced_security_scenarios.json",
+            "network_forensics_performance.json",
+            "business_intelligence_operations.json",
+            "incident_response_playbooks.json"
+        };
+        
+        int totalLoaded = 0;
+        
+        for (String fileName : knowledgeBaseFiles) {
+            try {
+                ClassPathResource resource = new ClassPathResource(fileName);
+                InputStream inputStream = resource.getInputStream();
+                List<DataExample> examples = objectMapper.readValue(inputStream, new TypeReference<List<DataExample>>() {});
+                
+                this.exampleLibrary.addAll(examples);
+                totalLoaded += examples.size();
+                
+                System.out.println("[AiComparisonService] ✅ Loaded " + examples.size() + " examples from " + fileName);
+            } catch (IOException e) {
+                System.err.println("[AiComparisonService] ❌ Failed to load " + fileName + ": " + e.getMessage());
+            }
+        }
+        
+        System.out.println("[AiComparisonService] 📚 Total examples loaded: " + totalLoaded);
+        
+        if (this.exampleLibrary.isEmpty()) {
+            System.err.println("[AiComparisonService] ⚠️ No examples loaded! Creating empty list.");
             this.exampleLibrary = new ArrayList<>();
         }
     }

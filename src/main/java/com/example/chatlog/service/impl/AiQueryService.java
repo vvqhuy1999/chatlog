@@ -49,107 +49,380 @@ public class AiQueryService {
     }
     
     /**
-     * Load the example library from fortigate_queries_full.json
+     * Load the example library from multiple JSON knowledge base files
      */
     private void loadExampleLibrary() {
-        try {
-            ClassPathResource resource = new ClassPathResource("fortigate_queries_full.json");
-            InputStream inputStream = resource.getInputStream();
-            this.exampleLibrary = objectMapper.readValue(inputStream, new TypeReference<List<DataExample>>() {});
-            System.out.println("[AiQueryService] ✅ Loaded " + exampleLibrary.size() + " examples from fortigate_queries_full.json");
-        } catch (IOException e) {
-            System.err.println("[AiQueryService] ❌ Failed to load example library: " + e.getMessage());
-            this.exampleLibrary = new ArrayList<>();
+        this.exampleLibrary = new ArrayList<>();
+        
+        // Define all knowledge base files to load
+        String[] knowledgeBaseFiles = {
+//            "fortigate_queries_full.json",
+//            "advanced_security_scenarios.json",
+//            "network_forensics_performance.json",
+//            "business_intelligence_operations.json",
+            "incident_response_playbooks.json"
+        };
+        
+        int totalLoaded = 0;
+        
+        for (String fileName : knowledgeBaseFiles) {
+            try {
+                ClassPathResource resource = new ClassPathResource(fileName);
+                InputStream inputStream = resource.getInputStream();
+                
+                // Debug: Print all questions from incident_response_playbooks.json
+                if (fileName.equals("incident_response_playbooks.json")) {
+                    System.out.println("\n🔍 ===== DEBUG: " + fileName + " CONTENT =====");
+                    String content = new String(inputStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                    System.out.println("📄 Raw JSON content:");
+                    System.out.println(content);
+                    System.out.println("🔍 ===== END DEBUG =====\n");
+                    
+                    // Re-create input stream for parsing
+                    inputStream = new java.io.ByteArrayInputStream(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                }
+                
+                List<DataExample> examples = objectMapper.readValue(inputStream, new TypeReference<List<DataExample>>() {});
+                
+                // Debug: Print parsed examples from incident_response_playbooks.json
+                if (fileName.equals("incident_response_playbooks.json")) {
+                    System.out.println("📋 Parsed examples from " + fileName + ":");
+                    for (int i = 0; i < examples.size(); i++) {
+                        DataExample example = examples.get(i);
+                        System.out.println("  " + (i+1) + ". " + example.getQuestion());
+                        if (example.getQuestion().toLowerCase().contains("top 20 applications")) {
+                            System.out.println("     🎯 FOUND TARGET QUESTION!");
+                            System.out.println("     Keywords: " + String.join(", ", example.getKeywords()));
+                        }
+                    }
+                }
+                
+                this.exampleLibrary.addAll(examples);
+                totalLoaded += examples.size();
+                System.out.println("[AiQueryService] ✅ Loaded " + examples.size() + " examples from " + fileName);
+                
+            } catch (IOException e) {
+                System.err.println("[AiQueryService] ⚠️ Failed to load " + fileName + ": " + e.getMessage());
+                e.printStackTrace();
+                // Continue loading other files even if one fails
+            }
+        }
+        
+        System.out.println("[AiQueryService] 🎯 Total loaded: " + totalLoaded + " examples from " + knowledgeBaseFiles.length + " knowledge base files");
+        
+        if (this.exampleLibrary.isEmpty()) {
+            System.err.println("[AiQueryService] ❌ No examples loaded from any knowledge base file!");
+        } else {
+            // Display knowledge base statistics
+            displayKnowledgeBaseStats();
         }
     }
     
     /**
-     * Find relevant examples based on user query keywords
+     * Display statistics about loaded knowledge base
+     */
+    private void displayKnowledgeBaseStats() {
+        System.out.println("\n📊 ===== KNOWLEDGE BASE STATISTICS =====");
+        
+        Map<String, Integer> scenarioCount = new HashMap<>();
+        int withScenario = 0;
+        int withPhase = 0;
+        int withBusinessValue = 0;
+        
+        for (DataExample example : exampleLibrary) {
+            if (example.getScenario() != null && !example.getScenario().isEmpty()) {
+                withScenario++;
+                scenarioCount.put(example.getScenario(), 
+                    scenarioCount.getOrDefault(example.getScenario(), 0) + 1);
+            }
+            if (example.getPhase() != null && !example.getPhase().isEmpty()) {
+                withPhase++;
+            }
+            if (example.getBusinessValue() != null && !example.getBusinessValue().isEmpty()) {
+                withBusinessValue++;
+            }
+        }
+        
+        System.out.println("📋 Total Examples: " + exampleLibrary.size());
+        System.out.println("🎭 With Scenario Info: " + withScenario);
+        System.out.println("⚡ With Phase Info: " + withPhase);
+        System.out.println("💼 With Business Value: " + withBusinessValue);
+        
+        if (!scenarioCount.isEmpty()) {
+            System.out.println("\n🎯 Scenarios Distribution:");
+            scenarioCount.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .forEach(entry -> System.out.printf("  • %s: %d examples\n", 
+                    entry.getKey(), entry.getValue()));
+        }
+        
+        System.out.println("✅ Knowledge base ready for intelligent query matching\n");
+    }
+    
+    /**
+     * Find relevant examples based on user query keywords with advanced matching
      */
     private List<DataExample> findRelevantExamples(String userQuery) {
-        System.out.println("\n🔍 ===== QUERY MATCHING PROCESS =====");
-        System.out.println("📝 User Query: \"" + userQuery + "\"");
-        
+        System.out.println("\n🔍 ===== ENHANCED QUERY MATCHING PROCESS =====");
         if (exampleLibrary == null || exampleLibrary.isEmpty()) {
-            System.out.println("❌ Knowledge base is empty or not loaded");
             return new ArrayList<>();
         }
         
-        System.out.println("📚 Knowledge base contains " + exampleLibrary.size() + " examples");
+        // Step 1: Enhanced keyword extraction with normalization
+        Set<String> queryTerms = extractAndNormalizeTerms(userQuery);
         
-        // Step 1: Extract keywords
-        String queryLower = userQuery.toLowerCase();
-        List<String> queryWords = Arrays.stream(queryLower.split("\\s+"))
-                .filter(word -> word.length() > 2) // Filter out short words
+
+        
+        // Step 2: Advanced matching with weighted scoring
+        Map<DataExample, Double> exampleScores = new HashMap<>();
+        Map<DataExample, List<String>> matchDetails = new HashMap<>();
+        
+        // Step 2: Advanced matching with weighted scoring
+        for (DataExample example : exampleLibrary) {
+            if (example.getKeywords() == null || example.getKeywords().length == 0) continue;
+            
+            MatchResult matchResult = calculateAdvancedScore(queryTerms, example, userQuery);
+            
+            if (matchResult.score > 0) {
+                exampleScores.put(example, matchResult.score);
+                matchDetails.put(example, matchResult.matchedTerms);
+            }
+        }
+        
+        // Step 3: Sort by advanced scoring with tie-breaking
+        List<DataExample> sortedExamples = exampleScores.entrySet().stream()
+                .sorted((e1, e2) -> {
+                    // Primary: Score comparison
+                    int scoreCompare = Double.compare(e2.getValue(), e1.getValue());
+                    if (scoreCompare != 0) return scoreCompare;
+                    
+                    // Tie-breaker: Number of matched terms
+                    int matchCountCompare = Integer.compare(
+                        matchDetails.get(e2.getKey()).size(),
+                        matchDetails.get(e1.getKey()).size()
+                    );
+                    if (matchCountCompare != 0) return matchCountCompare;
+                    
+                    // Final tie-breaker: Question length (shorter preferred)
+                    return Integer.compare(
+                        e1.getKey().getQuestion().length(),
+                        e2.getKey().getQuestion().length()
+                    );
+                })
+                .map(Map.Entry::getKey)
+                .limit(7) // Increased to 7 for better coverage
                 .collect(Collectors.toList());
         
-        System.out.println("🔤 Step 1 - Extracted keywords: " + queryWords);
+
+        return sortedExamples;
+    }
+    
+    /**
+     * Extract and normalize terms from user query
+     */
+    private Set<String> extractAndNormalizeTerms(String userQuery) {
+        Set<String> terms = new HashSet<>();
+        String normalized = userQuery.toLowerCase()
+            .replaceAll("[^a-záàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ0-9\\s]", " ")
+            .replaceAll("\\s+", " ")
+            .trim();
         
-        // Step 2: Find matching examples with detailed logging
-        List<DataExample> matchingExamples = new ArrayList<>();
-        Map<DataExample, Integer> exampleScores = new HashMap<>();
+        // Add original words (length > 2)
+        Arrays.stream(normalized.split("\\s+"))
+            .filter(word -> word.length() > 2)
+            .forEach(terms::add);
+            
+        // Add common synonyms and variations
+        addVietnameseSynonyms(terms, normalized);
         
-        System.out.println("\n🔍 Step 2 - Searching through knowledge base:");
-        for (int i = 0; i < exampleLibrary.size(); i++) {
-            DataExample example = exampleLibrary.get(i);
-            if (example.getKeywords() == null) continue;
-            
-            int score = 0;
-            List<String> matchedKeywords = new ArrayList<>();
-            
-            System.out.printf("  📋 Example %d: %s\n", i + 1, 
-                example.getQuestion().substring(0, Math.min(60, example.getQuestion().length())) + "...");
-            System.out.printf("     Keywords: %s\n", String.join(", ", example.getKeywords()));
-            
-            // Calculate score for this example
-            for (String keyword : example.getKeywords()) {
-                for (String queryWord : queryWords) {
-                    boolean isMatch = keyword.toLowerCase().contains(queryWord) || 
-                                    queryWord.contains(keyword.toLowerCase());
-                    if (isMatch) {
-                        score++;
-                        matchedKeywords.add(keyword);
-                        System.out.printf("     ✅ Match: '%s' ↔ '%s'\n", queryWord, keyword);
+        return terms;
+    }
+    
+    /**
+     * Add Vietnamese synonyms and common variations
+     */
+    private void addVietnameseSynonyms(Set<String> terms, String query) {
+        Map<String, String[]> synonyms = Map.of(
+            "top", new String[]{"hàng đầu", "cao nhất", "nhiều nhất", "lớn nhất"},
+            "user", new String[]{"người dùng", "người sử dụng", "user"},
+            "application", new String[]{"ứng dụng", "app", "phần mềm"},
+            "bandwidth", new String[]{"băng thông", "băng thông mạng", "dung lượng"},
+            "traffic", new String[]{"lưu lượng", "dữ liệu", "traffic"},
+            "nhiều nhất", new String[]{"top", "cao nhất", "hàng đầu"},
+            "người dùng", new String[]{"user", "tài khoản"},
+            "ứng dụng", new String[]{"application", "app"},
+            "băng thông", new String[]{"bandwidth", "dung lượng"}
+        );
+        
+        Set<String> newTerms = new HashSet<>();
+        for (String term : terms) {
+            if (synonyms.containsKey(term)) {
+                newTerms.addAll(Arrays.asList(synonyms.get(term)));
+            }
+        }
+        terms.addAll(newTerms);
+    }
+    
+    /**
+     * Calculate advanced matching score with multiple factors
+     */
+    private MatchResult calculateAdvancedScore(Set<String> queryTerms, DataExample example, String originalQuery) {
+        double totalScore = 0.0;
+        List<String> matchedTerms = new ArrayList<>();
+        Set<String> exampleKeywords = new HashSet<>();
+        for (String keyword : example.getKeywords()) {
+            exampleKeywords.add(keyword.toLowerCase());
+        }
+        
+        // 1. Exact keyword matches (highest weight)
+        for (String queryTerm : queryTerms) {
+            for (String keyword : exampleKeywords) {
+                if (keyword.equals(queryTerm)) {
+                    totalScore += 3.0; // Exact match bonus
+                    matchedTerms.add(queryTerm + " (exact)");
+                }
+            }
+        }
+        
+        // 2. Partial matches with context
+        for (String queryTerm : queryTerms) {
+            for (String keyword : exampleKeywords) {
+                if (!keyword.equals(queryTerm)) { // Avoid double scoring exact matches
+                    double partialScore = calculatePartialMatch(queryTerm, keyword);
+                    if (partialScore > 0) {
+                        totalScore += partialScore;
+                        matchedTerms.add(queryTerm + " → " + keyword);
                     }
                 }
             }
-            
-            if (score > 0) {
-                matchingExamples.add(example);
-                exampleScores.put(example, score);
-                System.out.printf("     🎯 Total Score: %d | Matched: %s\n", 
-                    score, String.join(", ", matchedKeywords));
-            } else {
-                System.out.printf("     ❌ No matches found\n");
+        }
+        
+        // 3. Question similarity bonus
+        double questionSimilarity = calculateQuestionSimilarity(originalQuery, example.getQuestion());
+        totalScore += questionSimilarity;
+        if (questionSimilarity > 0.5) {
+            matchedTerms.add("question-sim:" + String.format("%.1f", questionSimilarity));
+        }
+        
+        // 4. Scenario/Phase context bonus
+        if (example.getScenario() != null && !example.getScenario().isEmpty()) {
+            if (containsAnyTerm(queryTerms, example.getScenario().toLowerCase())) {
+                totalScore += 1.0;
+                matchedTerms.add("scenario-match");
             }
-            System.out.println();
         }
         
-        System.out.println("📊 Step 3 - Sorting by relevance score:");
+        return new MatchResult(totalScore, matchedTerms);
+    }
+    
+    /**
+     * Calculate partial match score between two terms
+     */
+    private double calculatePartialMatch(String queryTerm, String keyword) {
+        if (queryTerm.length() < 3 || keyword.length() < 3) return 0.0;
         
-        // Step 3: Sort by score
-        List<DataExample> sortedExamples = matchingExamples.stream()
-                .sorted((e1, e2) -> {
-                    int score1 = exampleScores.get(e1);
-                    int score2 = exampleScores.get(e2);
-//                    System.out.printf("  🔄 Comparing: Score %d vs %d\n", score1, score2);
-                    return Integer.compare(score2, score1); // Descending order
-                })
-                .limit(5) // Return top 5 most relevant examples
-                .collect(Collectors.toList());
-        
-        System.out.println("\n🎯 Step 4 - Final Results (Top " + sortedExamples.size() + "):");
-        for (int i = 0; i < sortedExamples.size(); i++) {
-            DataExample example = sortedExamples.get(i);
-            int score = exampleScores.get(example);
-            System.out.printf("  %d. Score: %d | %s\n", 
-                i + 1, score, example.getQuestion());
-            System.out.printf("     Keywords: %s\n", 
-                String.join(", ", example.getKeywords()));
+        // Contains match
+        if (keyword.contains(queryTerm) || queryTerm.contains(keyword)) {
+            double lengthRatio = Math.min(queryTerm.length(), keyword.length()) / 
+                               (double) Math.max(queryTerm.length(), keyword.length());
+            return 1.5 * lengthRatio; // Weight by length similarity
         }
         
-        System.out.println("✅ Query matching process completed\n");
-        return sortedExamples;
+        // Fuzzy similarity (simple Levenshtein-like)
+        double similarity = calculateStringSimilarity(queryTerm, keyword);
+        return similarity > 0.7 ? similarity : 0.0;
+    }
+    
+    /**
+     * Calculate string similarity (simplified)
+     */
+    private double calculateStringSimilarity(String s1, String s2) {
+        int maxLen = Math.max(s1.length(), s2.length());
+        if (maxLen == 0) return 1.0;
+        
+        int distance = calculateLevenshteinDistance(s1, s2);
+        return (maxLen - distance) / (double) maxLen;
+    }
+    
+    /**
+     * Calculate Levenshtein distance
+     */
+    private int calculateLevenshteinDistance(String s1, String s2) {
+        int[][] dp = new int[s1.length() + 1][s2.length() + 1];
+        
+        for (int i = 0; i <= s1.length(); i++) dp[i][0] = i;
+        for (int j = 0; j <= s2.length(); j++) dp[0][j] = j;
+        
+        for (int i = 1; i <= s1.length(); i++) {
+            for (int j = 1; j <= s2.length(); j++) {
+                int cost = (s1.charAt(i-1) == s2.charAt(j-1)) ? 0 : 1;
+                dp[i][j] = Math.min(Math.min(
+                    dp[i-1][j] + 1,     // deletion
+                    dp[i][j-1] + 1),    // insertion
+                    dp[i-1][j-1] + cost // substitution
+                );
+            }
+        }
+        
+        return dp[s1.length()][s2.length()];
+    }
+    
+    /**
+     * Calculate similarity between user query and example question
+     */
+    private double calculateQuestionSimilarity(String userQuery, String exampleQuestion) {
+        Set<String> userWords = Arrays.stream(userQuery.toLowerCase().split("\\s+"))
+            .filter(word -> word.length() > 2)
+            .collect(Collectors.toSet());
+            
+        Set<String> exampleWords = Arrays.stream(exampleQuestion.toLowerCase().split("\\s+"))
+            .filter(word -> word.length() > 2)
+            .collect(Collectors.toSet());
+            
+        if (userWords.isEmpty() || exampleWords.isEmpty()) return 0.0;
+        
+        Set<String> intersection = new HashSet<>(userWords);
+        intersection.retainAll(exampleWords);
+        
+        Set<String> union = new HashSet<>(userWords);
+        union.addAll(exampleWords);
+        
+        return intersection.size() / (double) union.size();
+    }
+    
+    /**
+     * Check if any query term is contained in the text
+     */
+    private boolean containsAnyTerm(Set<String> queryTerms, String text) {
+        return queryTerms.stream().anyMatch(text::contains);
+    }
+    
+    /**
+     * Build scenario info string
+     */
+    private String buildScenarioInfo(DataExample example) {
+        String scenarioInfo = "";
+        if (example.getScenario() != null && !example.getScenario().isEmpty()) {
+            scenarioInfo += "Scenario: " + example.getScenario();
+        }
+        if (example.getPhase() != null && !example.getPhase().isEmpty()) {
+            if (!scenarioInfo.isEmpty()) scenarioInfo += " | ";
+            scenarioInfo += "Phase: " + example.getPhase();
+        }
+        return scenarioInfo;
+    }
+    
+    /**
+     * Result class for match scoring
+     */
+    private static class MatchResult {
+        final double score;
+        final List<String> matchedTerms;
+        
+        MatchResult(double score, List<String> matchedTerms) {
+            this.score = score;
+            this.matchedTerms = matchedTerms;
+        }
     }
     
     /**
@@ -181,6 +454,18 @@ public class AiQueryService {
             examples.append("Example ").append(i + 1).append(":\n");
             examples.append("Question: ").append(example.getQuestion()).append("\n");
             examples.append("Keywords: ").append(String.join(", ", example.getKeywords())).append("\n");
+            
+            // Include scenario and phase information for enhanced context
+            if (example.getScenario() != null && !example.getScenario().isEmpty()) {
+                examples.append("Scenario: ").append(example.getScenario()).append("\n");
+            }
+            if (example.getPhase() != null && !example.getPhase().isEmpty()) {
+                examples.append("Phase: ").append(example.getPhase()).append("\n");
+            }
+            if (example.getBusinessValue() != null && !example.getBusinessValue().isEmpty()) {
+                examples.append("Business Value: ").append(example.getBusinessValue()).append("\n");
+            }
+            
             examples.append("Query: ").append(example.getQuery().toPrettyString()).append("\n\n");
         }
         

@@ -1,0 +1,63 @@
+[
+  {
+    "question": "Mô hình lưu lượng ICMP: Có kích thước payload bất thường hoặc tần suất lạ?",
+    "keywords": [
+      "icmp tunneling",
+      "đường hầm icmp",
+      "icmp traffic",
+      "lưu lượng icmp",
+      "payload bất thường",
+      "unusual payload",
+      "đánh cắp dữ liệu",
+      "data exfiltration",
+      "covert channels",
+      "kênh bí mật",
+      "network forensics",
+      "điều tra mạng",
+      "kích thước",
+      "payload size",
+      "tần suất",
+      "frequency",
+      "mô hình lưu lượng",
+      "traffic pattern"
+    ],
+    "scenario": "NETWORK COVERT CHANNELS DETECTION",
+    "phase": "Giai đoạn 1: Protocol Anomaly Detection",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-24h" } } }, { "term": { "network.protocol": "icmp" } }]
+        }
+      },
+      "aggs": {
+        "icmp_analysis": {
+          "terms": { "field": "source.ip", "size": 50 },
+          "aggs": {
+            "packet_sizes": {
+              "histogram": {
+                "field": "network.bytes",
+                "interval": 100
+              },
+              "aggs": {
+                "avg_bytes": { "avg": { "field": "network.bytes" } }
+              }
+            },
+            "frequency_pattern": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1m"
+              }
+            },
+            "avg_packet_size": { "avg": { "field": "network.bytes" } },
+            "unusual_payloads": {
+              "bucket_selector": {
+                "buckets_path": { "avg_size": "avg_packet_size" },
+                "script": "params.avg_size > 1000"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+]

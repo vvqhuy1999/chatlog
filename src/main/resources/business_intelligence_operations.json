@@ -1,0 +1,249 @@
+[
+  {
+    "question": "Tối ưu hóa chi phí băng thông: Phân tích sử dụng vs dung lượng?",
+    "keywords": [
+      "bandwidth optimization",
+      "tối ưu hóa băng thông",
+      "cost analysis",
+      "phân tích chi phí",
+      "usage vs capacity",
+      "sử dụng vs dung lượng",
+      "network efficiency",
+      "hiệu quả mạng",
+      "resource utilization",
+      "sử dụng tài nguyên",
+      "chi phí",
+      "cost",
+      "băng thông",
+      "bandwidth",
+      "tối ưu hóa",
+      "optimization",
+      "phân tích",
+      "analysis"
+    ],
+    "scenario": "COST OPTIMIZATION ANALYSIS",
+    "phase": "Giai đoạn 2: Phân tích cơ hội tối ưu chi phí",
+    "businessValue": "Giảm chi phí vận hành, tối ưu phân bổ tài nguyên",
+    "query": {
+      "query": {
+        "range": { "@timestamp": { "gte": "now-3d" } }
+      },
+      "aggs": {
+        "bandwidth_cost_analysis": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "calendar_interval": "1d"
+          },
+          "aggs": {
+            "daily_usage": { "sum": { "field": "network.bytes" } },
+            "peak_hour_usage": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              },
+              "aggs": {
+                "hourly_usage": { "sum": { "field": "network.bytes" } }
+              }
+            },
+            "95th_percentile_usage": {
+              "percentiles_bucket": {
+                "buckets_path": "peak_hour_usage>hourly_usage",
+                "percents": [95]
+              }
+            },
+            "underutilization_score": {
+              "bucket_script": {
+                "buckets_path": {
+                  "daily": "daily_usage",
+                  "peak": "95th_percentile_usage[95.0]"
+                },
+                "script": "params.peak > 0 ? (params.daily / (params.peak * 24)) * 100 : 0"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  {
+    "question": "Hiệu quả làm việc từ xa: Mô hình sử dụng VPN và tương quan năng suất?",
+    "keywords": [
+      "remote work",
+      "làm việc từ xa",
+      "work from home",
+      "làm việc tại nhà",
+      "vpn usage",
+      "sử dụng vpn",
+      "productivity correlation",
+      "tương quan năng suất",
+      "remote productivity",
+      "năng suất từ xa",
+      "hiệu quả",
+      "effectiveness",
+      "từ xa",
+      "remote",
+      "vpn",
+      "mô hình sử dụng",
+      "usage pattern",
+      "tương quan",
+      "correlation"
+    ],
+    "scenario": "REMOTE WORK EFFECTIVENESS ANALYSIS",
+    "phase": "Giai đoạn 2: Phân tích remote work",
+    "businessValue": "Tối ưu chính sách làm việc từ xa, lập kế hoạch dung lượng VPN",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-3d" } } },
+            { "range": { "source.ip": { "gte": "192.168.0.0", "lte": "192.168.255.255" } } }
+          ]
+        }
+      },
+      "aggs": {
+        "remote_work_analysis": {
+          "terms": { "field": "source.user.name", "size": 100 },
+          "aggs": {
+            "vpn_usage_pattern": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "1d"
+              },
+              "aggs": {
+                "daily_vpn_hours": {
+                  "date_histogram": {
+                    "field": "@timestamp",
+                    "fixed_interval": "1h"
+                  },
+                  "aggs": {
+                    "active_hour": {
+                      "bucket_selector": {
+                        "buckets_path": { "count": "_count" },
+                        "script": "params.count > 10"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "remote_productivity": {
+              "filters": {
+                "filters": {
+                  "business_hours": {
+                    "script": {
+                      "script": "doc['@timestamp'].value.getHour() >= 8 && doc['@timestamp'].value.getHour() <= 17"
+                    }
+                  },
+                  "off_hours": {
+                    "script": {
+                      "script": "doc['@timestamp'].value.getHour() < 8 || doc['@timestamp'].value.getHour() > 17"
+                    }
+                  }
+                }
+              },
+              "aggs": {
+                "activity_count": { "value_count": { "field": "@timestamp" } },
+                "data_usage": { "sum": { "field": "network.bytes" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  {
+    "question": "Tỉ lệ operations thủ công vs tự động?",
+    "keywords": [
+      "manual operations",
+      "hoạt động thủ công",
+      "thủ công",
+      "manual",
+      "automation ratio",
+      "tỉ lệ tự động",
+      "operational efficiency",
+      "hiệu quả vận hành",
+      "process automation",
+      "tự động hóa quy trình",
+      "digital operations",
+      "vận hành số",
+      "tỉ lệ",
+      "ratio",
+      "operations",
+      "vận hành",
+      "tự động",
+      "automation",
+      "vs",
+      "so với"
+    ],
+    "scenario": "OPERATIONAL EXCELLENCE & AUTOMATION",
+    "phase": "Giai đoạn 1: Automation Impact Assessment",
+    "businessValue": "Giảm chi phí vận hành, cải thiện độ tin cậy",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-60d" } } }, { "term": { "event.type": "configuration" } }]
+        }
+      },
+      "aggs": {
+        "automation_metrics": {
+          "filters": {
+            "filters": {
+              "manual_operations": {
+                "bool": {
+                  "must_not": [
+                    { "wildcard": { "source.user.name": "*system*" } },
+                    { "wildcard": { "source.user.name": "*service*" } },
+                    { "wildcard": { "source.user.name": "*auto*" } }
+                  ]
+                }
+              },
+              "automated_operations": {
+                "bool": {
+                  "should": [
+                    { "wildcard": { "source.user.name": "*system*" } },
+                    { "wildcard": { "source.user.name": "*service*" } },
+                    { "wildcard": { "source.user.name": "*auto*" } }
+                  ],
+                  "minimum_should_match": 1
+                }
+              }
+            }
+          },
+          "aggs": {
+            "operation_timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "1w"
+              },
+              "aggs": {
+                "operation_count": { "value_count": { "field": "@timestamp" } },
+                "error_rate": {
+                  "filter": { "term": { "event.outcome": "failure" } },
+                  "aggs": {
+                    "error_count": { "value_count": { "field": "@timestamp" } }
+                  }
+                }
+              }
+            },
+            "total_operations": {
+              "sum_bucket": {
+                "buckets_path": "operation_timeline>operation_count"
+              }
+            },
+            "automation_ratio": {
+              "bucket_script": {
+                "buckets_path": {
+                  "automated": "_count",
+                  "total": "total_operations"
+                },
+                "script": "params.total > 0 ? (params.automated / params.total) * 100 : 0"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+]
