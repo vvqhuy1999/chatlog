@@ -24,7 +24,9 @@ public class CacheConfig {
             "ai_responses",             // Cache AI responses
             "schema_mappings",          // Cache Elasticsearch schema
             "query_patterns",           // Cache query patterns
-            "session_contexts"          // Cache session contexts
+            "session_contexts",         // Cache session contexts
+            "enhanced_examples",        // Cache enhanced example matching results
+            "query_analysis"            // Cache query analysis results
         );
     }
 

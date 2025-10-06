@@ -51,6 +51,9 @@ public class AiComparisonService {
     @Autowired
     private PerformanceMonitoringService performanceMonitoringService;
     
+    @Autowired
+    private EnhancedExampleMatchingService enhancedExampleMatchingService;
+    
     private final ChatClient chatClient;
     
     @Autowired
@@ -474,8 +477,10 @@ public class AiComparisonService {
     }
     
     /**
-     * Find relevant examples based on user query keywords
+     * Find relevant examples based on user query keywords (LEGACY METHOD - kept for fallback)
+     * @deprecated Use EnhancedExampleMatchingService.findRelevantExamples() instead
      */
+    @Deprecated
     private List<DataExample> findRelevantExamples(String userQuery) {
         System.out.println("\n🔍 ===== QUERY MATCHING PROCESS =====");
         System.out.println("📝 User Query: \"" + userQuery + "\"");
@@ -563,24 +568,32 @@ public class AiComparisonService {
     }
     
     /**
-     * Build dynamic examples string for the prompt
+     * Build dynamic examples string for the prompt using enhanced matching
      */
     private String buildDynamicExamples(String userQuery) {
-        System.out.println("\n📝 ===== BUILDING DYNAMIC EXAMPLES =====");
+        System.out.println("\n📝 ===== BUILDING ENHANCED DYNAMIC EXAMPLES =====");
         System.out.println("🔍 Finding relevant examples for: \"" + userQuery + "\"");
         
-        List<DataExample> relevantExamples = findRelevantExamples(userQuery);
+        // Use enhanced matching service for better accuracy
+        List<DataExample> relevantExamples = enhancedExampleMatchingService.findRelevantExamples(userQuery, exampleLibrary);
         
         if (relevantExamples.isEmpty()) {
-            System.out.println("⚠️ No relevant examples found, using fallback message");
-            return "No specific examples found for this query type.";
+            System.out.println("⚠️ No relevant examples found with enhanced matching, trying fallback...");
+            // Fallback to original method if enhanced matching fails
+            relevantExamples = findRelevantExamples(userQuery);
+            if (relevantExamples.isEmpty()) {
+                System.out.println("❌ No examples found even with fallback method");
+                return "No specific examples found for this query type.";
+            }
         }
         
-        System.out.println("🔨 Building dynamic examples string for AI prompt:");
-        System.out.println("   - Found " + relevantExamples.size() + " relevant examples");
+        System.out.println("🔨 Building enhanced dynamic examples string for AI prompt:");
+        System.out.println("   - Found " + relevantExamples.size() + " relevant examples using enhanced matching");
+        System.out.println("   - Examples selected with semantic analysis and context awareness");
         
         StringBuilder examples = new StringBuilder();
-        examples.append("RELEVANT EXAMPLES FROM KNOWLEDGE BASE:\n\n");
+        examples.append("RELEVANT EXAMPLES FROM ENHANCED KNOWLEDGE BASE MATCHING:\n");
+        examples.append("(Selected using semantic similarity, context analysis, and diversity filtering)\n\n");
         
         for (int i = 0; i < relevantExamples.size(); i++) {
             DataExample example = relevantExamples.get(i);
@@ -595,11 +608,12 @@ public class AiComparisonService {
         }
         
         String result = examples.toString();
-        System.out.println("✅ Dynamic examples built successfully");
+        System.out.println("✅ Enhanced dynamic examples built successfully");
         System.out.println("📏 Total length: " + result.length() + " characters");
+        System.out.println("📊 Quality metrics: Semantic analysis + Context awareness + Diversity filtering applied");
         System.out.println("📋 Preview (first 300 chars):");
         System.out.println("   " + result.substring(0, Math.min(300, result.length())) + "...");
-        System.out.println("🎯 ===== DYNAMIC EXAMPLES COMPLETED =====\n");
+        System.out.println("🎯 ===== ENHANCED DYNAMIC EXAMPLES COMPLETED =====\n");
         
         return result;
     }
