@@ -498,23 +498,16 @@ public class AiComparisonService {
                 .filter(word -> word.length() > 2) // Filter out short words
                 .collect(Collectors.toList());
         
-        System.out.println("🔤 Step 1 - Extracted keywords: " + queryWords);
-        
-        // Step 2: Find matching examples with detailed logging
+        // Step 2: Find matching examples
         List<DataExample> matchingExamples = new ArrayList<>();
         Map<DataExample, Integer> exampleScores = new HashMap<>();
         
-        System.out.println("\n🔍 Step 2 - Searching through knowledge base:");
         for (int i = 0; i < exampleLibrary.size(); i++) {
             DataExample example = exampleLibrary.get(i);
             if (example.getKeywords() == null) continue;
             
             int score = 0;
             List<String> matchedKeywords = new ArrayList<>();
-            
-            System.out.printf("  📋 Example %d: %s\n", i + 1, 
-                example.getQuestion().substring(0, Math.min(60, example.getQuestion().length())) + "...");
-            System.out.printf("     Keywords: %s\n", String.join(", ", example.getKeywords()));
             
             // Calculate score for this example
             for (String keyword : example.getKeywords()) {
@@ -524,7 +517,6 @@ public class AiComparisonService {
                     if (isMatch) {
                         score++;
                         matchedKeywords.add(keyword);
-                        System.out.printf("     ✅ Match: '%s' ↔ '%s'\n", queryWord, keyword);
                     }
                 }
             }
@@ -532,38 +524,20 @@ public class AiComparisonService {
             if (score > 0) {
                 matchingExamples.add(example);
                 exampleScores.put(example, score);
-                System.out.printf("     🎯 Total Score: %d | Matched: %s\n", 
-                    score, String.join(", ", matchedKeywords));
-            } else {
-                System.out.printf("     ❌ No matches found\n");
             }
-            System.out.println();
         }
-        
-        System.out.println("📊 Step 3 - Sorting by relevance score:");
         
         // Step 3: Sort by score
         List<DataExample> sortedExamples = matchingExamples.stream()
                 .sorted((e1, e2) -> {
                     int score1 = exampleScores.get(e1);
                     int score2 = exampleScores.get(e2);
-//                    System.out.printf("  🔄 Comparing: Score %d vs %d\n", score1, score2);
                     return Integer.compare(score2, score1); // Descending order
                 })
-                .limit(5) // Return top 5 most relevant examples
+                .limit(10) // Return top 10 most relevant examples
                 .collect(Collectors.toList());
         
-        System.out.println("\n🎯 Step 4 - Final Results (Top " + sortedExamples.size() + "):");
-        for (int i = 0; i < sortedExamples.size(); i++) {
-            DataExample example = sortedExamples.get(i);
-            int score = exampleScores.get(example);
-            System.out.printf("  %d. Score: %d | %s\n", 
-                i + 1, score, example.getQuestion());
-            System.out.printf("     Keywords: %s\n", 
-                String.join(", ", example.getKeywords()));
-        }
-        
-        System.out.println("✅ Query matching process completed\n");
+        System.out.println("✅ Found " + sortedExamples.size() + " matching examples");
         return sortedExamples;
     }
     
@@ -571,50 +545,28 @@ public class AiComparisonService {
      * Build dynamic examples string for the prompt using enhanced matching
      */
     private String buildDynamicExamples(String userQuery) {
-        System.out.println("\n📝 ===== BUILDING ENHANCED DYNAMIC EXAMPLES =====");
-        System.out.println("🔍 Finding relevant examples for: \"" + userQuery + "\"");
-        
         // Use enhanced matching service for better accuracy
         List<DataExample> relevantExamples = enhancedExampleMatchingService.findRelevantExamples(userQuery, exampleLibrary);
         
         if (relevantExamples.isEmpty()) {
-            System.out.println("⚠️ No relevant examples found with enhanced matching, trying fallback...");
             // Fallback to original method if enhanced matching fails
             relevantExamples = findRelevantExamples(userQuery);
             if (relevantExamples.isEmpty()) {
-                System.out.println("❌ No examples found even with fallback method");
                 return "No specific examples found for this query type.";
             }
         }
         
-        System.out.println("🔨 Building enhanced dynamic examples string for AI prompt:");
-        System.out.println("   - Found " + relevantExamples.size() + " relevant examples using enhanced matching");
-        System.out.println("   - Examples selected with semantic analysis and context awareness");
-        
         StringBuilder examples = new StringBuilder();
-        examples.append("RELEVANT EXAMPLES FROM ENHANCED KNOWLEDGE BASE MATCHING:\n");
-        examples.append("(Selected using semantic similarity, context analysis, and diversity filtering)\n\n");
+        examples.append("RELEVANT EXAMPLES FROM KNOWLEDGE BASE:\n\n");
         
         for (int i = 0; i < relevantExamples.size(); i++) {
             DataExample example = relevantExamples.get(i);
-            System.out.printf("   📄 Adding Example %d: %s\n", 
-                i + 1, example.getQuestion().substring(0, Math.min(50, example.getQuestion().length())) + "...");
-            System.out.printf("      Keywords: %s\n", String.join(", ", example.getKeywords()));
-            
             examples.append("Example ").append(i + 1).append(":\n");
             examples.append("Question: ").append(example.getQuestion()).append("\n");
             examples.append("Keywords: ").append(String.join(", ", example.getKeywords())).append("\n");
             examples.append("Query: ").append(example.getQuery().toPrettyString()).append("\n\n");
         }
         
-        String result = examples.toString();
-        System.out.println("✅ Enhanced dynamic examples built successfully");
-        System.out.println("📏 Total length: " + result.length() + " characters");
-        System.out.println("📊 Quality metrics: Semantic analysis + Context awareness + Diversity filtering applied");
-        System.out.println("📋 Preview (first 300 chars):");
-        System.out.println("   " + result.substring(0, Math.min(300, result.length())) + "...");
-        System.out.println("🎯 ===== ENHANCED DYNAMIC EXAMPLES COMPLETED =====\n");
-        
-        return result;
+        return examples.toString();
     }
 }

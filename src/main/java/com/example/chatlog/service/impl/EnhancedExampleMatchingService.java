@@ -49,29 +49,19 @@ public class EnhancedExampleMatchingService {
      */
     @Cacheable(value = "enhanced_examples", keyGenerator = "customKeyGenerator")
     public List<DataExample> findRelevantExamples(String userQuery, List<DataExample> exampleLibrary) {
-        System.out.println("\n🔍 ===== ENHANCED QUERY MATCHING PROCESS =====");
-        System.out.println("📝 User Query: \"" + userQuery + "\"");
+        System.out.println("🔍 Query matching: \"" + userQuery + "\"");
         
         if (exampleLibrary == null || exampleLibrary.isEmpty()) {
-            System.out.println("❌ Knowledge base is empty or not loaded");
+            System.out.println("❌ Knowledge base is empty");
             return new ArrayList<>();
         }
         
-        System.out.println("📚 Knowledge base contains " + exampleLibrary.size() + " examples");
-        
         // Step 1: Advanced keyword extraction
         QueryAnalysis queryAnalysis = analyzeQuery(userQuery);
-        System.out.println("🧠 Query Analysis:");
-        System.out.println("   - Primary keywords: " + queryAnalysis.getPrimaryKeywords());
-        System.out.println("   - Semantic keywords: " + queryAnalysis.getSemanticKeywords());
-        System.out.println("   - Domain: " + queryAnalysis.getDomain());
-        System.out.println("   - Intent: " + queryAnalysis.getIntent());
-        System.out.println("   - Time context: " + queryAnalysis.hasTimeContext());
         
         // Step 2: Score all examples with enhanced algorithm
         List<ExampleScore> scoredExamples = new ArrayList<>();
         
-        System.out.println("\n🔍 Step 2 - Enhanced scoring through knowledge base:");
         for (int i = 0; i < exampleLibrary.size(); i++) {
             DataExample example = exampleLibrary.get(i);
             if (example.getKeywords() == null) continue;
@@ -83,7 +73,6 @@ public class EnhancedExampleMatchingService {
         }
         
         // Step 3: Sort by enhanced score and apply diversity filter
-        System.out.println("\n📊 Step 3 - Sorting and applying diversity filter:");
         List<DataExample> finalResults = scoredExamples.stream()
                 .sorted((s1, s2) -> Double.compare(s2.getTotalScore(), s1.getTotalScore()))
                 .limit(10) // Get top 10 first
@@ -91,27 +80,9 @@ public class EnhancedExampleMatchingService {
                 .collect(Collectors.toList());
         
         // Apply diversity filter to avoid similar examples
-        List<DataExample> diverseResults = applyDiversityFilter(finalResults, 5);
+        List<DataExample> diverseResults = applyDiversityFilter(finalResults, 10);
         
-        System.out.println("\n🎯 Step 4 - Final Results (Top " + diverseResults.size() + " with diversity):");
-        for (int i = 0; i < diverseResults.size(); i++) {
-            DataExample example = diverseResults.get(i);
-            ExampleScore matchingScore = scoredExamples.stream()
-                .filter(s -> s.getExample().equals(example))
-                .findFirst()
-                .orElse(null);
-            
-            if (matchingScore != null) {
-                System.out.printf("  %d. Score: %.2f | %s\n", 
-                    i + 1, matchingScore.getTotalScore(), 
-                    example.getQuestion().substring(0, Math.min(80, example.getQuestion().length())) + "...");
-                System.out.printf("     Details: Semantic=%.1f, Context=%.1f, Domain=%.1f, Diversity=%.1f\n",
-                    matchingScore.getSemanticScore(), matchingScore.getContextScore(),
-                    matchingScore.getDomainScore(), matchingScore.getDiversityBonus());
-            }
-        }
-        
-        System.out.println("✅ Enhanced query matching process completed\n");
+        System.out.println("✅ Found " + diverseResults.size() + " relevant examples");
         return diverseResults;
     }
 
@@ -158,24 +129,12 @@ public class EnhancedExampleMatchingService {
      * Calculate enhanced score for an example
      */
     private ExampleScore calculateEnhancedScore(QueryAnalysis queryAnalysis, DataExample example, int exampleIndex) {
-        System.out.printf("  📋 Example %d: %s\n", exampleIndex,
-            example.getQuestion().substring(0, Math.min(60, example.getQuestion().length())) + "...");
-        
         double semanticScore = calculateSemanticScore(queryAnalysis, example);
         double contextScore = calculateContextScore(queryAnalysis, example);
         double domainScore = calculateDomainScore(queryAnalysis, example);
         double diversityBonus = 0.0; // Will be calculated later if needed
         
         double totalScore = semanticScore + contextScore + domainScore + diversityBonus;
-        
-        System.out.printf("     Scores: Semantic=%.1f, Context=%.1f, Domain=%.1f, Total=%.2f\n",
-            semanticScore, contextScore, domainScore, totalScore);
-        
-        if (totalScore == 0) {
-            System.out.printf("     ❌ No matches found\n\n");
-        } else {
-            System.out.printf("     ✅ Good match found\n\n");
-        }
         
         return new ExampleScore(example, semanticScore, contextScore, domainScore, diversityBonus, totalScore);
     }
@@ -215,9 +174,6 @@ public class EnhancedExampleMatchingService {
             }
         }
         
-        if (!matchedKeywords.isEmpty()) {
-            System.out.printf("     🎯 Semantic matches: %s\n", String.join(", ", matchedKeywords));
-        }
         
         return score;
     }
@@ -235,7 +191,6 @@ public class EnhancedExampleMatchingService {
                             .anyMatch(timeKeyword -> keyword.toLowerCase().contains(timeKeyword)));
             if (exampleHasTime) {
                 score += 2.0;
-                System.out.printf("     ⏰ Time context match\n");
             }
         }
         
@@ -244,7 +199,6 @@ public class EnhancedExampleMatchingService {
             String exampleIntent = detectExampleIntent(example);
             if (queryAnalysis.getIntent().equals(exampleIntent)) {
                 score += 1.5;
-                System.out.printf("     🎯 Intent match: %s\n", queryAnalysis.getIntent());
             }
         }
         
@@ -262,7 +216,6 @@ public class EnhancedExampleMatchingService {
         if (queryDomain.equals(exampleDomain)) {
             double weight = DOMAIN_WEIGHTS.getOrDefault(queryDomain, 1.0);
             score = 1.0 * weight;
-            System.out.printf("     🏷️ Domain match: %s (weight=%.1f)\n", queryDomain, weight);
         }
         
         return score;

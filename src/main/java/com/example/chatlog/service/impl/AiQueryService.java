@@ -74,9 +74,9 @@ public class AiQueryService {
                 if (fileName.equals("incident_response_playbooks.json")) {
                     System.out.println("\n🔍 ===== DEBUG: " + fileName + " CONTENT =====");
                     String content = new String(inputStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-                    System.out.println("📄 Raw JSON content:");
-                    System.out.println(content);
-                    System.out.println("🔍 ===== END DEBUG =====\n");
+//                    System.out.println("📄 Raw JSON content:");
+//                    System.out.println(content);
+//                    System.out.println("🔍 ===== END DEBUG =====\n");
                     
                     // Re-create input stream for parsing
                     inputStream = new java.io.ByteArrayInputStream(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));

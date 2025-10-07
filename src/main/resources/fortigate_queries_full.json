@@ -2,4409 +2,655 @@
   {
     "question": "Trong 24 giờ qua, những IP nguồn nào bị chặn (deny) nhiều nhất?",
     "keywords": [
-      "IP nguồn",
-      "chặn",
-      "deny",
-      "nhiều nhất"
+      "IP nguồn", "source ip", "chặn", "block", "deny", "nhiều nhất", "top", "24 giờ qua", "last 24 hours"
     ],
     "query": {
       "size": 0,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "fortinet.firewall.action": "deny"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_blocked_sources": {
-          "terms": {
-            "field": "source.ip",
-            "size": 50
-          }
-        }
-      }
+      "query": { "bool": { "filter": [ { "term": { "fortinet.firewall.action": "deny" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } },
+      "aggs": { "top_blocked_sources": { "terms": { "field": "source.ip", "size": 50 } } }
     }
   },
   {
     "question": "Từ IP nguồn 192.0.2.10, đích nào nhận nhiều bytes nhất trong 24 giờ qua?",
     "keywords": [
-      "IP nguồn",
-      "đích",
-      "bytes",
-      "nhiều nhất"
+      "IP nguồn", "source ip", "đích", "destination", "bytes", "lưu lượng", "traffic", "nhiều nhất", "top"
     ],
     "query": {
       "size": 0,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "source.ip": "192.0.2.10"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_dst": {
-          "terms": {
-            "field": "destination.ip",
-            "size": 50,
-            "order": {
-              "bytes_sum": "desc"
-            }
-          },
-          "aggs": {
-            "bytes_sum": {
-              "sum": {
-                "field": "network.bytes"
-              }
-            }
-          }
-        }
-      }
+      "query": { "bool": { "filter": [ { "term": { "source.ip": "192.0.2.10" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } },
+      "aggs": { "by_dst": { "terms": { "field": "destination.ip", "size": 50, "order": { "bytes_sum": "desc" } }, "aggs": { "bytes_sum": { "sum": { "field": "network.bytes" } } } } }
     }
   },
   {
     "question": "Liệt kê các phiên có mức rủi ro IPS cao (crlevel = high/critical) trong 1 ngày qua.",
     "keywords": [
-      "phiên",
-      "rủi ro",
-      "IPS",
-      "cao",
-      "critical"
+      "phiên", "session", "rủi ro", "risk", "IPS", "cao", "high", "critical", "crlevel"
     ],
     "query": {
       "size": 50,
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "fortinet.firewall.attack",
-        "fortinet.firewall.crlevel",
-        "fortinet.firewall.crscore",
-        "rule.name"
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "terms": {
-                "fortinet.firewall.crlevel": [
-                  "high",
-                  "critical"
-                ]
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      }
+      "sort": [ { "@timestamp": "desc" } ],
+      "_source": [ "@timestamp", "source.ip", "destination.ip", "fortinet.firewall.attack", "fortinet.firewall.crlevel", "fortinet.firewall.crscore", "rule.name" ],
+      "query": { "bool": { "filter": [ { "terms": { "fortinet.firewall.crlevel": [ "high", "critical" ] } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }
     }
   },
   {
-    "question": "Trong 7 ngày qua, các kết nối outbound từ Việt Nam ra nước ngoài (không phải Việt Nam) là gì?",
+    "question": "Trong 7 ngày qua, các kết nối outbound từ Việt Nam ra nước ngoài là gì?",
     "keywords": [
-      "kết nối",
-      "outbound",
-      "Việt Nam",
-      "nước ngoài"
+      "kết nối", "connection", "outbound", "đi ra", "Việt Nam", "nước ngoài", "foreign"
     ],
     "query": {
       "size": 50,
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "destination.geo.country_name",
-        "network.bytes",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "source.geo.country_name": "Vietnam"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-7d"
-                }
-              }
-            }
-          ],
-          "must_not": [
-            {
-              "term": {
-                "destination.geo.country_name": "Vietnam"
-              }
-            }
-          ]
-        }
-      }
+      "_source": [ "@timestamp", "source.ip", "destination.ip", "destination.geo.country_name", "network.bytes", "rule.name" ],
+      "sort": [ { "@timestamp": "desc" } ],
+      "query": { "bool": { "filter": [ { "term": { "source.geo.country_name": "Vietnam" } }, { "range": { "@timestamp": { "gte": "now-7d" } } } ], "must_not": [ { "term": { "destination.geo.country_name": "Vietnam" } } ] } }
     }
   },
   {
     "question": "Có những lần đăng nhập thất bại của người dùng 'alice' trong 48 giờ qua không?",
     "keywords": [
-      "đăng nhập",
-      "thất bại",
-      "người dùng",
-      "alice"
+      "đăng nhập", "login", "thất bại", "failure", "người dùng", "user", "alice"
     ],
     "query": {
       "size": 50,
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "event.action",
-        "event.outcome",
-        "fortinet.firewall.authmsg"
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "source.user.name": "alice"
-              }
-            },
-            {
-              "term": {
-                "event.action": "login"
-              }
-            },
-            {
-              "term": {
-                "event.outcome": "failure"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-48h"
-                }
-              }
-            }
-          ]
-        }
-      }
+      "sort": [ { "@timestamp": "desc" } ],
+      "_source": [ "@timestamp", "source.user.name", "source.ip", "event.action", "event.outcome", "fortinet.firewall.authmsg" ],
+      "query": { "bool": { "filter": [ { "term": { "source.user.name": "alice" } }, { "term": { "event.action": "login" } }, { "term": { "event.outcome": "failure" } }, { "range": { "@timestamp": { "gte": "now-48h" } } } ] } }
     }
   },
   {
     "question": "Những rule nào chặn nhiều nhất trong 24 giờ qua?",
     "keywords": [
-      "rule",
-      "chặn",
-      "nhiều nhất"
+      "rule", "policy", "chặn", "block", "deny", "nhiều nhất", "top"
     ],
     "query": {
       "size": 0,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "fortinet.firewall.action": "deny"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "rules": {
-          "terms": {
-            "field": "rule.name",
-            "size": 50
-          }
-        }
-      }
+      "query": { "bool": { "filter": [ { "term": { "fortinet.firewall.action": "deny" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } },
+      "aggs": { "rules": { "terms": { "field": "rule.name", "size": 50 } } }
     }
   },
   {
     "question": "Trong 1 giờ qua, có lưu lượng RDP (port 3389) đi vào từ WAN không?",
     "keywords": [
-      "RDP",
-      "port 3389",
-      "WAN",
-      "lưu lượng"
+      "RDP", "port 3389", "WAN", "đi vào", "inbound", "lưu lượng", "traffic"
     ],
     "query": {
       "size": 50,
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "destination.port",
-        "fortinet.firewall.srcintfrole",
-        "rule.name"
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "destination.port": 3389
-              }
-            },
-            {
-              "term": {
-                "fortinet.firewall.srcintfrole": "wan"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-1h"
-                }
-              }
-            }
-          ]
-        }
-      }
+      "sort": [ { "@timestamp": "desc" } ],
+      "_source": [ "@timestamp", "source.ip", "destination.ip", "destination.port", "fortinet.firewall.srcintfrole", "rule.name" ],
+      "query": { "bool": { "filter": [ { "term": { "destination.port": 3389 } }, { "term": { "fortinet.firewall.srcintfrole": "wan" } }, { "range": { "@timestamp": { "gte": "now-1h" } } } ] } }
     }
   },
   {
     "question": "Các phiên DNAT tới server nội bộ 10.0.0.10 trong 24 giờ gần đây là gì?",
     "keywords": [
-      "phiên",
-      "DNAT",
-      "server",
-      "nội bộ"
+      "phiên", "session", "DNAT", "server", "máy chủ", "nội bộ", "internal"
     ],
     "query": {
       "size": 50,
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "fortinet.firewall.transip",
-        "destination.port",
-        "rule.name"
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "fortinet.firewall.trandisp": "dnat"
-              }
-            },
-            {
-              "term": {
-                "fortinet.firewall.transip": "10.0.0.10"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      }
+      "sort": [ { "@timestamp": "desc" } ],
+      "_source": [ "@timestamp", "source.ip", "destination.ip", "fortinet.firewall.transip", "destination.port", "rule.name" ],
+      "query": { "bool": { "filter": [ { "term": { "fortinet.firewall.trandisp": "dnat" } }, { "term": { "fortinet.firewall.transip": "10.0.0.10" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }
     }
   },
   {
     "question": "Trong 1 giờ qua, IP nguồn nào gửi nhiều gói ICMP bất thường (> 10.000 packets)?",
     "keywords": [
-      "IP nguồn",
-      "ICMP",
-      "bất thường",
-      "packets"
+      "IP nguồn", "source ip", "ICMP", "bất thường", "anomaly", "packets", "gói tin"
     ],
     "query": {
       "size": 0,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "network.protocol": "icmp"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-1h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_source": {
-          "terms": {
-            "field": "source.ip",
-            "size": 50
-          },
-          "aggs": {
-            "pkt_sum": {
-              "sum": {
-                "field": "network.packets"
-              }
-            },
-            "heavy_senders": {
-              "bucket_selector": {
-                "buckets_path": {
-                  "p": "pkt_sum"
-                },
-                "script": "params.p > 10000"
-              }
-            }
-          }
-        }
-      }
+      "query": { "bool": { "filter": [ { "term": { "network.protocol": "icmp" } }, { "range": { "@timestamp": { "gte": "now-1h" } } } ] } },
+      "aggs": { "by_source": { "terms": { "field": "source.ip", "size": 50 }, "aggs": { "pkt_sum": { "sum": { "field": "network.packets" } }, "heavy_senders": { "bucket_selector": { "buckets_path": { "p": "pkt_sum" }, "script": "params.p > 10000" } } } } }
     }
   },
   {
     "question": "Có traffic bị 'drop' bởi policy shaping tên 'Limit-Guest' trên thiết bị FGT-01 trong 24 giờ qua không?",
     "keywords": [
-      "traffic",
-      "drop",
-      "policy",
-      "shaping",
-      "Limit-Guest"
+      "traffic", "lưu lượng", "drop", "deny", "policy shaping", "Limit-Guest", "thiết bị", "observer"
     ],
     "query": {
       "size": 50,
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "observer.name",
-        "fortinet.firewall.shapingpolicyname",
-        "network.bytes"
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "observer.name": "FGT-01"
-              }
-            },
-            {
-              "term": {
-                "fortinet.firewall.shapingpolicyname": "Limit-Guest"
-              }
-            },
-            {
-              "term": {
-                "fortinet.firewall.action": "deny"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      }
+      "sort": [ { "@timestamp": "desc" } ],
+      "_source": [ "@timestamp", "source.ip", "destination.ip", "observer.name", "fortinet.firewall.shapingpolicyname", "network.bytes" ],
+      "query": { "bool": { "filter": [ { "term": { "observer.name": "FGT-01" } }, { "term": { "fortinet.firewall.shapingpolicyname": "Limit-Guest" } }, { "term": { "fortinet.firewall.action": "deny" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }
     }
   },
   {
     "question": "Ai đã đăng nhập vào thiết bị Fortigate bằng tài khoản admin trong 24 giờ qua?",
-    "keywords": [
-      "đăng nhập",
-      "Fortigate",
-      "admin",
-      "tài khoản"
-    ],
+    "keywords": ["đăng nhập", "login", "Fortigate", "thiết bị", "tài khoản", "user", "admin", "quản trị"],
     "query": {
-      "size": 50,
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "event.action",
-        "event.outcome"
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "source.user.name": "admin"
-              }
-            },
-            {
-              "term": {
-                "event.action": "login"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      }
+      "size": 50, "sort": [{ "@timestamp": "desc" }],
+      "_source": ["@timestamp", "source.user.name", "source.ip", "event.action", "event.outcome"],
+      "query": { "bool": { "filter": [ {"term": {"source.user.roles": "Administrator"}}, {"term": {"event.action": "login"}}, {"range": {"@timestamp": {"gte": "now-24h"}}} ] } }
     }
   },
   {
     "question": "Có phiên đăng nhập quản trị thất bại (admin login failed) nào trong 1 giờ qua không?",
-    "keywords": [
-      "phiên",
-      "đăng nhập",
-      "quản trị",
-      "thất bại",
-      "admin"
-    ],
+    "keywords": ["đăng nhập", "login", "quản trị", "admin", "thất bại", "failure", "1 giờ qua"],
     "query": {
-      "size": 50,
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "event.action",
-        "event.outcome",
-        "fortinet.firewall.authmsg"
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "event.action": "login"
-              }
-            },
-            {
-              "term": {
-                "event.outcome": "failure"
-              }
-            },
-            {
-              "term": {
-                "source.user.name": "admin"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-1h"
-                }
-              }
-            }
-          ]
-        }
-      }
+      "size": 50, "sort": [{"@timestamp": "desc"}],
+      "_source": ["@timestamp", "source.user.name", "source.ip", "event.action", "event.outcome", "fortinet.firewall.authmsg"],
+      "query": { "bool": { "filter": [ {"term": {"event.action": "login"}}, {"term": {"event.outcome": "failure"}}, {"term": {"source.user.roles": "Administrator"}}, {"range": {"@timestamp": {"gte": "now-1h"}}} ] } }
     }
   },
   {
     "question": "Trong 7 ngày qua có thay đổi nào về rule firewall không?",
-    "keywords": [
-      "thay đổi",
-      "rule",
-      "firewall"
-    ],
+    "keywords": ["thay đổi", "change", "cấu hình", "configuration", "rule", "firewall", "7 ngày qua"],
     "query": {
-      "size": 50,
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "event.action",
-        "rule.name",
-        "rule.ruleset",
-        "fortinet.firewall.cfgattr"
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "event.type": "configuration"
-              }
-            },
-            {
-              "term": {
-                "rule.ruleset": "firewall"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-7d"
-                }
-              }
-            }
-          ]
-        }
-      }
+      "size": 50, "sort": [{"@timestamp": "desc"}],
+      "_source": ["@timestamp", "source.user.name", "source.ip", "event.action", "rule.name", "rule.ruleset", "fortinet.firewall.cfgattr"],
+      "query": { "bool": { "filter": [ {"term": {"event.type": "configuration"}}, {"term": {"rule.ruleset": "firewall"}}, {"range": {"@timestamp": {"gte": "now-7d"}}} ] } }
     }
   },
   {
     "question": "Ai đã thay đổi cấu hình hệ thống trong 24 giờ qua?",
-    "keywords": [
-      "thay đổi",
-      "cấu hình",
-      "hệ thống"
-    ],
+    "keywords": ["ai", "user", "thay đổi", "change", "cấu hình", "configuration", "hệ thống", "24 giờ qua"],
     "query": {
       "size": 0,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "event.type": "configuration"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_user": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 50
-          }
-        }
-      }
+      "query": { "bool": { "filter": [ {"term": {"event.type": "configuration"}}, {"range": {"@timestamp": {"gte": "now-24h"}}} ] } },
+      "aggs": { "by_user": { "terms": { "field": "source.user.name", "size": 50 } } }
     }
   },
   {
     "question": "Có đăng nhập quản trị nào từ quốc gia khác Việt Nam trong 48 giờ qua?",
-    "keywords": [
-      "đăng nhập",
-      "quản trị",
-      "quốc gia",
-      "Việt Nam"
-    ],
+    "keywords": ["đăng nhập", "login", "quản trị", "admin", "quốc gia", "country", "khác Việt Nam", "nước ngoài", "foreign"],
     "query": {
-      "size": 50,
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "source.geo.country_name",
-        "event.action"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "event.action": "login"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-48h"
-                }
-              }
-            }
-          ],
-          "must_not": [
-            {
-              "term": {
-                "source.geo.country_name": "Vietnam"
-              }
-            }
-          ]
-        }
-      }
+      "size": 50, "_source": ["@timestamp", "source.user.name", "source.ip", "source.geo.country_name", "event.action"], "sort": [{"@timestamp": "desc"}],
+      "query": { "bool": { "filter": [ {"term": {"event.action": "login"}}, {"range": {"@timestamp": {"gte": "now-48h"}}} ], "must_not": [ {"term": {"source.geo.country_name": "Vietnam"}} ] } }
     }
   },
   {
     "question": "Trong 24 giờ qua có ai bật/tắt tính năng IPS hoặc AV không?",
-    "keywords": [
-      "bật",
-      "tắt",
-      "tính năng",
-      "IPS",
-      "AV"
-    ],
+    "keywords": ["bật", "tắt", "enable", "disable", "tính năng", "feature", "IPS", "AV", "Antivirus"],
     "query": {
-      "size": 50,
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "event.action",
-        "rule.category",
-        "fortinet.firewall.cfgattr"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "event.type": "configuration"
-              }
-            },
-            {
-              "terms": {
-                "rule.category": [
-                  "IPS",
-                  "Antivirus"
-                ]
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      }
+      "size": 50, "_source": ["@timestamp", "source.user.name", "source.ip", "event.action", "rule.category", "fortinet.firewall.cfgattr"], "sort": [{"@timestamp": "desc"}],
+      "query": { "bool": { "filter": [ {"term": {"event.type": "configuration"}}, {"terms": {"rule.category": ["IPS", "Antivirus"]}}, {"range": {"@timestamp": {"gte": "now-24h"}}} ] } }
     }
   },
   {
     "question": "Có dấu hiệu brute-force login (quá nhiều login failure từ 1 IP) trong 1 giờ qua không?",
-    "keywords": [
-      "brute-force",
-      "login",
-      "failure",
-      "IP"
-    ],
+    "keywords": ["brute-force", "tấn công", "đăng nhập", "login", "thất bại", "failure", "nhiều", "IP", "1 giờ qua"],
     "query": {
       "size": 0,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "event.action": "login"
-              }
-            },
-            {
-              "term": {
-                "event.outcome": "failure"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-1h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_ip": {
-          "terms": {
-            "field": "source.ip",
-            "size": 20
-          },
-          "aggs": {
-            "fail_count": {
-              "value_count": {
-                "field": "event.outcome"
-              }
-            },
-            "brute_force": {
-              "bucket_selector": {
-                "buckets_path": {
-                  "c": "fail_count"
-                },
-                "script": "params.c > 10"
-              }
-            }
-          }
-        }
-      }
+      "query": { "bool": { "filter": [ {"term": {"event.action": "login"}}, {"term": {"event.outcome": "failure"}}, {"range": {"@timestamp": {"gte": "now-1h"}}} ] } },
+      "aggs": { "by_ip": { "terms": { "field": "source.ip", "size": 20 }, "aggs": { "fail_count": { "value_count": { "field": "event.outcome" } }, "brute_force": { "bucket_selector": { "buckets_path": { "c": "fail_count" }, "script": "params.c > 10" } } } } }
     }
   },
   {
     "question": "Có IP nào thực hiện quá nhiều kết nối đến port quản trị (443, 22) trong 15 phút gần đây không?",
-    "keywords": [
-      "IP",
-      "kết nối",
-      "port",
-      "quản trị",
-      "443",
-      "22"
-    ],
+    "keywords": ["IP", "nhiều kết nối", "port quản trị", "admin port", "443", "22", "15 phút"],
     "query": {
       "size": 0,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "terms": {
-                "destination.port": [
-                  22,
-                  443
-                ]
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-15m"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_src": {
-          "terms": {
-            "field": "source.ip",
-            "size": 20
-          },
-          "aggs": {
-            "conn_count": {
-              "value_count": {
-                "field": "destination.port"
-              }
-            },
-            "suspicious": {
-              "bucket_selector": {
-                "buckets_path": {
-                  "c": "conn_count"
-                },
-                "script": "params.c > 50"
-              }
-            }
-          }
-        }
-      }
+      "query": { "bool": { "filter": [ {"terms": {"destination.port": [22, 443]}}, {"range": {"@timestamp": {"gte": "now-15m"}}} ] } },
+      "aggs": { "by_src": { "terms": { "field": "source.ip", "size": 20 }, "aggs": { "conn_count": { "value_count": { "field": "destination.port" } }, "suspicious": { "bucket_selector": { "buckets_path": { "c": "conn_count" }, "script": "params.c > 50" } } } } }
     }
   },
   {
     "question": "Ai đã thay đổi policy shaping trong 7 ngày qua?",
-    "keywords": [
-      "thay đổi",
-      "policy",
-      "shaping"
-    ],
+    "keywords": ["ai", "user", "thay đổi", "change", "policy shaping", "7 ngày qua"],
     "query": {
       "size": 0,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "event.type": "configuration"
-              }
-            },
-            {
-              "exists": {
-                "field": "fortinet.firewall.shapingpolicyname"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-7d"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_user": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 50
-          }
-        }
-      }
+      "query": { "bool": { "filter": [ {"term": {"event.type": "configuration"}}, {"exists": {"field": "fortinet.firewall.shapingpolicyname"}}, {"range": {"@timestamp": {"gte": "now-7d"}}} ] } },
+      "aggs": { "by_user": { "terms": { "field": "source.user.name", "size": 50 } } }
     }
   },
   {
     "question": "Có thay đổi nào trong cấu hình interface WAN trong 24 giờ qua không?",
-    "keywords": [
-      "thay đổi",
-      "cấu hình",
-      "interface",
-      "WAN"
-    ],
+    "keywords": ["thay đổi", "change", "cấu hình", "configuration", "interface", "WAN", "24 giờ qua"],
     "query": {
-      "size": 50,
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "observer.ingress.interface.name",
-        "observer.egress.interface.name",
-        "fortinet.firewall.cfgattr"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "event.type": "configuration"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ],
-          "should": [
-            {
-              "wildcard": {
-                "observer.ingress.interface.name": "*wan*"
-              }
-            },
-            {
-              "wildcard": {
-                "observer.egress.interface.name": "*wan*"
-              }
-            }
-          ],
-          "minimum_should_match": 1
-        }
-      }
+      "size": 50, "_source": ["@timestamp", "source.user.name", "source.ip", "observer.ingress.interface.name", "observer.egress.interface.name", "fortinet.firewall.cfgattr"], "sort": [{"@timestamp": "desc"}],
+      "query": { "bool": { "filter": [ {"term": {"event.type": "configuration"}}, {"range": {"@timestamp": {"gte": "now-24h"}}} ], "should": [ {"wildcard": {"observer.ingress.interface.name": "*wan*"}}, {"wildcard": {"observer.egress.interface.name": "*wan*"}} ], "minimum_should_match": 1 } }
     }
   },
   {
     "question": "Trong 24 giờ qua, những user nào bị chặn khi cố gắng kết nối SSH?",
-    "keywords": [
-      "user",
-      "chặn",
-      "kết nối",
-      "SSH"
-    ],
+    "keywords": ["user", "người dùng", "chặn", "block", "deny", "kết nối", "connection", "SSH", "port 22"],
     "query": {
       "size": 0,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "destination.port": 22
-              }
-            },
-            {
-              "term": {
-                "fortinet.firewall.action": "deny"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "blocked_users": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 50
-          }
-        }
-      }
+      "query": { "bool": { "filter": [ {"term": {"destination.port": 22}}, {"term": {"fortinet.firewall.action": "deny"}}, {"range": {"@timestamp": {"gte": "now-24h"}}} ] } },
+      "aggs": { "blocked_users": { "terms": { "field": "source.user.name", "size": 50 } } }
     }
   },
   {
     "question": "Có user nào bị chặn khi truy cập RDP (3389) từ LAN ra ngoài internet không?",
-    "keywords": [
-      "user",
-      "chặn",
-      "RDP",
-      "3389",
-      "LAN"
-    ],
+    "keywords": ["user", "người dùng", "chặn", "block", "deny", "truy cập", "RDP", "port 3389", "LAN"],
     "query": {
-      "size": 50,
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "destination.ip",
-        "destination.port",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "destination.port": 3389
-              }
-            },
-            {
-              "term": {
-                "fortinet.firewall.action": "deny"
-              }
-            },
-            {
-              "term": {
-                "fortinet.firewall.srcintfrole": "lan"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      }
+      "size": 50, "_source": ["@timestamp", "source.user.name", "source.ip", "destination.ip", "destination.port", "rule.name"], "sort": [{"@timestamp": "desc"}],
+      "query": { "bool": { "filter": [ {"term": {"destination.port": 3389}}, {"term": {"fortinet.firewall.action": "deny"}}, {"term": {"fortinet.firewall.srcintfrole": "lan"}}, {"range": {"@timestamp": {"gte": "now-24h"}}} ] } }
     }
   },
   {
     "question": "Trong 1 giờ qua có user nào gửi nhiều gói ICMP bị chặn?",
-    "keywords": [
-      "user",
-      "ICMP",
-      "bị chặn"
-    ],
+    "keywords": ["user", "người dùng", "ICMP", "chặn", "block", "deny", "1 giờ qua"],
     "query": {
       "size": 0,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "network.protocol": "icmp"
-              }
-            },
-            {
-              "term": {
-                "fortinet.firewall.action": "deny"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-1h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "blocked_icmp": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 50
-          },
-          "aggs": {
-            "pkt_sum": {
-              "sum": {
-                "field": "network.packets"
-              }
-            }
-          }
-        }
-      }
+      "query": { "bool": { "filter": [ {"term": {"network.protocol": "icmp"}}, {"term": {"fortinet.firewall.action": "deny"}}, {"range": {"@timestamp": {"gte": "now-1h"}}} ] } },
+      "aggs": { "blocked_icmp": { "terms": { "field": "source.user.name", "size": 50 }, "aggs": { "pkt_sum": { "sum": { "field": "network.packets" } } } } }
     }
   },
   {
     "question": "Những user nào cố gắng quét port (nhiều destination.port khác nhau) trong 15 phút gần đây?",
-    "keywords": [
-      "user",
-      "quét",
-      "port",
-      "destination"
-    ],
+    "keywords": ["user", "người dùng", "quét port", "port scan", "destination port", "15 phút"],
     "query": {
       "size": 0,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-15m"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_user": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 20
-          },
-          "aggs": {
-            "unique_ports": {
-              "cardinality": {
-                "field": "destination.port"
-              }
-            },
-            "port_scan": {
-              "bucket_selector": {
-                "buckets_path": {
-                  "p": "unique_ports"
-                },
-                "script": "params.p > 10"
-              }
-            }
-          }
-        }
-      }
+      "query": { "bool": { "filter": [ {"range": {"@timestamp": {"gte": "now-15m"}}} ] } },
+      "aggs": { "by_user": { "terms": { "field": "source.user.name", "size": 20 }, "aggs": { "unique_ports": { "cardinality": { "field": "destination.port" } }, "port_scan": { "bucket_selector": { "buckets_path": { "p": "unique_ports" }, "script": "params.p > 10" } } } } }
     }
   },
   {
     "question": "Có user nào bị chặn khi tải file qua FTP (port 21) không?",
-    "keywords": [
-      "user",
-      "chặn",
-      "tải file",
-      "FTP",
-      "21"
-    ],
+    "keywords": ["user", "người dùng", "chặn", "block", "deny", "tải file", "download", "FTP", "port 21"],
     "query": {
-      "size": 50,
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "destination.ip",
-        "destination.port",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "destination.port": 21
-              }
-            },
-            {
-              "term": {
-                "fortinet.firewall.action": "deny"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      }
+      "size": 50, "_source": ["@timestamp", "source.user.name", "source.ip", "destination.ip", "destination.port", "rule.name"], "sort": [{"@timestamp": "desc"}],
+      "query": { "bool": { "filter": [ {"term": {"destination.port": 21}}, {"term": {"fortinet.firewall.action": "deny"}}, {"range": {"@timestamp": {"gte": "now-24h"}}} ] } }
     }
   },
   {
     "question": "Trong 7 ngày qua, user nào bị chặn nhiều nhất vì truy cập web không hợp lệ?",
-    "keywords": [
-      "user",
-      "chặn",
-      "nhiều nhất",
-      "web",
-      "không hợp lệ"
-    ],
+    "keywords": ["user", "người dùng", "chặn", "block", "deny", "nhiều nhất", "top", "truy cập web", "web access", "webfilter"],
     "query": {
       "size": 0,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "fortinet.firewall.subtype": "webfilter"
-              }
-            },
-            {
-              "term": {
-                "fortinet.firewall.action": "deny"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-7d"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_users": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 50
-          }
-        }
-      }
+      "query": { "bool": { "filter": [ {"term": {"fortinet.firewall.subtype": "webfilter"}}, {"term": {"fortinet.firewall.action": "deny"}}, {"range": {"@timestamp": {"gte": "now-7d"}}} ] } },
+      "aggs": { "top_users": { "terms": { "field": "source.user.name", "size": 50 } } }
     }
   },
   {
     "question": "Có user nào kết nối đến quốc gia bị hạn chế (ví dụ: Russia, China) trong 24 giờ qua không?",
-    "keywords": [
-      "user",
-      "kết nối",
-      "quốc gia",
-      "hạn chế",
-      "Russia",
-      "China"
-    ],
+    "keywords": ["user", "người dùng", "kết nối", "connection", "quốc gia", "country", "hạn chế", "restricted", "Russia", "China"],
     "query": {
-      "size": 50,
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "destination.ip",
-        "destination.geo.country_name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "terms": {
-                "destination.geo.country_name": [
-                  "Russia",
-                  "China"
-                ]
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      }
+      "size": 50, "_source": ["@timestamp", "source.user.name", "source.ip", "destination.ip", "destination.geo.country_name"], "sort": [{"@timestamp": "desc"}],
+      "query": { "bool": { "filter": [ {"terms": {"destination.geo.country_name": ["Russia", "China"]}}, {"range": {"@timestamp": {"gte": "now-24h"}}} ] } }
     }
   },
   {
     "question": "Trong 1 giờ qua có user nào upload quá nhiều dữ liệu ra ngoài (>1GB) không?",
-    "keywords": [
-      "user",
-      "upload",
-      "dữ liệu",
-      "1GB"
-    ],
+    "keywords": ["user", "người dùng", "upload", "tải lên", "dữ liệu", "data", "lớn", "1GB", "data exfiltration"],
     "query": {
       "size": 0,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "network.direction": "outbound"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-1h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_user": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 20
-          },
-          "aggs": {
-            "bytes_sent": {
-              "sum": {
-                "field": "network.bytes"
-              }
-            },
-            "big_upload": {
-              "bucket_selector": {
-                "buckets_path": {
-                  "b": "bytes_sent"
-                },
-                "script": "params.b > 1073741824"
-              }
-            }
-          }
-        }
-      }
+      "query": { "bool": { "filter": [ {"term": {"network.direction": "outbound"}}, {"range": {"@timestamp": {"gte": "now-1h"}}} ] } },
+      "aggs": { "by_user": { "terms": { "field": "source.user.name", "size": 20 }, "aggs": { "bytes_sent": { "sum": { "field": "network.bytes" } }, "big_upload": { "bucket_selector": { "buckets_path": { "b": "bytes_sent" }, "script": "params.b > 1073741824" } } } } }
     }
   },
   {
     "question": "Có user nào trong LAN cố gắng truy cập dịch vụ quản trị web của Fortigate (port 443) bị chặn?",
-    "keywords": [
-      "user",
-      "LAN",
-      "truy cập",
-      "quản trị",
-      "web",
-      "Fortigate",
-      "443"
-    ],
+    "keywords": ["user", "người dùng", "LAN", "truy cập", "dịch vụ quản trị", "admin service", "Fortigate", "port 443", "chặn", "block", "deny"],
     "query": {
-      "size": 50,
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "destination.ip",
-        "destination.port",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "destination.port": 443
-              }
-            },
-            {
-              "term": {
-                "fortinet.firewall.action": "deny"
-              }
-            },
-            {
-              "term": {
-                "fortinet.firewall.srcintfrole": "lan"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      }
+      "size": 50, "_source": ["@timestamp", "source.user.name", "source.ip", "destination.ip", "destination.port", "rule.name"], "sort": [{"@timestamp": "desc"}],
+      "query": { "bool": { "filter": [ {"term": {"destination.port": 443}}, {"term": {"fortinet.firewall.action": "deny"}}, {"term": {"fortinet.firewall.srcintfrole": "lan"}}, {"range": {"@timestamp": {"gte": "now-24h"}}} ] } }
     }
   },
   {
     "question": "Trong 24 giờ qua, có user nào bị chặn khi dùng ứng dụng P2P (torrent) không?",
-    "keywords": [
-      "user",
-      "chặn",
-      "ứng dụng",
-      "P2P",
-      "torrent"
-    ],
+    "keywords": ["user", "người dùng", "chặn", "block", "deny", "ứng dụng", "application", "P2P", "torrent"],
     "query": {
-      "size": 50,
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "destination.ip",
-        "rule.category",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "rule.category": "p2p"
-              }
-            },
-            {
-              "term": {
-                "fortinet.firewall.action": "deny"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      }
+      "size": 50, "_source": ["@timestamp", "source.user.name", "source.ip", "destination.ip", "rule.category", "rule.name"], "sort": [{"@timestamp": "desc"}],
+      "query": { "bool": { "filter": [ {"term": {"rule.category": "p2p"}}, {"term": {"fortinet.firewall.action": "deny"}}, {"range": {"@timestamp": {"gte": "now-24h"}}} ] } }
     }
   },
   {
     "question": "Hiển thị log của user QuynhTX từ 8h sáng đến 5h chiều hôm nay",
-    "keywords": [
-      "log",
-      "user",
-      "quynhtx",
-      "8h sáng",
-      "5h chiều",
-      "hôm nay"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "source.user.name": "QuynhTX"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now/d+8h",
-                  "lte": "now/d+17h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "destination.ip",
-        "event.action",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["log", "user", "QuynhTX", "8h sáng", "5h chiều", "hôm nay", "thời gian cụ thể", "user activity"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "source.user.name": "QuynhTX" } }, { "range": { "@timestamp": { "gte": "now/d+8h", "lte": "now/d+17h" } } } ] } }, "_source": [ "@timestamp", "source.user.name", "source.ip", "destination.ip", "event.action", "rule.name" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Traffic trong khung giờ 22h-6h sáng (ngoài giờ làm việc) trong 3 ngày qua",
-    "keywords": [
-      "traffic",
-      "ngoài giờ",
-      "22h-6h",
-      "3 ngày"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-3d"
-                }
-              }
-            }
-          ],
-          "must": {
-            "script": {
-              "script": {
-                "source": "doc['@timestamp'].value.getHour() >= 22 || doc['@timestamp'].value.getHour() < 6"
-              }
-            }
-          }
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "network.bytes",
-        "source.user.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["traffic", "lưu lượng", "ngoài giờ làm việc", "after hours", "22h", "6h", "3 ngày"],
+    "query": { "query": { "bool": { "must": { "script": { "script": { "source": "doc['@timestamp'].value.getHour() >= 22 || doc['@timestamp'].value.getHour() < 6" } } }, "filter": [ { "range": { "@timestamp": { "gte": "now-3d" } } } ] } }, "_source": [ "@timestamp", "source.ip", "destination.ip", "network.bytes", "source.user.name" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "So sánh số lượng connections giữa hôm nay và hôm qua",
-    "keywords": [
-      "so sánh",
-      "số lượng",
-      "connections",
-      "hôm nay",
-      "hôm qua"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-2d/d"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_day": {
-          "date_histogram": {
-            "field": "@timestamp",
-            "calendar_interval": "day"
-          },
-          "aggs": {
-            "connection_count": {
-              "value_count": {
-                "field": "@timestamp"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["so sánh", "compare", "số lượng", "count", "connections", "kết nối", "hôm nay", "hôm qua"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-2d/d" } } } ] } }, "aggs": { "by_day": { "date_histogram": { "field": "@timestamp", "calendar_interval": "day" }, "aggs": { "connection_count": { "value_count": { "field": "@timestamp" } } } } }, "size": 0 }
   },
   {
     "question": "Tìm các kết nối xuất hiện trong 5 phút đầu tiên của mỗi giờ trong 24h qua",
-    "keywords": [
-      "5 phút đầu",
-      "mỗi giờ",
-      "24h qua"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ],
-          "must": {
-            "script": {
-              "script": {
-                "source": "doc['@timestamp'].value.getMinute() < 5"
-              }
-            }
-          }
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "source.user.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["kết nối", "connections", "5 phút đầu", "mỗi giờ", "hourly", "24h qua"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } } ], "must": { "script": { "script": { "source": "doc['@timestamp'].value.getMinute() < 5" } } } } }, "_source": [ "@timestamp", "source.ip", "destination.ip", "source.user.name" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Log nào được tạo ra vào cuối tuần (thứ 7, chủ nhật) trong tháng này?",
-    "keywords": [
-      "cuối tuần",
-      "thứ 7",
-      "chủ nhật",
-      "tháng này"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now/M"
-                }
-              }
-            }
-          ],
-          "must": {
-            "script": {
-              "script": {
-                "source": "doc['@timestamp'].value.getDayOfWeek() >= 6"
-              }
-            }
-          }
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "source.user.name",
-        "event.action"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["log", "cuối tuần", "weekend", "thứ 7", "chủ nhật", "tháng này", "this month"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now/M" } } } ], "must": { "script": { "script": { "source": "doc['@timestamp'].value.getDayOfWeek() >= 6" } } } } }, "_source": [ "@timestamp", "source.ip", "source.user.name", "event.action" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Traffic cao điểm nhất trong ngày là lúc nào? (group by hour)",
-    "keywords": [
-      "traffic",
-      "cao điểm",
-      "group by hour",
-      "lúc nào"
-    ],
-    "query": {
-      "query": {
-        "range": {
-          "@timestamp": {
-            "gte": "now-24h"
-          }
-        }
-      },
-      "aggs": {
-        "by_hour": {
-          "date_histogram": {
-            "field": "@timestamp",
-            "calendar_interval": "hour"
-          },
-          "aggs": {
-            "total_bytes": {
-              "sum": {
-                "field": "network.bytes"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["traffic", "lưu lượng", "cao điểm", "peak hours", "group by hour", "phân tích theo giờ"],
+    "query": { "query": { "range": { "@timestamp": { "gte": "now-24h" } } }, "aggs": { "by_hour": { "date_histogram": { "field": "@timestamp", "calendar_interval": "hour" }, "aggs": { "total_bytes": { "sum": { "field": "network.bytes" } } } } }, "size": 0 }
   },
   {
     "question": "Có log nào được tạo ra giữa 15-09-2025 10:00 và 15-09-2025 15:30 không?",
-    "keywords": [
-      "giữa",
-      "15-09-2025",
-      "10:00",
-      "15:30"
-    ],
-    "query": {
-      "query": {
-        "range": {
-          "@timestamp": {
-            "gte": "2025-09-15T10:00:00.000+07:00",
-            "lte": "2025-09-15T15:30:00.000+07:00"
-          }
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "source.user.name",
-        "event.action"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["log", "giữa", "between", "thời gian cụ thể", "specific time", "15-09-2025"],
+    "query": { "query": { "range": { "@timestamp": { "gte": "2025-09-15T10:00:00.000+07:00", "lte": "2025-09-15T15:30:00.000+07:00" } } }, "_source": [ "@timestamp", "source.ip", "destination.ip", "source.user.name", "event.action" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Khoảng thời gian nào có nhiều kết nối bị chặn nhất trong 7 ngày qua?",
-    "keywords": [
-      "khoảng thời gian",
-      "nhiều nhất",
-      "kết nối bị chặn",
-      "7 ngày qua"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "fortinet.firewall.action": "deny"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-7d"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_hour": {
-          "date_histogram": {
-            "field": "@timestamp",
-            "calendar_interval": "hour"
-          },
-          "aggs": {
-            "denied_count": {
-              "value_count": {
-                "field": "@timestamp"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["khoảng thời gian", "time range", "kết nối bị chặn", "denied connections", "nhiều nhất", "top", "7 ngày qua"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "fortinet.firewall.action": "deny" } }, { "range": { "@timestamp": { "gte": "now-7d" } } } ] } }, "aggs": { "by_hour": { "date_histogram": { "field": "@timestamp", "calendar_interval": "hour", "order": { "denied_count": "desc"} }, "aggs": { "denied_count": { "value_count": { "field": "@timestamp" } } } } }, "size": 0 }
   },
   {
     "question": "User nào làm việc ngoài giờ (sau 18h hoặc trước 8h) nhiều nhất?",
-    "keywords": [
-      "user",
-      "ngoài giờ",
-      "sau 18h",
-      "trước 8h",
-      "nhiều nhất"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-7d"
-                }
-              }
-            }
-          ],
-          "must": {
-            "script": {
-              "script": {
-                "source": "doc['@timestamp'].value.getHour() >= 18 || doc['@timestamp'].value.getHour() < 8"
-              }
-            }
-          }
-        }
-      },
-      "aggs": {
-        "by_user": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 10
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["user", "người dùng", "làm việc ngoài giờ", "after hours", "sau 18h", "trước 8h", "nhiều nhất", "top"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-7d" } } } ], "must": { "script": { "script": { "source": "doc['@timestamp'].value.getHour() >= 18 || doc['@timestamp'].value.getHour() < 8" } } } } }, "aggs": { "by_user": { "terms": { "field": "source.user.name", "size": 10 } } }, "size": 0 }
   },
   {
     "question": "Tìm các phiên kết nối kéo dài quá 1 giờ",
-    "keywords": [
-      "phiên kết nối",
-      "kéo dài",
-      "quá 1 giờ",
-      "duration"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "event.duration": {
-                  "gt": 3600000000000
-                }
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "source.user.name",
-        "event.duration",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "event.duration": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["phiên kết nối", "session", "kéo dài", "long duration", "quá 1 giờ", "event.duration"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "event.duration": { "gt": 3600000000000 } } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "_source": [ "@timestamp", "source.ip", "destination.ip", "source.user.name", "event.duration", "rule.name" ], "sort": [ { "event.duration": "desc" } ], "size": 50 }
   },
   {
     "question": "Top 10 applications được sử dụng nhiều nhất theo network.protocol",
-    "keywords": [
-      "top 10",
-      "applications",
-      "network.protocol",
-      "nhiều nhất"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "network.protocol"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_apps": {
-          "terms": {
-            "field": "network.protocol",
-            "size": 10
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["top 10", "applications", "ứng dụng", "sử dụng nhiều nhất", "network.protocol", "protocol"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "network.protocol" } } ] } }, "aggs": { "top_apps": { "terms": { "field": "network.protocol", "size": 10 } } }, "size": 0 }
   },
   {
     "question": "Tìm tất cả DNS queries đến domain có chứa 'google' trong 6h qua",
-    "keywords": [
-      "dns queries",
-      "domain",
-      "google",
-      "6h qua"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "wildcard": {
-                "dns.question.name": "*google*"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-6h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "dns.question.name",
-        "dns.question.type",
-        "dns.resolved_ip"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["dns queries", "truy vấn dns", "domain", "google", "6h qua"],
+    "query": { "query": { "bool": { "filter": [ { "wildcard": { "dns.question.name": "*google*" } }, { "range": { "@timestamp": { "gte": "now-6h" } } } ] } }, "_source": [ "@timestamp", "source.ip", "dns.question.name", "dns.question.type", "dns.resolved_ip" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Có bao nhiêu HTTPS sessions (port 443) với TLS version 1.2?",
-    "keywords": [
-      "bao nhiêu",
-      "https sessions",
-      "port 443",
-      "tls version 1.2"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "destination.port": 443
-              }
-            },
-            {
-              "term": {
-                "tls.version": "1.2"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "session_count": {
-          "value_count": {
-            "field": "@timestamp"
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["bao nhiêu", "count", "https sessions", "port 443", "tls version 1.2"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "destination.port": 443 } }, { "term": { "tls.version": "1.2" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "aggs": { "session_count": { "value_count": { "field": "@timestamp" } } }, "size": 0 }
   },
   {
     "question": "Liệt kê các HTTP requests với method POST trong 3h qua",
-    "keywords": [
-      "http requests",
-      "method post",
-      "3h qua"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "http.request.method": "POST"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-3h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "source.user.name",
-        "destination.ip",
-        "url.original",
-        "http.request.method"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["http requests", "method post", "3h qua"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "http.request.method": "POST" } }, { "range": { "@timestamp": { "gte": "now-3h" } } } ] } }, "_source": [ "@timestamp", "source.ip", "source.user.name", "destination.ip", "url.original", "http.request.method" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Traffic ICMP chiếm bao nhiêu phần trăm tổng traffic?",
-    "keywords": [
-      "traffic icmp",
-      "phần trăm",
-      "tổng traffic"
-    ],
-    "query": {
-      "query": {
-        "range": {
-          "@timestamp": {
-            "gte": "now-24h"
-          }
-        }
-      },
-      "aggs": {
-        "total_traffic": {
-          "sum": {
-            "field": "network.bytes"
-          }
-        },
-        "icmp_traffic": {
-          "filter": {
-            "term": {
-              "network.protocol": "icmp"
-            }
-          },
-          "aggs": {
-            "bytes": {
-              "sum": {
-                "field": "network.bytes"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["traffic icmp", "lưu lượng icmp", "phần trăm", "percentage", "tổng traffic", "total traffic"],
+    "query": { "query": { "range": { "@timestamp": { "gte": "now-24h" } } }, "aggs": { "total_traffic": { "sum": { "field": "network.bytes" } }, "icmp_traffic": { "filter": { "term": { "network.protocol": "icmp" } }, "aggs": { "bytes": { "sum": { "field": "network.bytes" } } } } }, "size": 0 }
   },
   {
     "question": "User nào truy cập nhiều domains khác nhau nhất?",
-    "keywords": [
-      "user",
-      "nhiều domains",
-      "khác nhau",
-      "nhiều nhất"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "url.domain"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_user": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 10,
-            "order": {
-              "unique_domains": "desc"
-            }
-          },
-          "aggs": {
-            "unique_domains": {
-              "cardinality": {
-                "field": "url.domain"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["user", "người dùng", "truy cập", "access", "nhiều domains", "unique domains", "nhiều nhất", "top"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "url.domain" } } ] } }, "aggs": { "by_user": { "terms": { "field": "source.user.name", "size": 10, "order": { "unique_domains": "desc" } }, "aggs": { "unique_domains": { "cardinality": { "field": "url.domain" } } } } }, "size": 0 }
   },
   {
     "question": "Có kết nối nào sử dụng protocol không phổ biến?",
-    "keywords": [
-      "protocol",
-      "không phổ biến"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ],
-          "must_not": [
-            {
-              "terms": {
-                "network.transport": [
-                  "tcp",
-                  "udp"
-                ]
-              }
-            },
-            {
-              "terms": {
-                "network.protocol": [
-                  "icmp",
-                  "dns",
-                  "http",
-                  "https"
-                ]
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "network.protocol",
-        "network.transport"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["kết nối", "connection", "protocol", "giao thức", "không phổ biến", "uncommon", "rare"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } } ], "must_not": [ { "terms": { "network.transport": [ "tcp", "udp" ] } }, { "terms": { "network.protocol": [ "icmp", "dns", "http", "https" ] } } ] } }, "_source": [ "@timestamp", "source.ip", "destination.ip", "network.protocol", "network.transport" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Top 5 TLS cipher suites được sử dụng nhiều nhất",
-    "keywords": [
-      "top 5",
-      "tls cipher suites",
-      "nhiều nhất"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "tls.cipher"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_ciphers": {
-          "terms": {
-            "field": "tls.cipher",
-            "size": 5
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["top 5", "tls cipher suites", "mã hóa", "encryption", "sử dụng nhiều nhất"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "tls.cipher" } } ] } }, "aggs": { "top_ciphers": { "terms": { "field": "tls.cipher", "size": 5 } } }, "size": 0 }
   },
   {
     "question": "Tìm các DNS queries không thành công trong 24h qua",
-    "keywords": [
-      "dns queries",
-      "không thành công"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "exists": {
-                "field": "dns.question.name"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ],
-          "must_not": [
-            {
-              "exists": {
-                "field": "dns.resolved_ip"
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "dns.question.name",
-        "dns.question.type"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["dns queries", "truy vấn dns", "không thành công", "failed", "24h qua"],
+    "query": { "query": { "bool": { "filter": [ { "exists": { "field": "dns.question.name" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ], "must_not": [ { "exists": { "field": "dns.resolved_ip" } } ] } }, "_source": [ "@timestamp", "source.ip", "dns.question.name", "dns.question.type" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Kết nối nào có URL path chứa '/admin' hoặc '/login'?",
-    "keywords": [
-      "url path",
-      "/admin",
-      "/login"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "should": [
-            {
-              "wildcard": {
-                "url.path": "*/admin*"
-              }
-            },
-            {
-              "wildcard": {
-                "url.path": "*/login*"
-              }
-            }
-          ],
-          "minimum_should_match": 1,
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "source.user.name",
-        "url.original",
-        "url.path"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["kết nối", "connection", "url path", "chứa", "contains", "/admin", "/login"],
+    "query": { "query": { "bool": { "should": [ { "wildcard": { "url.path": "*/admin*" } }, { "wildcard": { "url.path": "*/login*" } } ], "minimum_should_match": 1, "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "_source": [ "@timestamp", "source.ip", "source.user.name", "url.original", "url.path" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Traffic đi qua interface WiFi-HPTVIETNAM nhiều hơn hay port3?",
-    "keywords": [
-      "traffic",
-      "interface",
-      "wifi-hptvietnam",
-      "port3"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ],
-          "should": [
-            {
-              "term": {
-                "observer.ingress.interface.name": "WiFi-HPTVIETNAM"
-              }
-            },
-            {
-              "term": {
-                "observer.ingress.interface.name": "port3"
-              }
-            }
-          ],
-          "minimum_should_match": 1
-        }
-      },
-      "aggs": {
-        "by_interface": {
-          "terms": {
-            "field": "observer.ingress.interface.name",
-            "size": 10
-          },
-          "aggs": {
-            "total_bytes": {
-              "sum": {
-                "field": "network.bytes"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["traffic", "lưu lượng", "interface", "cổng", "WiFi-HPTVIETNAM", "port3", "so sánh", "compare"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } } ], "should": [ { "term": { "observer.ingress.interface.name": "WiFi-HPTVIETNAM" } }, { "term": { "observer.ingress.interface.name": "port3" } } ], "minimum_should_match": 1 } }, "aggs": { "by_interface": { "terms": { "field": "observer.ingress.interface.name", "size": 10 }, "aggs": { "total_bytes": { "sum": { "field": "network.bytes" } } } } }, "size": 0 }
   },
   {
     "question": "Tìm các kết nối internal (source và destination đều trong mạng nội bộ)",
-    "keywords": [
-      "kết nối internal",
-      "mạng nội bộ"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "network.direction": "internal"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-6h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "network.bytes",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["kết nối", "connections", "internal", "nội bộ", "network.direction"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "network.direction": "internal" } }, { "range": { "@timestamp": { "gte": "now-6h" } } } ] } }, "_source": [ "@timestamp", "source.ip", "destination.ip", "network.bytes", "rule.name" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Top 10 destination ports được truy cập nhiều nhất từ LAN",
-    "keywords": [
-      "top 10",
-      "destination ports",
-      "từ lan"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "fortinet.firewall.srcintfrole": "lan"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_ports": {
-          "terms": {
-            "field": "destination.port",
-            "size": 10
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["top 10", "destination ports", "cổng đích", "truy cập nhiều nhất", "LAN", "srcintfrole"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "fortinet.firewall.srcintfrole": "lan" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "aggs": { "top_ports": { "terms": { "field": "destination.port", "size": 10 } } }, "size": 0 }
   },
   {
     "question": "Có traffic nào đi từ DMZ ra WAN không?",
-    "keywords": [
-      "traffic",
-      "dmz",
-      "wan"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "fortinet.firewall.srcintfrole": "dmz"
-              }
-            },
-            {
-              "term": {
-                "fortinet.firewall.dstintfrole": "wan"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "network.bytes",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["traffic", "lưu lượng", "từ DMZ", "ra WAN", "srcintfrole", "dstintfrole"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "fortinet.firewall.srcintfrole": "dmz" } }, { "term": { "fortinet.firewall.dstintfrole": "wan" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "_source": [ "@timestamp", "source.ip", "destination.ip", "network.bytes", "rule.name" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Phân tích traffic theo interface role (lan/wan/dmz) trong 24h qua",
-    "keywords": [
-      "phân tích traffic",
-      "interface role",
-      "lan",
-      "wan",
-      "dmz"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "fortinet.firewall.srcintfrole"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_interface_role": {
-          "terms": {
-            "field": "fortinet.firewall.srcintfrole",
-            "size": 10
-          },
-          "aggs": {
-            "total_bytes": {
-              "sum": {
-                "field": "network.bytes"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["phân tích", "analysis", "traffic", "lưu lượng", "interface role", "lan", "wan", "dmz"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "fortinet.firewall.srcintfrole" } } ] } }, "aggs": { "by_interface_role": { "terms": { "field": "fortinet.firewall.srcintfrole", "size": 10 }, "aggs": { "total_bytes": { "sum": { "field": "network.bytes" } } } } }, "size": 0 }
   },
   {
     "question": "Source MAC address nào có nhiều connections nhất?",
-    "keywords": [
-      "source mac address",
-      "nhiều connections nhất"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "source.mac"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_macs": {
-          "terms": {
-            "field": "source.mac",
-            "size": 10
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["source mac address", "địa chỉ mac nguồn", "nhiều connections nhất", "top connections"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "source.mac" } } ] } }, "aggs": { "top_macs": { "terms": { "field": "source.mac", "size": 10 } } }, "size": 0 }
   },
   {
     "question": "Tìm các kết nối có source port > 50000 (ephemeral ports)",
-    "keywords": [
-      "source port",
-      "> 50000",
-      "ephemeral ports"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "source.port": {
-                  "gt": 50000
-                }
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-6h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "source.port",
-        "destination.ip",
-        "destination.port"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["kết nối", "connections", "source port", "cổng nguồn", "> 50000", "ephemeral ports"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "source.port": { "gt": 50000 } } }, { "range": { "@timestamp": { "gte": "now-6h" } } } ] } }, "_source": [ "@timestamp", "source.ip", "source.port", "destination.ip", "destination.port" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Traffic inbound và outbound chiếm tỷ lệ bao nhiêu?",
-    "keywords": [
-      "traffic inbound",
-      "outbound",
-      "tỷ lệ"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "network.direction"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_direction": {
-          "terms": {
-            "field": "network.direction",
-            "size": 10
-          },
-          "aggs": {
-            "total_bytes": {
-              "sum": {
-                "field": "network.bytes"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
-  },
-  {
-    "question": "Có kết nối nào từ observer.name = 'FTG-CNHN' đến observer khác không?",
-    "keywords": [
-      "observer.name",
-      "ftg-cnhn",
-      "observer khác"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "observer.name": "FTG-CNHN"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "observer.name",
-        "source.ip",
-        "destination.ip",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["traffic", "lưu lượng", "inbound", "outbound", "vào", "ra", "tỷ lệ", "ratio", "network.direction"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "network.direction" } } ] } }, "aggs": { "by_direction": { "terms": { "field": "network.direction", "size": 10 }, "aggs": { "total_bytes": { "sum": { "field": "network.bytes" } } } } }, "size": 0 }
   },
   {
     "question": "Liệt kê các egress interfaces được sử dụng nhiều nhất",
-    "keywords": [
-      "egress interfaces",
-      "nhiều nhất"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "observer.egress.interface.name"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_egress": {
-          "terms": {
-            "field": "observer.egress.interface.name",
-            "size": 10
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["egress interfaces", "cổng ra", "sử dụng nhiều nhất", "top usage"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "observer.egress.interface.name" } } ] } }, "aggs": { "top_egress": { "terms": { "field": "observer.egress.interface.name", "size": 10 } } }, "size": 0 }
   },
   {
     "question": "Top 10 sessions có network.bytes lớn nhất trong 12h qua",
-    "keywords": [
-      "top 10",
-      "sessions",
-      "network.bytes",
-      "lớn nhất"
-    ],
-    "query": {
-      "query": {
-        "range": {
-          "@timestamp": {
-            "gte": "now-12h"
-          }
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "network.bytes",
-        "source.user.name",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "network.bytes": "desc"
-        }
-      ],
-      "size": 10
-    }
+    "keywords": ["top 10", "sessions", "phiên", "network.bytes", "lưu lượng", "lớn nhất"],
+    "query": { "query": { "range": { "@timestamp": { "gte": "now-12h" } } }, "_source": [ "@timestamp", "source.ip", "destination.ip", "network.bytes", "source.user.name", "rule.name" ], "sort": [ { "network.bytes": "desc" } ], "size": 10 }
   },
   {
     "question": "User nào có tổng packets gửi đi (source.packets) nhiều nhất?",
-    "keywords": [
-      "user",
-      "tổng packets",
-      "gửi đi",
-      "nhiều nhất"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "source.user.name"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_users": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 10,
-            "order": {
-              "total_packets": "desc"
-            }
-          },
-          "aggs": {
-            "total_packets": {
-              "sum": {
-                "field": "source.packets"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["user", "người dùng", "tổng packets", "gửi đi", "source.packets", "nhiều nhất", "top"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "source.user.name" } } ] } }, "aggs": { "top_users": { "terms": { "field": "source.user.name", "size": 10, "order": { "total_packets": "desc" } }, "aggs": { "total_packets": { "sum": { "field": "source.packets" } } } } }, "size": 0 }
   },
   {
     "question": "Tìm các sessions có packet loss > 10%",
-    "keywords": [
-      "sessions",
-      "packet loss",
-      "> 10%"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "fortinet.firewall.packetloss"
-              }
-            }
-          ],
-          "must": {
-            "script": {
-              "script": {
-                "source": "doc['fortinet.firewall.packetloss'].value > 10"
-              }
-            }
-          }
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "fortinet.firewall.packetloss"
-      ],
-      "sort": [
-        {
-          "fortinet.firewall.packetloss": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["sessions", "phiên", "packet loss", "mất gói", "> 10%"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "fortinet.firewall.packetloss": { "gt": 10 } } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "_source": [ "@timestamp", "source.ip", "destination.ip", "fortinet.firewall.packetloss" ], "sort": [ { "fortinet.firewall.packetloss": "desc" } ], "size": 50 }
   },
   {
     "question": "Average bytes per session trong 24h qua là bao nhiêu?",
-    "keywords": [
-      "average bytes",
-      "avg",
-      "session",
-      "24h qua"
-    ],
-    "query": {
-      "query": {
-        "range": {
-          "@timestamp": {
-            "gte": "now-24h"
-          }
-        }
-      },
-      "aggs": {
-        "avg_bytes": {
-          "avg": {
-            "field": "network.bytes"
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["average", "trung bình", "bytes per session", "24h qua"],
+    "query": { "query": { "range": { "@timestamp": { "gte": "now-24h" } } }, "aggs": { "avg_bytes": { "avg": { "field": "network.bytes" } } }, "size": 0 }
   },
   {
     "question": "Kết nối nào có destination.bytes lớn hơn source.bytes (download > upload)?",
-    "keywords": [
-      "destination.bytes",
-      "source.bytes",
-      "download > upload"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-6h"
-                }
-              }
-            }
-          ],
-          "must": {
-            "script": {
-              "script": {
-                "source": "doc['destination.bytes'].value > doc['source.bytes'].value"
-              }
-            }
-          }
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "source.bytes",
-        "destination.bytes"
-      ],
-      "sort": [
-        {
-          "destination.bytes": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["kết nối", "connection", "destination.bytes", "source.bytes", "download", "upload", "so sánh"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-6h" } } } ], "must": { "script": { "script": { "source": "doc['destination.bytes'].value > doc['source.bytes'].value" } } } } }, "_source": [ "@timestamp", "source.ip", "destination.ip", "source.bytes", "destination.bytes" ], "sort": [ { "destination.bytes": "desc" } ], "size": 50 }
   },
   {
     "question": "Tổng bandwidth sử dụng trong 1 giờ qua là bao nhiêu?",
-    "keywords": [
-      "tổng bandwidth",
-      "1 giờ qua"
-    ],
-    "query": {
-      "query": {
-        "range": {
-          "@timestamp": {
-            "gte": "now-1h"
-          }
-        }
-      },
-      "aggs": {
-        "total_bandwidth": {
-          "sum": {
-            "field": "network.bytes"
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["tổng", "total", "bandwidth", "băng thông", "1 giờ qua"],
+    "query": { "query": { "range": { "@timestamp": { "gte": "now-1h" } } }, "aggs": { "total_bandwidth": { "sum": { "field": "network.bytes" } } }, "size": 0 }
   },
   {
     "question": "Top 10 connections có ratio bytes/packets cao nhất (large packets)",
-    "keywords": [
-      "top 10",
-      "ratio",
-      "bytes/packets",
-      "large packets"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "range": {
-                "network.packets": {
-                  "gt": 0
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_connections": {
-          "terms": {
-            "field": "source.ip",
-            "size": 10,
-            "order": {
-              "bytes_per_packet": "desc"
-            }
-          },
-          "aggs": {
-            "total_bytes": {
-              "sum": {
-                "field": "network.bytes"
-              }
-            },
-            "total_packets": {
-              "sum": {
-                "field": "network.packets"
-              }
-            },
-            "bytes_per_packet": {
-              "bucket_script": {
-                "buckets_path": {
-                  "bytes": "total_bytes",
-                  "packets": "total_packets"
-                },
-                "script": "params.bytes / params.packets"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["top 10", "connections", "kết nối", "ratio", "tỷ lệ", "bytes/packets", "large packets"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } }, { "range": { "network.packets": { "gt": 0 } } } ] } }, "aggs": { "top_connections": { "terms": { "field": "source.ip", "size": 10, "order": { "bytes_per_packet": "desc" } }, "aggs": { "total_bytes": { "sum": { "field": "network.bytes" } }, "total_packets": { "sum": { "field": "network.packets" } }, "bytes_per_packet": { "bucket_script": { "buckets_path": { "bytes": "total_bytes", "packets": "total_packets" }, "script": "params.bytes > 0 ? params.bytes / params.packets : 0" } } } } }, "size": 0 }
   },
   {
     "question": "Có session nào có duration < 1 giây nhưng bytes > 1MB? (suspicious)",
-    "keywords": [
-      "duration < 1 giây",
-      "bytes > 1mb",
-      "suspicious"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "event.duration": {
-                  "lt": 1000000000
-                }
-              }
-            },
-            {
-              "range": {
-                "network.bytes": {
-                  "gt": 1048576
-                }
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "event.duration",
-        "network.bytes",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "network.bytes": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["session", "phiên", "duration", "thời lượng", "bytes", "lưu lượng", "suspicious", "đáng ngờ"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "event.duration": { "lt": 1000000000 } } }, { "range": { "network.bytes": { "gt": 1048576 } } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "_source": [ "@timestamp", "source.ip", "destination.ip", "event.duration", "network.bytes", "rule.name" ], "sort": [ { "network.bytes": "desc" } ], "size": 50 }
   },
   {
     "question": "User nào có average session duration dài nhất?",
-    "keywords": [
-      "user",
-      "average session duration",
-      "dài nhất"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "source.user.name"
-              }
-            },
-            {
-              "exists": {
-                "field": "event.duration"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_user": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 10,
-            "order": {
-              "avg_duration": "desc"
-            }
-          },
-          "aggs": {
-            "avg_duration": {
-              "avg": {
-                "field": "event.duration"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["user", "người dùng", "average session duration", "thời lượng trung bình", "dài nhất"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "source.user.name" } }, { "exists": { "field": "event.duration" } } ] } }, "aggs": { "by_user": { "terms": { "field": "source.user.name", "size": 10, "order": { "avg_duration": "desc" } }, "aggs": { "avg_duration": { "avg": { "field": "event.duration" } } } } }, "size": 0 }
   },
   {
     "question": "Phân tích distribution của network.bytes (histogram)",
-    "keywords": [
-      "distribution",
-      "network.bytes",
-      "histogram"
-    ],
-    "query": {
-      "query": {
-        "range": {
-          "@timestamp": {
-            "gte": "now-24h"
-          }
-        }
-      },
-      "aggs": {
-        "bytes_distribution": {
-          "histogram": {
-            "field": "network.bytes",
-            "interval": 1048576
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["phân tích", "analysis", "distribution", "phân phối", "network.bytes", "histogram"],
+    "query": { "query": { "range": { "@timestamp": { "gte": "now-24h" } } }, "aggs": { "bytes_distribution": { "histogram": { "field": "network.bytes", "interval": 1048576 } } }, "size": 0 }
   },
   {
     "question": "Có bao nhiêu MacBooks đang kết nối trong mạng?",
-    "keywords": [
-      "bao nhiêu",
-      "macbooks",
-      "kết nối"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "wildcard": {
-                "fortinet.firewall.srchwversion": "*MacBook*"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "unique_macbooks": {
-          "cardinality": {
-            "field": "source.ip"
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["bao nhiêu", "count", "MacBooks", "thiết bị apple", "kết nối", "srchwversion"],
+    "query": { "query": { "bool": { "filter": [ { "wildcard": { "fortinet.firewall.srchwversion": "*MacBook*" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "aggs": { "unique_macbooks": { "cardinality": { "field": "source.ip" } } }, "size": 0 }
   },
   {
     "question": "Liệt kê tất cả các OS versions đang được sử dụng",
-    "keywords": [
-      "os versions",
-      "đang sử dụng"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "fortinet.firewall.srcswversion"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "os_versions": {
-          "terms": {
-            "field": "fortinet.firewall.srcswversion",
-            "size": 20
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["liệt kê", "list", "os versions", "phiên bản hệ điều hành", "srcswversion"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "fortinet.firewall.srcswversion" } } ] } }, "aggs": { "os_versions": { "terms": { "field": "fortinet.firewall.srcswversion", "size": 20 } } }, "size": 0 }
   },
   {
     "question": "Device nào có nhiều source MAC addresses khác nhau? (MAC spoofing?)",
-    "keywords": [
-      "device",
-      "nhiều mac addresses",
-      "mac spoofing"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "host.name"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_device": {
-          "terms": {
-            "field": "host.name",
-            "size": 20,
-            "order": {
-              "unique_macs": "desc"
-            }
-          },
-          "aggs": {
-            "unique_macs": {
-              "cardinality": {
-                "field": "source.mac"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["device", "thiết bị", "source mac addresses", "địa chỉ mac", "khác nhau", "mac spoofing"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "host.name" } } ] } }, "aggs": { "by_device": { "terms": { "field": "host.name", "size": 20, "order": { "unique_macs": "desc" } }, "aggs": { "unique_macs": { "cardinality": { "field": "source.mac" } } } } }, "size": 0 }
   },
   {
     "question": "Tìm các Windows devices với OS version cũ (< Windows 10)",
-    "keywords": [
-      "windows devices",
-      "os version cũ",
-      "< windows 10"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "fortinet.firewall.osname": "Windows"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ],
-          "must_not": [
-            {
-              "wildcard": {
-                "fortinet.firewall.srcswversion": "*10*"
-              }
-            },
-            {
-              "wildcard": {
-                "fortinet.firewall.srcswversion": "*11*"
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "fortinet.firewall.osname",
-        "fortinet.firewall.srcswversion",
-        "host.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["windows devices", "os version cũ", "hệ điều hành cũ", "windows 7", "windows 8"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "fortinet.firewall.osname": "Windows" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ], "must_not": [ { "wildcard": { "fortinet.firewall.srcswversion": "*10*" } }, { "wildcard": { "fortinet.firewall.srcswversion": "*11*" } } ] } }, "_source": [ "@timestamp", "source.ip", "fortinet.firewall.osname", "fortinet.firewall.srcswversion", "host.name" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Top 10 device types (Laptop/Desktop/Mobile) có traffic nhiều nhất",
-    "keywords": [
-      "top 10",
-      "device types",
-      "traffic nhiều nhất"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "fortinet.firewall.devtype"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_device_types": {
-          "terms": {
-            "field": "fortinet.firewall.devtype",
-            "size": 10,
-            "order": {
-              "total_bytes": "desc"
-            }
-          },
-          "aggs": {
-            "total_bytes": {
-              "sum": {
-                "field": "network.bytes"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["top 10", "device types", "loại thiết bị", "laptop", "desktop", "mobile", "traffic nhiều nhất"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "fortinet.firewall.devtype" } } ] } }, "aggs": { "top_device_types": { "terms": { "field": "fortinet.firewall.devtype", "size": 10, "order": { "total_bytes": "desc" } }, "aggs": { "total_bytes": { "sum": { "field": "network.bytes" } } } } }, "size": 0 }
   },
   {
     "question": "Có device nào đổi IP address trong 6h qua không?",
-    "keywords": [
-      "device",
-      "đổi ip address",
-      "6h qua"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-6h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "host.name"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_hostname": {
-          "terms": {
-            "field": "host.name",
-            "size": 50
-          },
-          "aggs": {
-            "unique_ips": {
-              "cardinality": {
-                "field": "source.ip"
-              }
-            },
-            "ip_change": {
-              "bucket_selector": {
-                "buckets_path": {
-                  "ips": "unique_ips"
-                },
-                "script": "params.ips > 1"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["device", "thiết bị", "đổi IP", "ip change", "6h qua"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-6h" } } }, { "exists": { "field": "host.name" } } ] } }, "aggs": { "by_hostname": { "terms": { "field": "host.name", "size": 50 }, "aggs": { "unique_ips": { "cardinality": { "field": "source.ip" } }, "ip_change": { "bucket_selector": { "buckets_path": { "ips": "unique_ips" }, "script": "params.ips > 1" } } } } }, "size": 0 }
   },
   {
     "question": "Devices từ vendor Apple chiếm bao nhiêu phần trăm?",
-    "keywords": [
-      "devices",
-      "vendor apple",
-      "phần trăm"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "fortinet.firewall.srchwvendor"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "total_devices": {
-          "cardinality": {
-            "field": "source.ip"
-          }
-        },
-        "apple_devices": {
-          "filter": {
-            "term": {
-              "fortinet.firewall.srchwvendor": "Apple"
-            }
-          },
-          "aggs": {
-            "count": {
-              "cardinality": {
-                "field": "source.ip"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["devices", "thiết bị", "vendor", "hãng", "Apple", "phần trăm", "percentage"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "fortinet.firewall.srchwvendor" } } ] } }, "aggs": { "apple_devices": { "filter": { "term": { "fortinet.firewall.srchwvendor": "Apple" } }, "aggs": { "count": { "cardinality": { "field": "source.ip" } } } }, "total_devices": { "cardinality": { "field": "source.ip" } } }, "size": 0 }
   },
   {
     "question": "Tìm các unidentified devices (không có devtype)",
-    "keywords": [
-      "unidentified devices",
-      "không có devtype"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ],
-          "must_not": [
-            {
-              "exists": {
-                "field": "fortinet.firewall.devtype"
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "source.mac",
-        "host.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["unidentified devices", "thiết bị không xác định", "không có devtype", "unknown device"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } } ], "must_not": [ { "exists": { "field": "fortinet.firewall.devtype" } } ] } }, "_source": [ "@timestamp", "source.ip", "source.mac", "host.name" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Host nào có nhiều failed connections nhất?",
-    "keywords": [
-      "host",
-      "failed connections",
-      "nhiều nhất"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "event.outcome": "failure"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_failed_hosts": {
-          "terms": {
-            "field": "host.name",
-            "size": 10
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["host", "máy chủ", "kết nối thất bại", "failed connections", "nhiều nhất", "top"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "event.outcome": "failure" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "aggs": { "top_failed_hosts": { "terms": { "field": "host.name", "size": 10 } } }, "size": 0 }
   },
   {
     "question": "Liệt kê các container hoặc cloud instances",
-    "keywords": [
-      "container",
-      "cloud instances"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "should": [
-            {
-              "exists": {
-                "field": "container.id"
-              }
-            },
-            {
-              "exists": {
-                "field": "cloud.instance.id"
-              }
-            }
-          ],
-          "minimum_should_match": 1,
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "container.id",
-        "container.name",
-        "cloud.instance.id",
-        "cloud.provider",
-        "source.ip"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["liệt kê", "list", "container", "cloud instances", "máy ảo"],
+    "query": { "query": { "bool": { "should": [ { "exists": { "field": "container.id" } }, { "exists": { "field": "cloud.instance.id" } } ], "minimum_should_match": 1, "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "_source": [ "@timestamp", "container.id", "container.name", "cloud.instance.id", "cloud.provider", "source.ip" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Có IP nào bị đánh dấu là botnet không?",
-    "keywords": [
-      "botnet",
-      "ip",
-      "đánh dấu"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "exists": {
-                "field": "fortinet.firewall.botnetip"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "fortinet.firewall.botnetip",
-        "fortinet.firewall.botnetdomain",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["ip", "botnet", "đánh dấu", "flagged", "malicious", "độc hại"],
+    "query": { "query": { "bool": { "filter": [ { "exists": { "field": "fortinet.firewall.botnetip" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "_source": [ "@timestamp", "source.ip", "fortinet.firewall.botnetip", "fortinet.firewall.botnetdomain", "rule.name" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Tổng số log trong 24 giờ qua là bao nhiêu?",
-    "keywords": [
-      "tổng số log",
-      "24 giờ qua",
-      "count"
-    ],
-    "query": {
-      "query": {
-        "range": {
-          "@timestamp": {
-            "gte": "now-24h"
-          }
-        }
-      },
-      "aggs": {
-        "total_count": {
-          "value_count": {
-            "field": "@timestamp"
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["tổng số log", "đếm log", "count logs", "24 giờ qua", "last 24 hours"],
+    "query": { "query": { "range": { "@timestamp": { "gte": "now-24h" } } }, "aggs": { "total_count": { "value_count": { "field": "@timestamp" } } }, "size": 0 }
   },
   {
     "question": "Đếm số lượng kết nối bị chặn hôm nay",
-    "keywords": [
-      "đếm",
-      "kết nối bị chặn",
-      "hôm nay"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "fortinet.firewall.action": "deny"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now/d"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "total_denied": {
-          "value_count": {
-            "field": "@timestamp"
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["đếm", "count", "kết nối bị chặn", "denied connections", "hôm nay", "today"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "fortinet.firewall.action": "deny" } }, { "range": { "@timestamp": { "gte": "now/d" } } } ] } }, "aggs": { "total_denied": { "value_count": { "field": "@timestamp" } } }, "size": 0 }
   },
   {
     "question": "Có bao nhiêu user đăng nhập thất bại trong 1 giờ qua?",
-    "keywords": [
-      "bao nhiêu user",
-      "đăng nhập thất bại",
-      "1 giờ qua"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "event.action": "login"
-              }
-            },
-            {
-              "term": {
-                "event.outcome": "failure"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-1h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "failed_logins": {
-          "cardinality": {
-            "field": "source.user.name"
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["bao nhiêu user", "count users", "đăng nhập thất bại", "failed logins", "1 giờ qua"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "event.action": "login" } }, { "term": { "event.outcome": "failure" } }, { "range": { "@timestamp": { "gte": "now-1h" } } } ] } }, "aggs": { "failed_logins": { "cardinality": { "field": "source.user.name" } } }, "size": 0 }
   },
   {
     "question": "IP 10.6.99.78 được gắn với user nào?",
-    "keywords": [
-      "ip",
-      "gắn với user",
-      "10.6.99.78"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "source.ip": "10.6.99.78"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "user_names": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 10
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["ip", "user", "người dùng", "gắn với", "associated with", "10.6.99.78"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "source.ip": "10.6.99.78" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "aggs": { "user_names": { "terms": { "field": "source.user.name", "size": 10 } } }, "size": 0 }
   },
   {
     "question": "User nào hoạt động nhiều nhất trong 6 giờ qua?",
-    "keywords": [
-      "user",
-      "hoạt động nhiều nhất",
-      "6 giờ qua"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-6h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "source.user.name"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_users": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 15
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["user", "người dùng", "hoạt động nhiều nhất", "most active", "top user", "6 giờ qua"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-6h" } } }, { "exists": { "field": "source.user.name" } } ] } }, "aggs": { "top_users": { "terms": { "field": "source.user.name", "size": 15 } } }, "size": 0 }
   },
   {
     "question": "Tổng số log của user QuynhTX ngày 19-09-2025",
-    "keywords": [
-      "tổng số log",
-      "quynhtx",
-      "19-09-2025"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "source.user.name": "QuynhTX"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "2025-09-19T00:00:00.000+07:00",
-                  "lte": "2025-09-19T23:59:59.999+07:00"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "total_count": {
-          "value_count": {
-            "field": "@timestamp"
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["tổng số log", "count logs", "user", "QuynhTX", "ngày cụ thể", "specific date"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "source.user.name": "QuynhTX" } }, { "range": { "@timestamp": { "gte": "2025-09-19T00:00:00.000+07:00", "lte": "2025-09-19T23:59:59.999+07:00" } } } ] } }, "aggs": { "total_count": { "value_count": { "field": "@timestamp" } } }, "size": 0 }
   },
   {
     "question": "Ai đăng nhập với quyền Administrator trong 24 giờ qua?",
-    "keywords": [
-      "đăng nhập",
-      "administrator",
-      "24 giờ qua"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "source.user.roles": "Administrator"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "event.action",
-        "fortinet.firewall.subtype"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["ai", "user", "đăng nhập", "login", "quyền", "role", "Administrator", "quản trị"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "source.user.roles": "Administrator" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "_source": [ "@timestamp", "source.user.name", "source.ip", "event.action", "fortinet.firewall.subtype" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Top 10 quốc gia được truy cập nhiều nhất trong 24 giờ qua",
-    "keywords": [
-      "top 10",
-      "quốc gia",
-      "truy cập nhiều nhất"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            },
-            {
-              "exists": {
-                "field": "destination.geo.country_name"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_countries": {
-          "terms": {
-            "field": "destination.geo.country_name",
-            "size": 10
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["top 10", "quốc gia", "country", "truy cập nhiều nhất", "top destination"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "destination.geo.country_name" } } ] } }, "aggs": { "top_countries": { "terms": { "field": "destination.geo.country_name", "size": 10 } } }, "size": 0 }
   },
   {
     "question": "Có kết nối nào từ nước ngoài vào Việt Nam không?",
-    "keywords": [
-      "kết nối",
-      "nước ngoài",
-      "vào việt nam"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "destination.geo.country_name": "Vietnam"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ],
-          "must_not": [
-            {
-              "term": {
-                "source.geo.country_name": "Vietnam"
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "source.geo.country_name",
-        "destination.ip",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["kết nối", "connection", "nước ngoài", "foreign", "vào Việt Nam", "inbound", "incomming"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "destination.geo.country_name": "Vietnam" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ], "must_not": [ { "term": { "source.geo.country_name": "Vietnam" } } ] } }, "_source": [ "@timestamp", "source.ip", "source.geo.country_name", "destination.ip", "rule.name" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Top 10 IP bị chặn nhiều nhất hôm nay",
-    "keywords": [
-      "top 10",
-      "ip bị chặn",
-      "hôm nay"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "fortinet.firewall.action": "deny"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now/d"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_blocked": {
-          "terms": {
-            "field": "source.ip",
-            "size": 10
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["top 10", "ip", "bị chặn", "denied", "hôm nay", "today"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "fortinet.firewall.action": "deny" } }, { "range": { "@timestamp": { "gte": "now/d" } } } ] } }, "aggs": { "top_blocked": { "terms": { "field": "source.ip", "size": 10 } } }, "size": 0 }
   },
   {
     "question": "Tìm các kết nối SSH bị chặn trong 2 giờ qua",
-    "keywords": [
-      "kết nối ssh",
-      "bị chặn",
-      "2 giờ qua"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "destination.port": 22
-              }
-            },
-            {
-              "term": {
-                "fortinet.firewall.action": "deny"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-2h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "rule.name",
-        "fortinet.firewall.action"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["kết nối ssh", "ssh connection", "bị chặn", "denied", "2 giờ qua"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "destination.port": 22 } }, { "term": { "fortinet.firewall.action": "deny" } }, { "range": { "@timestamp": { "gte": "now-2h" } } } ] } }, "_source": [ "@timestamp", "source.ip", "destination.ip", "rule.name", "fortinet.firewall.action" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Rule nào cho phép traffic nhiều nhất trong 12 giờ qua?",
-    "keywords": [
-      "rule",
-      "cho phép traffic",
-      "nhiều nhất"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "fortinet.firewall.action": "allow"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-12h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_allow_rules": {
-          "terms": {
-            "field": "rule.name",
-            "size": 15,
-            "order": {
-              "total_bytes": "desc"
-            }
-          },
-          "aggs": {
-            "total_bytes": {
-              "sum": {
-                "field": "network.bytes"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["rule", "policy", "cho phép", "allow", "traffic", "lưu lượng", "nhiều nhất", "top"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "fortinet.firewall.action": "allow" } }, { "range": { "@timestamp": { "gte": "now-12h" } } } ] } }, "aggs": { "top_allow_rules": { "terms": { "field": "rule.name", "size": 15, "order": { "total_bytes": "desc" } }, "aggs": { "total_bytes": { "sum": { "field": "network.bytes" } } } } }, "size": 0 }
   },
   {
     "question": "Tìm các IPS alert với mức critical trong 24 giờ qua",
-    "keywords": [
-      "ips alert",
-      "critical",
-      "24 giờ qua"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "fortinet.firewall.crlevel": "critical"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "fortinet.firewall.attack",
-        "fortinet.firewall.crscore",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["ips alert", "cảnh báo ips", "mức", "level", "critical", "nghiêm trọng"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "fortinet.firewall.crlevel": "critical" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "_source": [ "@timestamp", "source.ip", "destination.ip", "fortinet.firewall.attack", "fortinet.firewall.crscore", "rule.name" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Liệt kê các virus/malware được phát hiện trong 6 giờ qua",
-    "keywords": [
-      "virus",
-      "malware",
-      "phát hiện"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "exists": {
-                "field": "fortinet.firewall.virus"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-6h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "fortinet.firewall.virus",
-        "fortinet.firewall.virusid",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["liệt kê", "list", "virus", "malware", "mã độc", "phát hiện", "detected"],
+    "query": { "query": { "bool": { "filter": [ { "exists": { "field": "fortinet.firewall.virus" } }, { "range": { "@timestamp": { "gte": "now-6h" } } } ] } }, "_source": [ "@timestamp", "source.ip", "destination.ip", "fortinet.firewall.virus", "fortinet.firewall.virusid", "rule.name" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Tìm các SNAT sessions trong 1 giờ qua",
-    "keywords": [
-      "snat sessions",
-      "1 giờ qua"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "fortinet.firewall.trandisp": "snat"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-1h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "source.nat.ip",
-        "destination.ip",
-        "network.bytes",
-        "rule.name"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["snat", "source nat", "sessions", "phiên", "1 giờ qua"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "fortinet.firewall.trandisp": "snat" } }, { "range": { "@timestamp": { "gte": "now-1h" } } } ] } }, "_source": [ "@timestamp", "source.ip", "source.nat.ip", "destination.ip", "network.bytes", "rule.name" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Đếm số lượng NAT sessions theo loại (snat/dnat)",
-    "keywords": [
-      "đếm",
-      "nat sessions",
-      "snat",
-      "dnat"
-    ],
-    "query": {
-      "query": {
-        "range": {
-          "@timestamp": {
-            "gte": "now-24h"
-          }
-        }
-      },
-      "aggs": {
-        "nat_types": {
-          "terms": {
-            "field": "fortinet.firewall.trandisp",
-            "size": 10
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["đếm", "count", "nat sessions", "loại", "type", "snat", "dnat"],
+    "query": { "query": { "range": { "@timestamp": { "gte": "now-24h" } } }, "aggs": { "nat_types": { "terms": { "field": "fortinet.firewall.trandisp", "size": 10 } } }, "size": 0 }
   },
   {
     "question": "Tìm traffic đi qua policy ID 5 trong 4h qua",
-    "keywords": [
-      "traffic",
-      "policy id 5",
-      "4h qua"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "fortinet.firewall.policyid": "5"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-4h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "_source": [
-        "@timestamp",
-        "source.ip",
-        "destination.ip",
-        "rule.name",
-        "fortinet.firewall.action",
-        "network.bytes"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "size": 50
-    }
+    "keywords": ["traffic", "lưu lượng", "policy id", "rule id", "5", "4h qua"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "fortinet.firewall.policyid": "5" } }, { "range": { "@timestamp": { "gte": "now-4h" } } } ] } }, "_source": [ "@timestamp", "source.ip", "destination.ip", "rule.name", "fortinet.firewall.action", "network.bytes" ], "sort": [ { "@timestamp": "desc" } ], "size": 50 }
   },
   {
     "question": "Top 15 rules được sử dụng nhiều nhất theo traffic volume",
-    "keywords": [
-      "top 15 rules",
-      "traffic volume"
-    ],
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "top_rules": {
-          "terms": {
-            "field": "rule.name",
-            "size": 15,
-            "order": {
-              "total_bytes": "desc"
-            }
-          },
-          "aggs": {
-            "total_bytes": {
-              "sum": {
-                "field": "network.bytes"
-              }
-            },
-            "total_sessions": {
-              "value_count": {
-                "field": "fortinet.firewall.sessionid"
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    }
+    "keywords": ["top 15", "rules", "policy", "sử dụng nhiều nhất", "traffic volume", "lưu lượng"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "aggs": { "top_rules": { "terms": { "field": "rule.name", "size": 15, "order": { "total_bytes": "desc" } }, "aggs": { "total_bytes": { "sum": { "field": "network.bytes" } }, "total_sessions": { "value_count": { "field": "fortinet.firewall.sessionid" } } } } }, "size": 0 }
   },
   {
     "question": "Tìm xem user nào chỉnh sửa trong CNHN_ZONE",
-    "keywords": [
-      "user",
-      "chỉnh sửa",
-      "CNHN_ZONE"
-    ],
-    "query": {
-      "size": 50,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "exists": {
-                "field": "fortinet.firewall.cfgattr"
-              }
-            },
-            {
-              "match": {
-                "message": "CNHN_ZONE"
-              }
-            }
-          ]
-        }
-      }
-    }
+    "keywords": ["user", "người dùng", "chỉnh sửa", "edit", "modify", "cấu hình", "CNHN_ZONE", "cfgattr"],
+    "query": { "size": 200, "sort": [{"@timestamp": "asc"}], "_source": ["@timestamp", "source.user.name", "source.ip", "message", "fortinet.firewall.cfgattr"], "query": { "bool": { "filter": [ { "exists": { "field": "fortinet.firewall.cfgattr" } }, { "match": { "message": "CNHN_ZONE" } } ] } } }
+  },
+  {
+    "question": "Có kết nối nào từ observer.name = 'FTG-CNHN' đến observer khác không?",
+    "keywords": ["observer.name", "FTG-CNHN", "kết nối", "observer khác"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "observer.name": "FTG-CNHN" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "_source": ["@timestamp", "observer.name", "source.ip", "destination.ip", "rule.name"], "sort": [{ "@timestamp": "desc" }], "size": 50 }
   },
   {
     "question": "Đếm tổng số log trong ngày hôm nay",
-    "keywords": ["đếm", "tổng số", "log", "hôm nay"],
-    "query": {
-      "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now/d" } } } ] } },
-      "aggs": { "total_count": { "value_count": { "field": "@timestamp" } } },
-      "size": 0
-    }
+    "keywords": ["đếm", "tổng số", "log", "hôm nay", "count"],
+    "query": { "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now/d" } } } ] } }, "aggs": { "total_count": { "value_count": { "field": "@timestamp" } } }, "size": 0 }
   },
   {
     "question": "Có tổng cộng bao nhiêu log của user 'tanln' trong 24 giờ qua?",
-    "keywords": ["tổng cộng", "bao nhiêu", "log", "user", "tanln", "24 giờ qua"],
-    "query": {
-      "query": { "bool": { "filter": [ { "term": { "source.user.name": "tanln" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } },
-      "aggs": { "total_count": { "value_count": { "field": "@timestamp" } } },
-      "size": 0
-    }
+    "keywords": ["tổng cộng", "bao nhiêu", "log", "user", "tanln", "24 giờ qua", "count"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "source.user.name": "tanln" } }, { "range": { "@timestamp": { "gte": "now-24h" } } } ] } }, "aggs": { "total_count": { "value_count": { "field": "@timestamp" } } }, "size": 0 }
   },
   {
     "question": "Thống kê tổng số log từ địa chỉ IP 192.168.1.100 trong tuần này",
-    "keywords": ["thống kê", "tổng số", "log", "địa chỉ ip", "192.168.1.100", "tuần này"],
-    "query": {
-      "query": { "bool": { "filter": [ { "term": { "source.ip": "192.168.1.100" } }, { "range": { "@timestamp": { "gte": "now/w" } } } ] } },
-      "aggs": { "total_count": { "value_count": { "field": "@timestamp" } } },
-      "size": 0
-    }
+    "keywords": ["thống kê", "tổng số", "log", "địa chỉ ip", "192.168.1.100", "tuần này", "count"],
+    "query": { "query": { "bool": { "filter": [ { "term": { "source.ip": "192.168.1.100" } }, { "range": { "@timestamp": { "gte": "now/w" } } } ] } }, "aggs": { "total_count": { "value_count": { "field": "@timestamp" } } }, "size": 0 }
   }
 ]
+
