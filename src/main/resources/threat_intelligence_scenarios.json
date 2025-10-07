@@ -1,0 +1,284 @@
+[
+  {
+    "question": "Threat Hunting: Phát hiện kết nối đến botnet trong 48h qua?",
+    "keywords": [
+      "botnet detection",
+      "phát hiện botnet",
+      "command control",
+      "điều khiển từ xa",
+      "malicious IP",
+      "IP độc hại",
+      "threat hunting",
+      "săn lùng mối đe dọa",
+      "IOC detection",
+      "phát hiện IOC",
+      "C2 communication",
+      "giao tiếp C2",
+      "malware communication",
+      "giao tiếp malware",
+      "botnet IP",
+      "IP botnet"
+    ],
+    "scenario": "BOTNET DETECTION AND ANALYSIS",
+    "phase": "Giai đoạn 1: Phát hiện kết nối botnet",
+    "securityFramework": "MITRE ATT&CK T1071 - Application Layer Protocol",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-48h" } } }, { "exists": { "field": "fortinet.firewall.botnetip" } }]
+        }
+      },
+      "aggs": {
+        "botnet_analysis": {
+          "terms": { "field": "fortinet.firewall.botnetip", "size": 50 },
+          "aggs": {
+            "affected_sources": {
+              "terms": { "field": "source.ip", "size": 100 }
+            },
+            "botnet_domains": {
+              "terms": { "field": "fortinet.firewall.botnetdomain", "size": 30 }
+            },
+            "communication_timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              }
+            },
+            "total_connections": {
+              "value_count": { "field": "@timestamp" }
+            },
+            "data_transferred": {
+              "sum": { "field": "network.bytes" }
+            },
+            "protocols_used": {
+              "terms": { "field": "network.protocol", "size": 10 }
+            },
+            "destination_ports": {
+              "terms": { "field": "destination.port", "size": 20 }
+            }
+          }
+        },
+        "infected_hosts": {
+          "terms": { "field": "source.ip", "size": 100 },
+          "aggs": {
+            "botnet_contacts": {
+              "terms": { "field": "fortinet.firewall.botnetip", "size": 20 }
+            },
+            "infection_timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "1h"
+              }
+            },
+            "host_details": {
+              "terms": { "field": "host.name", "size": 50 }
+            },
+            "user_context": {
+              "terms": { "field": "source.user.name", "size": 30 }
+            }
+          }
+        }
+      },
+      "_source": [
+        "@timestamp",
+        "source.ip",
+        "fortinet.firewall.botnetip",
+        "fortinet.firewall.botnetdomain",
+        "network.bytes",
+        "destination.port",
+        "host.name",
+        "source.user.name"
+      ],
+      "size": 100
+    }
+  },
+  {
+    "question": "Living off the Land: Phát hiện sử dụng DNS để truyền dữ liệu bất thường?",
+    "keywords": [
+      "DNS tunneling",
+      "đường hầm DNS",
+      "data exfiltration",
+      "đánh cắp dữ liệu",
+      "covert channels",
+      "kênh bí mật",
+      "DNS abuse",
+      "lạm dụng DNS",
+      "abnormal DNS",
+      "DNS bất thường",
+      "living off the land",
+      "sống bằng đất",
+      "legitimate protocol abuse",
+      "lạm dụng giao thức hợp pháp"
+    ],
+    "scenario": "DNS TUNNELING DETECTION",
+    "phase": "Giai đoạn 2: Phát hiện lạm dụng DNS",
+    "securityFramework": "MITRE ATT&CK T1071.004 - DNS",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-2h" } } },
+            { "term": { "destination.port": 53 } },
+            { "term": { "network.protocol": "udp" } },
+            { "exists": { "field": "dns.question.name" } }
+          ]
+        }
+      },
+      "aggs": {
+        "dns_analysis": {
+          "terms": { "field": "source.ip", "size": 100 },
+          "aggs": {
+            "query_patterns": {
+              "terms": { "field": "dns.question.name", "size": 50 }
+            },
+            "query_types": {
+              "terms": { "field": "dns.question.type", "size": 10 }
+            },
+            "query_frequency": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1m"
+              }
+            },
+            "unique_domains": {
+              "cardinality": { "field": "dns.question.registered_domain" }
+            },
+            "total_queries": {
+              "value_count": { "field": "dns.question.name" }
+            },
+            "suspicious_tlds": {
+              "terms": { "field": "dns.question.top_level_domain", "size": 20 }
+            },
+            "long_queries": {
+              "filter": {
+                "script": {
+                  "script": {
+                    "source": "doc['dns.question.name'].size() > 0 && doc['dns.question.name'].value.length() > 50"
+                  }
+                }
+              }
+            },
+            "subdomain_analysis": {
+              "terms": { "field": "dns.question.subdomain", "size": 30 }
+            }
+          }
+        },
+        "anomaly_indicators": {
+          "filters": {
+            "filters": {
+              "high_frequency": {
+                "range": { "@timestamp": { "gte": "now-1m" } }
+              },
+              "unusual_record_types": {
+                "terms": { "dns.question.type": ["TXT", "NULL", "CNAME"] }
+              },
+              "non_standard_ports": {
+                "bool": {
+                  "must_not": [{ "term": { "destination.port": 53 } }]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Lateral Movement: Phát hiện kết nối SMB/RDP bất thường giữa các host?",
+    "keywords": [
+      "lateral movement",
+      "di chuyển ngang",
+      "SMB traffic",
+      "lưu lượng SMB",
+      "RDP connections",
+      "kết nối RDP",
+      "internal spreading",
+      "lan truyền nội bộ",
+      "administrative access",
+      "truy cập quản trị",
+      "credential abuse",
+      "lạm dụng credential",
+      "network reconnaissance",
+      "trinh sát mạng"
+    ],
+    "scenario": "LATERAL MOVEMENT DETECTION",
+    "phase": "Giai đoạn 3: Phát hiện di chuyển ngang",
+    "securityFramework": "MITRE ATT&CK T1021 - Remote Services",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-4h" } } },
+            { "term": { "network.direction": "internal" } },
+            { "term": { "fortinet.firewall.action": "accept" } },
+            {
+              "bool": {
+                "should": [
+                  { "term": { "destination.port": 445 } },
+                  { "term": { "destination.port": 3389 } },
+                  { "term": { "destination.port": 139 } },
+                  { "term": { "destination.port": 135 } }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "lateral_movement_analysis": {
+          "terms": { "field": "source.ip", "size": 100 },
+          "aggs": {
+            "target_hosts": {
+              "terms": { "field": "destination.ip", "size": 50 },
+              "aggs": {
+                "connection_ports": {
+                  "terms": { "field": "destination.port", "size": 10 }
+                },
+                "connection_timeline": {
+                  "date_histogram": {
+                    "field": "@timestamp",
+                    "fixed_interval": "10m"
+                  }
+                }
+              }
+            },
+            "protocols_used": {
+              "terms": { "field": "network.protocol", "size": 5 }
+            },
+            "user_context": {
+              "terms": { "field": "source.user.name", "size": 20 }
+            },
+            "total_connections": {
+              "value_count": { "field": "@timestamp" }
+            },
+            "data_volume": {
+              "sum": { "field": "network.bytes" }
+            },
+            "unique_targets": {
+              "cardinality": { "field": "destination.ip" }
+            }
+          }
+        },
+        "service_analysis": {
+          "terms": { "field": "destination.port", "size": 10 },
+          "aggs": {
+            "service_usage": {
+              "terms": {
+                "script": {
+                  "source": "doc['source.ip'].value + ' -> ' + doc['destination.ip'].value"
+                },
+                "size": 100
+              }
+            },
+            "hourly_pattern": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+]

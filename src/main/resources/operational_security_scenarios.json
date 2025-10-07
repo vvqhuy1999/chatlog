@@ -1,0 +1,220 @@
+[
+  {
+    "question": "Performance Analysis: Rule nào gây bottleneck và ảnh hưởng hiệu suất firewall?",
+    "keywords": [
+      "performance bottleneck",
+      "bottleneck hiệu suất",
+      "firewall performance",
+      "hiệu suất firewall",
+      "rule optimization",
+      "tối ưu rule",
+      "throughput analysis",
+      "phân tích thông lượng",
+      "resource utilization",
+      "sử dụng tài nguyên",
+      "connection drops",
+      "mất kết nối",
+      "slow response",
+      "phản hồi chậm"
+    ],
+    "scenario": "NETWORK PERFORMANCE OPTIMIZATION",
+    "phase": "Giai đoạn 1: Phân tích tác động hiệu suất",
+    "operationalGoal": "Tối ưu hóa hiệu suất firewall và giảm thiểu bottleneck",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-4h" } } },
+            {
+              "bool": {
+                "should": [
+                  { "range": { "event.duration": { "gte": 1000 } } },
+                  { "range": { "fortinet.firewall.durationdelta": { "gte": 1000 } } },
+                  { "term": { "event.outcome": "failure" } },
+                  { "term": { "fortinet.firewall.action": "deny" } }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "performance_analysis": {
+          "terms": { "field": "rule.name", "size": 100 },
+          "aggs": {
+            "avg_processing_time": {
+              "avg": { "field": "event.duration" }
+            },
+            "max_processing_time": {
+              "max": { "field": "event.duration" }
+            },
+            "total_packets": {
+              "value_count": { "field": "@timestamp" }
+            },
+            "dropped_packets": {
+              "filter": { "term": { "fortinet.firewall.action": "deny" } }
+            },
+            "traffic_volume": {
+              "sum": { "field": "network.bytes" }
+            },
+            "hourly_pattern": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              },
+              "aggs": {
+                "hourly_avg_latency": {
+                  "avg": { "field": "event.duration" }
+                }
+              }
+            },
+            "source_destinations": {
+              "terms": {
+                "script": {
+                  "source": "doc['source.ip'].value + ' -> ' + doc['destination.ip'].value"
+                },
+                "size": 50
+              }
+            }
+          }
+        },
+        "connection_health": {
+          "filters": {
+            "filters": {
+              "successful_connections": { "term": { "fortinet.firewall.action": "accept" } },
+              "failed_connections": { "term": { "fortinet.firewall.action": "deny" } },
+              "timeout_connections": { "term": { "event.outcome": "timeout" } },
+              "high_latency": { "range": { "event.duration": { "gte": 5000 } } }
+            }
+          }
+        },
+        "protocol_performance": {
+          "terms": { "field": "network.protocol", "size": 20 },
+          "aggs": {
+            "avg_throughput": {
+              "avg": { "field": "network.bytes" }
+            },
+            "connection_success_rate": {
+              "filters": {
+                "filters": {
+                  "successful": { "term": { "fortinet.firewall.action": "accept" } },
+                  "failed": { "term": { "fortinet.firewall.action": "deny" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Capacity Planning: Dự báo nhu cầu băng thông và tài nguyên hệ thống trong 30 ngày tới?",
+    "keywords": [
+      "capacity planning",
+      "lập kế hoạch dung lượng",
+      "bandwidth forecasting",
+      "dự báo băng thông",
+      "resource planning",
+      "lập kế hoạch tài nguyên",
+      "growth prediction",
+      "dự đoán tăng trưởng",
+      "utilization trends",
+      "xu hướng sử dụng",
+      "peak usage analysis",
+      "phân tích sử dụng đỉnh",
+      "infrastructure scaling",
+      "mở rộng hạ tầng",
+      "future requirements",
+      "yêu cầu tương lai"
+    ],
+    "scenario": "INFRASTRUCTURE CAPACITY PLANNING",
+    "phase": "Giai đoạn 2: Dự báo và lập kế hoạch",
+    "operationalGoal": "Đảm bảo hạ tầng đáp ứng nhu cầu tương lai",
+    "query": {
+      "query": {
+        "range": { "@timestamp": { "gte": "now-30d" } }
+      },
+      "aggs": {
+        "bandwidth_trends": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "calendar_interval": "1d"
+          },
+          "aggs": {
+            "daily_total_bytes": {
+              "sum": { "field": "network.bytes" }
+            },
+            "daily_packet_count": {
+              "value_count": { "field": "@timestamp" }
+            },
+            "daily_unique_sources": {
+              "cardinality": { "field": "source.ip" }
+            },
+            "daily_unique_destinations": {
+              "cardinality": { "field": "destination.ip" }
+            },
+            "peak_hour_usage": {
+              "max_bucket": {
+                "buckets_path": "hourly_breakdown>total_bytes"
+              }
+            },
+            "hourly_breakdown": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              },
+              "aggs": {
+                "total_bytes": {
+                  "sum": { "field": "network.bytes" }
+                }
+              }
+            }
+          }
+        },
+        "growth_analysis": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "calendar_interval": "1w"
+          },
+          "aggs": {
+            "weekly_bytes": {
+              "sum": { "field": "network.bytes" }
+            },
+            "weekly_connections": {
+              "value_count": { "field": "@timestamp" }
+            },
+            "growth_rate": {
+              "derivative": {
+                "buckets_path": "weekly_bytes"
+              }
+            }
+          }
+        },
+        "resource_utilization": {
+          "terms": { "field": "destination.port", "size": 50 },
+          "aggs": {
+            "port_usage_trend": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "1d"
+              },
+              "aggs": {
+                "daily_connections": {
+                  "value_count": { "field": "@timestamp" }
+                }
+              }
+            },
+            "total_traffic": {
+              "sum": { "field": "network.bytes" }
+            }
+          }
+        },
+        "predictive_metrics": {
+          "avg_bucket": {
+            "buckets_path": "bandwidth_trends>daily_total_bytes"
+          }
+        }
+      }
+    }
+  }
+]
