@@ -12,6 +12,11 @@ public class DataExample {
     private String scenario;
     private String phase;
     private String businessValue;
+    
+    // Additional fields for different security scenarios
+    private String complianceType;
+    private String securityFramework;
+    private String operationalGoal;
 
     // --- Bắt buộc phải có Getters và Setters cho Jackson ---
 
@@ -61,5 +66,29 @@ public class DataExample {
 
     public void setBusinessValue(String businessValue) {
         this.businessValue = businessValue;
+    }
+
+    public String getComplianceType() {
+        return complianceType;
+    }
+
+    public void setComplianceType(String complianceType) {
+        this.complianceType = complianceType;
+    }
+
+    public String getSecurityFramework() {
+        return securityFramework;
+    }
+
+    public void setSecurityFramework(String securityFramework) {
+        this.securityFramework = securityFramework;
+    }
+
+    public String getOperationalGoal() {
+        return operationalGoal;
+    }
+
+    public void setOperationalGoal(String operationalGoal) {
+        this.operationalGoal = operationalGoal;
     }
 }
