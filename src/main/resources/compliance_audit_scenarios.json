@@ -1,0 +1,177 @@
+[
+  {
+    "question": "Báo cáo truy cập dữ liệu nhạy cảm theo quy định GDPR: Ai đã truy cập thông tin từ EU trong 90 ngày qua?",
+    "keywords": [
+      "GDPR compliance",
+      "tuân thủ GDPR",
+      "EU access",
+      "truy cập EU",
+      "data protection",
+      "bảo vệ dữ liệu",
+      "compliance report",
+      "báo cáo tuân thủ",
+      "90 ngày",
+      "privacy regulation",
+      "quy định bảo mật",
+      "user activity",
+      "hoạt động người dùng"
+    ],
+    "scenario": "GDPR COMPLIANCE MONITORING",
+    "phase": "Giai đoạn 1: Thu thập bằng chứng truy cập",
+    "complianceType": "GDPR Article 30 - Records of Processing",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-30d" } } },
+            { "term": { "source.geo.continent_name": "Europe" } },
+            {
+              "bool": {
+                "should": [{ "terms": { "destination.port": [443, 80, 8080] } }, { "term": { "fortinet.firewall.action": "accept" } }]
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "gdpr_access_report": {
+          "terms": { "field": "source.user.name", "size": 100 },
+          "aggs": {
+            "access_countries": {
+              "terms": { "field": "source.geo.country_name", "size": 20 }
+            },
+            "access_timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "1d"
+              }
+            },
+            "data_volume": {
+              "sum": { "field": "network.bytes" }
+            },
+            "unique_destinations": {
+              "cardinality": { "field": "destination.ip" }
+            },
+            "session_count": {
+              "value_count": { "field": "@timestamp" }
+            }
+          }
+        },
+        "eu_traffic_summary": {
+          "filter": { "term": { "source.geo.continent_name": "Europe" } },
+          "aggs": {
+            "total_bytes": {
+              "sum": { "field": "network.bytes" }
+            },
+            "unique_users": {
+              "cardinality": { "field": "source.user.name" }
+            }
+          }
+        }
+      },
+      "sort": [{ "@timestamp": "desc" }],
+      "size": 1000
+    }
+  },
+  {
+    "question": "Kiểm toán quyền truy cập đặc quyền: Tài khoản admin nào có hoạt động bất thường?",
+    "keywords": [
+      "privileged access",
+      "truy cập đặc quyền",
+      "admin accounts",
+      "tài khoản admin",
+      "unusual activity",
+      "hoạt động bất thường",
+      "audit privileged access",
+      "kiểm toán quyền admin",
+      "insider threat",
+      "mối đe dọa nội bộ",
+      "administrative rights",
+      "quyền quản trị"
+    ],
+    "scenario": "PRIVILEGED ACCESS MONITORING",
+    "phase": "Giai đoạn 2: Phát hiện hoạt động đặc quyền bất thường",
+    "complianceType": "SOX Section 404 - Internal Controls",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-30d" } } },
+            {
+              "bool": {
+                "should": [
+                  { "wildcard": { "source.user.name": "*admin*" } },
+                  { "wildcard": { "source.user.name": "*root*" } },
+                  { "term": { "source.user.roles": "Administrator" } },
+                  { "term": { "source.user.group.name": "administrators" } }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "admin_activity_analysis": {
+          "terms": { "field": "source.user.name", "size": 50 },
+          "aggs": {
+            "login_pattern": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              }
+            },
+            "after_hours_activity": {
+              "filter": {
+                "script": {
+                  "script": {
+                    "source": "doc['@timestamp'].value.getHour() < 6 || doc['@timestamp'].value.getHour() > 22"
+                  }
+                }
+              }
+            },
+            "geographic_locations": {
+              "terms": { "field": "source.geo.country_name", "size": 10 }
+            },
+            "failed_attempts": {
+              "filter": { "term": { "event.outcome": "failure" } }
+            },
+            "successful_connections": {
+              "filter": { "term": { "fortinet.firewall.action": "accept" } }
+            },
+            "data_access_volume": {
+              "sum": { "field": "network.bytes" }
+            },
+            "unique_destinations": {
+              "cardinality": { "field": "destination.ip" }
+            }
+          }
+        },
+        "risk_indicators": {
+          "filters": {
+            "filters": {
+              "multiple_countries": {
+                "range": {
+                  "source.geo.country_name": { "gte": 2 }
+                }
+              },
+              "high_volume_access": {
+                "range": { "network.bytes": { "gte": 10485760 } }
+              },
+              "weekend_access": {
+                "bool": {
+                  "filter": {
+                    "script": {
+                      "script": {
+                        "source": "doc['@timestamp'].value.getDayOfWeek() >= 6"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+]

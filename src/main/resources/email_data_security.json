@@ -1,0 +1,215 @@
+[
+  {
+    "question": "Email Security: Phát hiện email phishing và malware qua traffic SMTP/POP3/IMAP?",
+    "keywords": [
+      "email phishing",
+      "phishing qua email",
+      "malware email",
+      "email độc hại",
+      "SMTP traffic",
+      "lưu lượng SMTP",
+      "email security",
+      "bảo mật email",
+      "suspicious attachments",
+      "file đính kèm đáng nghi",
+      "email filtering",
+      "lọc email",
+      "spam detection",
+      "phát hiện spam"
+    ],
+    "scenario": "EMAIL THREAT DETECTION",
+    "phase": "Giai đoạn 1: Phát hiện mối đe dọa qua email",
+    "securityFramework": "MITRE ATT&CK T1566 - Phishing",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-24h" } } },
+            { "term": { "fortinet.firewall.action": "accept" } },
+            {
+              "bool": {
+                "should": [
+                  { "term": { "destination.port": 25 } },
+                  { "term": { "destination.port": 110 } },
+                  { "term": { "destination.port": 143 } },
+                  { "term": { "destination.port": 993 } },
+                  { "term": { "destination.port": 995 } }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "email_traffic_analysis": {
+          "terms": { "field": "destination.port", "size": 10 },
+          "aggs": {
+            "email_servers": {
+              "terms": { "field": "destination.ip", "size": 30 }
+            },
+            "email_users": {
+              "terms": { "field": "source.user.name", "size": 50 }
+            },
+            "email_volume": {
+              "sum": { "field": "network.bytes" }
+            },
+            "connection_timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              }
+            },
+            "external_servers": {
+              "filter": {
+                "bool": {
+                  "must_not": [{ "term": { "network.direction": "internal" } }]
+                }
+              },
+              "aggs": {
+                "server_countries": {
+                  "terms": { "field": "destination.geo.country_name", "size": 20 }
+                },
+                "server_organizations": {
+                  "terms": { "field": "destination.as.organization.name", "size": 15 }
+                }
+              }
+            }
+          }
+        },
+        "suspicious_patterns": {
+          "filters": {
+            "filters": {
+              "large_attachments": {
+                "range": { "network.bytes": { "gte": 10485760 } }
+              },
+              "unusual_hours": {
+                "bool": {
+                  "filter": {
+                    "script": {
+                      "script": {
+                        "source": "doc['@timestamp'].value.getHour() < 6 || doc['@timestamp'].value.getHour() > 22"
+                      }
+                    }
+                  }
+                }
+              },
+              "foreign_servers": {
+                "bool": {
+                  "must_not": [{ "terms": { "destination.geo.country_name": ["Vietnam", "United States"] } }]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Data Loss Prevention: Phát hiện truyền file lớn ra ngoài qua FTP/HTTP?",
+    "keywords": [
+      "data loss prevention",
+      "ngăn chặn mất dữ liệu",
+      "file transfer",
+      "truyền file",
+      "data exfiltration",
+      "đánh cắp dữ liệu",
+      "large file upload",
+      "upload file lớn",
+      "FTP traffic",
+      "lưu lượng FTP",
+      "HTTP upload",
+      "upload qua HTTP",
+      "data leakage",
+      "rò rỉ dữ liệu"
+    ],
+    "scenario": "DATA EXFILTRATION DETECTION",
+    "phase": "Giai đoạn 2: Giám sát truyền dữ liệu ra ngoài",
+    "securityFramework": "MITRE ATT&CK T1041 - Exfiltration Over C2 Channel",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-4h" } } },
+            { "term": { "fortinet.firewall.action": "accept" } },
+            { "term": { "network.direction": "outbound" } },
+            {
+              "bool": {
+                "should": [
+                  { "term": { "destination.port": 21 } },
+                  { "term": { "destination.port": 22 } },
+                  { "term": { "destination.port": 80 } },
+                  { "term": { "destination.port": 443 } }
+                ]
+              }
+            },
+            { "range": { "network.bytes": { "gte": 52428800 } } }
+          ]
+        }
+      },
+      "aggs": {
+        "large_transfers": {
+          "terms": { "field": "source.ip", "size": 50 },
+          "aggs": {
+            "transfer_destinations": {
+              "terms": { "field": "destination.ip", "size": 30 }
+            },
+            "total_data_sent": {
+              "sum": { "field": "network.bytes" }
+            },
+            "transfer_protocols": {
+              "terms": { "field": "destination.port", "size": 10 }
+            },
+            "transfer_timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "30m"
+              },
+              "aggs": {
+                "hourly_bytes": {
+                  "sum": { "field": "network.bytes" }
+                }
+              }
+            },
+            "user_context": {
+              "terms": { "field": "source.user.name", "size": 20 }
+            },
+            "destination_countries": {
+              "terms": { "field": "destination.geo.country_name", "size": 15 }
+            }
+          }
+        },
+        "protocol_analysis": {
+          "terms": { "field": "destination.port", "size": 10 },
+          "aggs": {
+            "avg_transfer_size": {
+              "avg": { "field": "network.bytes" }
+            },
+            "max_transfer_size": {
+              "max": { "field": "network.bytes" }
+            },
+            "transfer_frequency": {
+              "value_count": { "field": "@timestamp" }
+            }
+          }
+        },
+        "risk_indicators": {
+          "filters": {
+            "filters": {
+              "very_large_files": {
+                "range": { "network.bytes": { "gte": 1073741824 } }
+              },
+              "encrypted_transfers": {
+                "terms": { "destination.port": [22, 443, 990, 989] }
+              },
+              "suspicious_destinations": {
+                "bool": {
+                  "must_not": [{ "terms": { "destination.as.organization.name": ["Google LLC", "Microsoft Corporation", "Amazon.com"] } }]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+]

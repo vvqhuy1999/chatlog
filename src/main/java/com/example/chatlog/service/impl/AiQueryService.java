@@ -60,7 +60,14 @@ public class AiQueryService {
             "advanced_security_scenarios.json",
             "network_forensics_performance.json",
             "business_intelligence_operations.json",
-            "incident_response_playbooks.json"
+            "incident_response_playbooks.json",
+            "compliance_audit_scenarios.json",
+            "zero_trust_scenarios.json",
+            "cloud_devops_security.json",
+            "threat_intelligence_scenarios.json",
+            "operational_security_scenarios.json",
+            "email_data_security.json",
+            "network_anomaly_detection.json"
         };
         
         int totalLoaded = 0;
