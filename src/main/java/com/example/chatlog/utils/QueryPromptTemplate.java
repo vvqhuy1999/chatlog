@@ -43,11 +43,10 @@ public class QueryPromptTemplate {
             
             ROLE NORMALIZATION RULES
             {roleNormalizationRules}
+            USER QUERY: {userQuery}
             
             DYNAMIC EXAMPLES FROM KNOWLEDGE BASE
             {dynamic_examples}
-            
-            USER QUERY: {userQuery}
             """;
     
     /**

@@ -49,6 +49,7 @@ public class AiResponseService {
         // Định dạng JSON query để hiển thị tốt hơn
         String formattedQuery = query;
         try {
+            System.out.println("[AiResponseService] Formatting query: " + query);
             ObjectMapper mapper = new ObjectMapper();
             JsonNode jsonNode = mapper.readTree(query);
             formattedQuery = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonNode);
