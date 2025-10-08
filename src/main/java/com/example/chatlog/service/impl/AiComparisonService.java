@@ -44,9 +44,6 @@ public class AiComparisonService {
     
     private final ObjectMapper objectMapper;
     private List<DataExample> exampleLibrary;
-    // Tích hợp các service tối ưu hóa mới
-    @Autowired
-    private QueryOptimizationService queryOptimizationService;
     
     @Autowired
     private PerformanceMonitoringService performanceMonitoringService;

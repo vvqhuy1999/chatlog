@@ -49,8 +49,6 @@ public class AiServiceImpl implements AiService {
   @Autowired
   private AiResponseService aiResponseService;
 
-  @Autowired
-  private QueryOptimizationService queryOptimizationService;
   
   @Autowired
   private PerformanceMonitoringService performanceMonitoringService;
