@@ -726,6 +726,206 @@
     "keywords": ["thống kê", "tổng số", "log", "địa chỉ ip", "192.168.1.100", "tuần này", "count",
       "now/w", "value_count", "source.ip", "this week"],
     "query": { "query": { "bool": { "filter": [ { "term": { "source.ip": "192.168.1.100" } }, { "range": { "@timestamp": { "gte": "now/w" } } } ] } }, "aggs": { "total_count": { "value_count": { "field": "@timestamp" } } }, "size": 0 }
+  },
+  {
+    "question": "Tìm 50 log mới nhất trong khoảng thời gian từ 18:00 đến 20:00 ngày 07/10/2025",
+    "keywords": ["log", "khoảng thời gian", "18:00", "20:00", "sắp xếp", "mới nhất", "desc"],
+    "query": {
+      "query": {
+        "range": {
+          "@timestamp": {
+            "gte": "2025-10-07T18:00:00.000+07:00",
+            "lt": "2025-10-07T20:00:00.000+07:00"
+          }
+        }
+      },
+      "size": 50,
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ]
+    }
+  },
+  {
+    "question": "Lấy 100 log mới nhất trong khoảng từ 8h đến 9h sáng ngày 08/10/2025",
+    "keywords": ["log", "100", "mới nhất", "8h", "9h", "sáng"],
+    "query": {
+      "query": {
+        "range": {
+          "@timestamp": {
+            "gte": "2025-10-08T08:00:00.000+07:00",
+            "lt": "2025-10-08T09:00:00.000+07:00"
+          }
+        }
+      },
+      "size": 100,
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ]
+    }
+  },
+  {
+    "question": "Hiển thị các hoạt động từ 22h đêm ngày 05/10/2025 đến 1h sáng ngày 06/10/2025",
+    "keywords": ["hoạt động", "log", "22h", "đêm", "1h", "sáng"],
+    "query": {
+      "query": {
+        "range": {
+          "@timestamp": {
+            "gte": "2025-10-05T22:00:00.000+07:00",
+            "lt": "2025-10-06T01:00:00.000+07:00"
+          }
+        }
+      },
+      "size": 50,
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ]
+    }
+  },
+  {
+    "question": "Tìm tất cả log của ngày 01/10/2025, hiển thị mới nhất trước",
+    "keywords": ["log", "toàn bộ ngày", "cả ngày"],
+    "query": {
+      "query": {
+        "range": {
+          "@timestamp": {
+            "gte": "2025-10-01T00:00:00.000+07:00",
+            "lte": "2025-10-01T23:59:59.999+07:00"
+          }
+        }
+      },
+      "size": 50,
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ]
+    }
+  },
+  {
+    "question": "Lấy các log trong 2 giờ, từ 10:00 đến 12:00 ngày 06/10/2025, sắp xếp cũ nhất trước",
+    "keywords": ["log", "10:00", "12:00", "cũ nhất", "asc"],
+    "query": {
+      "query": {
+        "range": {
+          "@timestamp": {
+            "gte": "2025-10-06T10:00:00.000+07:00",
+            "lt": "2025-10-06T12:00:00.000+07:00"
+          }
+        }
+      },
+      "size": 50,
+      "sort": [
+        {
+          "@timestamp": "asc"
+        }
+      ]
+    }
+  },
+  {
+    "question": "Hiển thị 20 log trong khoảng 15:00 đến 15:15 ngày 08/10/2025",
+    "keywords": ["log", "20", "15:00", "15:15"],
+    "query": {
+      "query": {
+        "range": {
+          "@timestamp": {
+            "gte": "2025-10-08T15:00:00.000+07:00",
+            "lt": "2025-10-08T15:15:00.000+07:00"
+          }
+        }
+      },
+      "size": 20,
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ]
+    }
+  },
+  {
+    "question": "Tìm các log trong giờ làm việc (8h-17h) của ngày 03/10/2025",
+    "keywords": ["log", "giờ làm việc", "8h", "17h"],
+    "query": {
+      "query": {
+        "range": {
+          "@timestamp": {
+            "gte": "2025-10-03T08:00:00.000+07:00",
+            "lt": "2025-10-03T17:00:00.000+07:00"
+          }
+        }
+      },
+      "size": 50,
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ]
+    }
+  },
+  {
+    "question": "Lấy 10 log mới nhất từ 00:00 đến 01:00 sáng ngày 02/10/2025",
+    "keywords": ["log", "10", "mới nhất", "00:00", "01:00", "sáng"],
+    "query": {
+      "query": {
+        "range": {
+          "@timestamp": {
+            "gte": "2025-10-02T00:00:00.000+07:00",
+            "lt": "2025-10-02T01:00:00.000+07:00"
+          }
+        }
+      },
+      "size": 10,
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ]
+    }
+  },
+  {
+    "question": "Phân tích log trong 30 phút, từ 11:00 đến 11:30 ngày 04/10/2025",
+    "keywords": ["log", "30 phút", "11:00", "11:30"],
+    "query": {
+      "query": {
+        "range": {
+          "@timestamp": {
+            "gte": "2025-10-04T11:00:00.000+07:00",
+            "lt": "2025-10-04T11:30:00.000+07:00"
+          }
+        }
+      },
+      "size": 50,
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ]
+    }
+  },
+  {
+    "question": "Hiển thị các log trong giờ ăn trưa (12h-13h) của ngày 09/10/2025",
+    "keywords": ["log", "giờ ăn trưa", "12h", "13h"],
+    "query": {
+      "query": {
+        "range": {
+          "@timestamp": {
+            "gte": "2025-10-09T12:00:00.000+07:00",
+            "lt": "2025-10-09T13:00:00.000+07:00"
+          }
+        }
+      },
+      "size": 50,
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ]
+    }
   }
 ]
 
