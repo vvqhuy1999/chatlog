@@ -22,10 +22,6 @@ public class AiServiceImpl implements AiService {
   // Client để giao tiếp với AI model (Spring AI)
   private final ChatClient chatClient;
 
-
-  
-
-  
   @Autowired
   private AiComparisonService aiComparisonService;
 
