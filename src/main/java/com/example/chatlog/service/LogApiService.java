@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 public interface LogApiService {
     String search(String index,String body);
 
-    // String getFieldLog(String index);
 
     String getAllField(String index);
 }

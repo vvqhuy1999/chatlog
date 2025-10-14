@@ -94,51 +94,7 @@ public class PerformanceMonitoringService {
         return new PerformanceAnalysis(current, recommendations, alerts);
     }
     
-    /**
-     * Tạo performance report
-     */
-    public String generatePerformanceReport() {
-        PerformanceAnalysis analysis = analyzePerformance();
-        StringBuilder report = new StringBuilder();
-        
-        report.append("=== PERFORMANCE REPORT ===\n");
-        report.append("Generated at: ").append(new Date()).append("\n\n");
-        
-        // Endpoint metrics
-        report.append("ENDPOINT METRICS:\n");
-        for (Map.Entry<String, EndpointMetrics> entry : analysis.snapshot.endpointMetrics.entrySet()) {
-            EndpointMetrics m = entry.getValue();
-            report.append(String.format("• %s: %d requests, %.0fms avg, %.1f%% error rate\n",
-                entry.getKey(), m.totalRequests, m.avgResponseTimeMs, m.errorRate * 100));
-        }
-        
-        // Alerts
-        if (!analysis.alerts.isEmpty()) {
-            report.append("\nALERTS:\n");
-            for (String alert : analysis.alerts) {
-                report.append("⚠️ ").append(alert).append("\n");
-            }
-        }
-        
-        // Recommendations  
-        if (!analysis.recommendations.isEmpty()) {
-            report.append("\nRECOMMENDATIONS:\n");
-            for (String rec : analysis.recommendations) {
-                report.append("💡 ").append(rec).append("\n");
-            }
-        }
-        
-        return report.toString();
-    }
-    
-    /**
-     * Reset all metrics (for testing or periodic cleanup)
-     */
-    public void resetMetrics() {
-        responseTimesMs.clear();
-        requestCounts.clear();
-        errorCounts.clear();
-    }
+
     
     // Data classes
     public static class PerformanceSnapshot {

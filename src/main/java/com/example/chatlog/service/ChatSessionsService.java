@@ -12,5 +12,4 @@ public interface ChatSessionsService {
   ChatSessions save(ChatSessions chatSession);
   void deleteById(Long id);
 
-  ChatSessions createWithFirstMessage(String content);
 }

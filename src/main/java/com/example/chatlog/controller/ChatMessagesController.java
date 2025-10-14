@@ -30,67 +30,6 @@ public class ChatMessagesController {
     private AiServiceImpl aiServiceImpl;
 
 
-
-    // Lấy tất cả messages
-    @GetMapping
-    public ResponseEntity<List<ChatMessages>> getAllChatMessagesBySession(@PathVariable Long sessionId) {
-        try {
-            List<ChatMessages> chatMessages = chatMessagesService.findAllBySessionId(sessionId);
-
-            return ResponseEntity.ok(chatMessages);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    // Lấy message theo ID
-    @GetMapping("/{messageId}")
-    public ResponseEntity<ChatMessages> getChatMessageById(@PathVariable Long messageId) {
-        try {
-            ChatMessages chatMessage = chatMessagesService.findById(messageId);
-            if (chatMessage != null) {
-                return ResponseEntity.ok(chatMessage);
-            }
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-
-    // Cập nhật message
-    @PutMapping("/{messageId}")
-    public ResponseEntity<ChatMessages> updateChatMessage(
-        @PathVariable Long messageId,
-        @RequestBody ChatMessages chatMessage) {
-        try {
-            ChatMessages existingMessage = chatMessagesService.findById(messageId);
-            if (existingMessage == null) {
-                return ResponseEntity.notFound().build();
-            }
-            chatMessage.setMessageId(messageId);
-            ChatMessages updatedChatMessage = chatMessagesService.save(chatMessage);
-            return ResponseEntity.ok(updatedChatMessage);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-    }
-
-    // Xóa message
-    @DeleteMapping("/{messageId}")
-    public ResponseEntity<Void> deleteChatMessage(@PathVariable Long messageId) {
-        try {
-            ChatMessages existingMessage = chatMessagesService.findById(messageId);
-            if (existingMessage == null) {
-                return ResponseEntity.notFound().build();
-            }
-            chatMessagesService.deleteById(messageId);
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
     /**
      * API để tạo session mới và gửi tin nhắn đầu tiên với comparison mode
      * @param chatRequest Tin nhắn đầu tiên từ user
@@ -128,43 +67,6 @@ public class ChatMessagesController {
         }
     }
 
-    /**
-     * API để tạo session mới và gửi tin nhắn đầu tiên với single AI mode
-     * @param chatRequest Tin nhắn đầu tiên từ user
-     * @return Kết quả tạo session và phản hồi từ AI
-     */
-    @PostMapping("/start-single")
-    public ResponseEntity<Map<String, Object>> startSessionWithSingleAI(
-        @RequestBody ChatRequest chatRequest) {
-        
-        try {
-            System.out.println("[ChatMessagesController] Tạo session mới với single AI mode");
-            System.out.println("[ChatMessagesController] Tin nhắn đầu tiên: " + chatRequest.message());
-
-            // Bước 1: Tạo session mới
-            ChatSessions newSession = new ChatSessions();
-            newSession.setTitle(chatRequest.message().length() > 50 ? 
-                chatRequest.message().substring(0, 50) + "..." : 
-                chatRequest.message());
-            ChatSessions savedSession = chatSessionsService.save(newSession);
-            
-            System.out.println("[ChatMessagesController] Đã tạo session mới với ID: " + savedSession.getSessionId());
-
-            // Bước 2: Gọi single AI mode với session mới
-            //return sendMessage(savedSession.getSessionId(), chatRequest);
-
-        } catch (Exception e) {
-            System.out.println("[ChatMessagesController] Tạo session với single AI mode thất bại: " + e.getMessage());
-            e.printStackTrace();
-
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("error", "Failed to create session with single AI: " + e.getMessage());
-
-            return ResponseEntity.status(500).body(errorResponse);
-        }
-        return ResponseEntity.status(500).body(null);
-    }
 
     /**
      * API để gửi tin nhắn với comparison mode - cả 2 AI đều xử lý

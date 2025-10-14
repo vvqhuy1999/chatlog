@@ -175,6 +175,15 @@ public class AiResponseService {
                 - "tổng log ..." (tổng số bản ghi) → Output: "Tổng log: <number>" (also aggregations.total_count.value)
                 - "tổng bytes/packets ..." → Output: "Tổng bytes/packets: <number>" (from aggregations.total_bytes/total_packets.value)
 
+                BYTE UNIT CONVERSION RULES:
+                When displaying network.bytes or any byte values, automatically convert to appropriate units:
+                - If bytes >= 1,073,741,824 (1024³): Convert to GB (divide by 1,073,741,824), format as "X.XX GB"
+                - If bytes >= 1,048,576 (1024²): Convert to MB (divide by 1,048,576), format as "X.XX MB"
+                - If bytes >= 1,024: Convert to KB (divide by 1,024), format as "X.XX KB"
+                - If bytes < 1,024: Keep as bytes, format as "X bytes"
+                Always show both converted unit and original bytes in parentheses when converting.
+                Example: "152.34 MB (159,744,032 bytes)" or "2.15 GB (2,308,743,168 bytes)"
+
                 Lý do chọn các trường:
                 - Bạn PHẢI thêm mục này với tiêu đề chính xác: "Lý do chọn các trường".
                 - Trình bày 3–6 gạch đầu dòng ngắn gọn, nêu vì sao các trường chính được chọn phù hợp với ý định: hành động (fortinet.firewall.action vs event.action), lưu lượng (network.bytes/packets), hướng (network.direction), địa lý (source/destination.geo.country_name), quy tắc (rule.name vs ruleid), người dùng (source.user.* vs user.*).

@@ -4,7 +4,7 @@ import com.example.chatlog.entity.ChatSessions;
 import com.example.chatlog.service.ChatSessionsService;
 import com.example.chatlog.repository.ChatMessagesRepository;
 import com.example.chatlog.entity.ChatMessages;
-import com.example.chatlog.dto.StartSessionRequest;
+
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -39,20 +39,6 @@ public class ChatSessionsController {
         }
     }
 
-    // Lấy session theo ID
-    @GetMapping("/{sessionId}")
-    public ResponseEntity<ChatSessions> getChatSessionById(@PathVariable Long sessionId) {
-        try {
-            ChatSessions chatSession = chatSessionsService.findById(sessionId);
-            if (chatSession != null) {
-                return ResponseEntity.ok(chatSession);
-            }
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
     // Lấy messages theo sessionId
     @GetMapping("/{sessionId}/messages")
     public ResponseEntity<List<ChatMessages>> getMessagesBySession(@PathVariable Long sessionId) {
@@ -61,46 +47,6 @@ public class ChatSessionsController {
             return ResponseEntity.ok(messages);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    // Tạo session mới
-    @PostMapping
-    public ResponseEntity<ChatSessions> createChatSession(@RequestBody ChatSessions chatSession) {
-        try {
-            ChatSessions savedChatSession = chatSessionsService.save(chatSession);
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedChatSession);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-    }
-
-    // Tạo session mới kèm message đầu tiên
-    @PostMapping("/start")
-    public ResponseEntity<ChatSessions> startChatSession(@RequestBody StartSessionRequest request) {
-        try {
-            ChatSessions saved = chatSessionsService.createWithFirstMessage(request.content());
-            return ResponseEntity.status(HttpStatus.CREATED).body(saved);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-    }
-
-    // Cập nhật session
-    @PutMapping("/{sessionId}")
-    public ResponseEntity<ChatSessions> updateChatSession(
-            @PathVariable Long sessionId,
-            @RequestBody ChatSessions chatSession) {
-        try {
-            ChatSessions existingSession = chatSessionsService.findById(sessionId);
-            if (existingSession == null) {
-                return ResponseEntity.notFound().build();
-            }
-            chatSession.setSessionId(sessionId);
-            ChatSessions updatedChatSession = chatSessionsService.save(chatSession);
-            return ResponseEntity.ok(updatedChatSession);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 

@@ -33,9 +33,7 @@ import java.util.stream.Collectors;
 @Service
 public class AiComparisonService {
     
-    @Autowired
-    private LogApiService logApiService;
-    
+
     @Autowired
     private AiQueryService aiQueryService;
     
