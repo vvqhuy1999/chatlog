@@ -27,10 +27,7 @@ public class ChatMessagesServiceImpl implements ChatMessagesService {
     return chatMessagesRepository.findAllByChatSessions_SessionId(sessionId);
   }
 
-  @Override
-  public ChatMessages findById(Long id) {
-    return chatMessagesRepository.findById(id).orElse(null);
-  }
+
 
   @Override
   public ChatMessages save(Long sessionId,ChatMessages chatMessages) {
@@ -38,10 +35,7 @@ public class ChatMessagesServiceImpl implements ChatMessagesService {
     return aiMessage;
   }
 
-  @Override
-  public ChatMessages save(ChatMessages chatMessages) {
-    return chatMessagesRepository.save(chatMessages);
-  }
+
 
   @Override
   public ChatMessages saveWithoutAiResponse(Long sessionId, ChatMessages chatMessages) {
@@ -50,8 +44,5 @@ public class ChatMessagesServiceImpl implements ChatMessagesService {
     return chatMessagesRepository.save(chatMessages);
   }
 
-  @Override
-  public void deleteById(Long id) {
-    chatMessagesRepository.deleteById(id);
-  }
+
 }

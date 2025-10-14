@@ -1,10 +1,8 @@
 package com.example.chatlog.service.impl;
 
 import com.example.chatlog.dto.ChatRequest;
-import com.example.chatlog.dto.RequestBody;
 import com.example.chatlog.service.AiService;
 import com.example.chatlog.service.LogApiService;
-import com.example.chatlog.service.ModelConfigService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -13,41 +11,24 @@ import org.springframework.ai.chat.memory.repository.jdbc.JdbcChatMemoryReposito
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.multipart.MultipartFile;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+
 import java.util.Map;
 
 @Service
 public class AiServiceImpl implements AiService {
-  // Lưu trữ thông tin mapping của Elasticsearch index để tránh gọi lại nhiều lần
-  private static String fieldLog;
+
 
   // Client để giao tiếp với AI model (Spring AI)
   private final ChatClient chatClient;
 
-  @Autowired
-  private LogApiService logApiService;
+
   
-  @Autowired
-  private ModelConfigService modelConfigService;
-  
-  @Autowired
-  @Qualifier("openRouterChatClient")
-  private RestClient openRouterClient;
-  
-  // Các service mới được tách ra
-  @Autowired
-  private AiQueryService aiQueryService;
+
   
   @Autowired
   private AiComparisonService aiComparisonService;
-  
-  
-  @Autowired
-  private AiResponseService aiResponseService;
+
 
   
   @Autowired
