@@ -829,7 +829,7 @@
   },
   {
     "question": "Hiển thị 20 log trong khoảng 15:00 đến 15:15 ngày 08/10/2025",
-    "keywords": ["log", "20", "15:00", "15:15"],
+    "keywords": ["log", "20", "15:00", "15:15", "ngày"],
     "query": {
       "query": {
         "range": {
@@ -849,7 +849,7 @@
   },
   {
     "question": "Tìm các log trong giờ làm việc (8h-17h) của ngày 03/10/2025",
-    "keywords": ["log", "giờ làm việc", "8h", "17h"],
+    "keywords": ["log", "giờ làm việc", "8h", "17h","ngày"],
     "query": {
       "query": {
         "range": {
@@ -869,7 +869,7 @@
   },
   {
     "question": "Lấy 10 log mới nhất từ 00:00 đến 01:00 sáng ngày 02/10/2025",
-    "keywords": ["log", "10", "mới nhất", "00:00", "01:00", "sáng"],
+    "keywords": ["log", "10", "mới nhất", "00:00", "01:00", "sáng","ngày"],
     "query": {
       "query": {
         "range": {
@@ -889,7 +889,7 @@
   },
   {
     "question": "Phân tích log trong 30 phút, từ 11:00 đến 11:30 ngày 04/10/2025",
-    "keywords": ["log", "30 phút", "11:00", "11:30"],
+    "keywords": ["log", "30 phút", "11:00", "11:30","ngày"],
     "query": {
       "query": {
         "range": {
@@ -909,7 +909,7 @@
   },
   {
     "question": "Hiển thị các log trong giờ ăn trưa (12h-13h) của ngày 09/10/2025",
-    "keywords": ["log", "giờ ăn trưa", "12h", "13h"],
+    "keywords": ["log", "giờ ăn trưa", "12h", "13h","ngày"],
     "query": {
       "query": {
         "range": {
@@ -926,6 +926,31 @@
         }
       ]
     }
+  },
+  {
+    "question": "User truy cập web qua port1 HOẶC port2 (đi ra) trong 7 ngày qua",
+    "keywords": ["user", "người dùng", "truy cập web", "web access", "port1", "port2", "đi ra", "outbound", "7 ngày qua", "observer.egress.interface.name", "network.protocol", "http", "https", "url.domain", "should", "minimum_should_match"],
+    "query": { "size": 0, "query": { "bool": { "filter": [ { "terms": { "network.protocol": ["http", "https"] } }, { "range": { "@timestamp": { "gte": "now-7d" } } }, { "exists": { "field": "url.domain" } } ], "should": [ { "term": { "observer.egress.interface.name": "port1" } }, { "term": { "observer.egress.interface.name": "port2" } } ], "minimum_should_match": 1 } }, "aggs": { "by_user": { "terms": { "field": "source.user.name", "size": 50 }, "aggs": { "websites": { "terms": { "field": "url.domain", "size": 100 } } } } } }
+  },
+  {
+    "question": "Ai sử dụng lưu lượng internet nhiều nhất ngày 7/10 (qua port1 HOẶC port2)",
+    "keywords": ["ai", "user", "sử dụng", "lưu lượng", "internet", "nhiều nhất", "top", "ngày 7/10", "specific date", "port1", "port2", "observer.egress.interface.name", "should", "minimum_should_match", "sum", "order"],
+    "query": { "size": 0, "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "2025-10-07T00:00:00.000+07:00", "lte": "2025-10-07T23:59:59.999+07:00" } } } ], "should": [ { "term": { "observer.egress.interface.name": "port1" } }, { "term": { "observer.egress.interface.name": "port2" } } ], "minimum_should_match": 1 } }, "aggs": { "top_users": { "terms": { "field": "source.user.name", "size": 20, "order": { "total_bytes": "desc" } }, "aggs": { "total_bytes": { "sum": { "field": "network.bytes" } }, "total_sessions": { "value_count": { "field": "@timestamp" } }, "by_interface": { "terms": { "field": "observer.egress.interface.name", "size": 5 }, "aggs": { "interface_bytes": { "sum": { "field": "network.bytes" } } } } } } } } 
+  },
+  {
+    "question": "So sánh traffic giữa các interface (port1 vs port2)",
+    "keywords": ["so sánh", "compare", "traffic", "lưu lượng", "interface", "port1", "port2", "24h qua", "observer.egress.interface.name", "should", "minimum_should_match", "terms aggregation", "sum"],
+    "query": { "size": 0, "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } } ], "should": [ { "term": { "observer.egress.interface.name": "port1" } }, { "term": { "observer.egress.interface.name": "port2" } } ], "minimum_should_match": 1 } }, "aggs": { "by_interface": { "terms": { "field": "observer.egress.interface.name", "size": 10 }, "aggs": { "total_bytes": { "sum": { "field": "network.bytes" } }, "total_sessions": { "value_count": { "field": "@timestamp" } }, "top_users": { "terms": { "field": "source.user.name", "size": 10, "order": { "user_bytes": "desc" } }, "aggs": { "user_bytes": { "sum": { "field": "network.bytes" } } } } } } } } 
+  },
+  {
+    "question": "Traffic inbound từ port1 HOẶC port2",
+    "keywords": ["traffic", "lưu lượng", "inbound", "vào", "port1", "port2", "24h qua", "observer.ingress.interface.name", "should", "minimum_should_match", "terms aggregation"],
+    "query": { "size": 0, "query": { "bool": { "filter": [ { "range": { "@timestamp": { "gte": "now-24h" } } } ], "should": [ { "term": { "observer.ingress.interface.name": "port1" } }, { "term": { "observer.ingress.interface.name": "port2" } } ], "minimum_should_match": 1 } }, "aggs": { "by_interface": { "terms": { "field": "observer.ingress.interface.name", "size": 10 }, "aggs": { "total_bytes": { "sum": { "field": "network.bytes" } }, "by_destination": { "terms": { "field": "destination.ip", "size": 10, "order": { "dest_bytes": "desc" } }, "aggs": { "dest_bytes": { "sum": { "field": "network.bytes" } } } } } } } } 
+  },
+  {
+    "question": "User truy cập web nhiều nhất với breakdown theo interface",
+    "keywords": ["user", "người dùng", "truy cập web", "web access", "nhiều nhất", "top", "breakdown", "interface", "port1", "port2", "observer.egress.interface.name", "network.protocol", "http", "https", "7 ngày qua", "should", "minimum_should_match", "cardinality", "url.domain"],
+    "query": { "size": 0, "query": { "bool": { "filter": [ { "terms": { "network.protocol": ["http", "https"] } }, { "range": { "@timestamp": { "gte": "now-7d" } } } ], "should": [ { "term": { "observer.egress.interface.name": "port1" } }, { "term": { "observer.egress.interface.name": "port2" } } ], "minimum_should_match": 1 } }, "aggs": { "top_users": { "terms": { "field": "source.user.name", "size": 20, "order": { "total_bytes": "desc" } }, "aggs": { "total_bytes": { "sum": { "field": "network.bytes" } }, "by_interface": { "terms": { "field": "observer.egress.interface.name" }, "aggs": { "interface_bytes": { "sum": { "field": "network.bytes" } } } }, "unique_websites": { "cardinality": { "field": "url.domain" } }, "top_websites": { "terms": { "field": "url.domain", "size": 10 } } } } } } 
   }
 ]
 
