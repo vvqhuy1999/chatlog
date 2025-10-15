@@ -4638,5 +4638,93 @@
         }
       }
     }
+  },
+  {
+    "question": "Phân tích lưu lượng mạng theo người dùng trong tháng 10/2025",
+    "keywords": ["phân tích", "lưu lượng mạng", "network traffic", "người dùng", "user", "tháng 10", "October", "2025", "network.bytes", "network.protocol", "network.transport"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-10-01T00:00:00.000+07:00",
+                  "lt": "2025-10-31T23:59:59.999+07:00"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.direction": "outbound"
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "top_users": {
+          "terms": {
+            "field": "source.user.name",
+            "size": 20,
+            "order": {
+              "total_bytes": "desc"
+            }
+          },
+          "aggs": {
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "total_sessions": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            },
+            "by_protocol": {
+              "terms": {
+                "field": "network.protocol",
+                "size": 15
+              },
+              "aggs": {
+                "protocol_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            },
+            "by_transport": {
+              "terms": {
+                "field": "network.transport",
+                "size": 5
+              },
+              "aggs": {
+                "transport_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            },
+            "top_destinations": {
+              "terms": {
+                "field": "destination.ip",
+                "size": 5
+              },
+              "aggs": {
+                "dest_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 ]
