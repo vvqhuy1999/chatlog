@@ -2162,7 +2162,11 @@
       "http",
       "https",
       "tổ chức đích",
-      "destination.as.organization.name"
+      "destination.as.organization.name",
+      "network.direction",
+      "outbound",
+      "external",
+      "fortinet.firewall.transip"
     ],
     "query": {
       "size": 0,
@@ -2174,15 +2178,28 @@
             {
               "bool": {
                 "should": [
-                  { "terms": { "source.nat.ip": ["118.70.81.176", "101.99.13.33"] } },
-                  { "terms": { "destination.nat.ip": ["118.70.81.176", "101.99.13.33"] } }
+                  {
+                    "bool": {
+                      "filter": [
+                        { "terms": { "fortinet.firewall.transip": ["118.70.81.176", "101.99.13.33"] } },
+                        { "terms": { "network.direction": ["outbound", "external"] } }
+                      ]
+                    }
+                  },
+                  {
+                    "bool": {
+                      "filter": [
+                        { "terms": { "source.ip": ["118.70.81.176", "101.99.13.33"] } },
+                        { "terms": { "network.direction": ["outbound", "external"] } },
+                        { "bool": { "must_not": { "exists": { "field": "fortinet.firewall.transip" } } } }
+                      ]
+                    }
+                  }
                 ],
                 "minimum_should_match": 1
               }
             }
-          ],
-          "should": [{ "term": { "observer.egress.interface.name": "port1" } }, { "term": { "observer.egress.interface.name": "port2" } }],
-          "minimum_should_match": 1
+          ]
         }
       },
       "aggs": {
@@ -2229,7 +2246,11 @@
       "observer.egress.interface.name",
       "network.bytes",
       "tổ chức đích",
-      "destination.as.organization.name"
+      "destination.as.organization.name",
+      "network.direction",
+      "outbound",
+      "external",
+      "fortinet.firewall.transip"
     ],
     "query": {
       "size": 0,
@@ -2240,15 +2261,28 @@
             {
               "bool": {
                 "should": [
-                  { "terms": { "source.nat.ip": ["118.70.81.176", "101.99.13.33"] } },
-                  { "terms": { "destination.nat.ip": ["118.70.81.176", "101.99.13.33"] } }
+                  {
+                    "bool": {
+                      "filter": [
+                        { "terms": { "fortinet.firewall.transip": ["118.70.81.176", "101.99.13.33"] } },
+                        { "terms": { "network.direction": ["outbound", "external"] } }
+                      ]
+                    }
+                  },
+                  {
+                    "bool": {
+                      "filter": [
+                        { "terms": { "source.ip": ["118.70.81.176", "101.99.13.33"] } },
+                        { "terms": { "network.direction": ["outbound", "external"] } },
+                        { "bool": { "must_not": { "exists": { "field": "fortinet.firewall.transip" } } } }
+                      ]
+                    }
+                  }
                 ],
                 "minimum_should_match": 1
               }
             }
-          ],
-          "should": [{ "term": { "observer.egress.interface.name": "port1" } }, { "term": { "observer.egress.interface.name": "port2" } }],
-          "minimum_should_match": 1
+          ]
         }
       },
       "aggs": {
@@ -2302,7 +2336,11 @@
       "network.bytes",
       "bandwidth comparison",
       "tổ chức đích",
-      "destination.as.organization.name"
+      "destination.as.organization.name",
+      "network.direction",
+      "outbound",
+      "external",
+      "fortinet.firewall.transip"
     ],
     "query": {
       "size": 0,
@@ -2313,15 +2351,28 @@
             {
               "bool": {
                 "should": [
-                  { "terms": { "source.nat.ip": ["118.70.81.176", "101.99.13.33"] } },
-                  { "terms": { "destination.nat.ip": ["118.70.81.176", "101.99.13.33"] } }
+                  {
+                    "bool": {
+                      "filter": [
+                        { "terms": { "fortinet.firewall.transip": ["118.70.81.176", "101.99.13.33"] } },
+                        { "terms": { "network.direction": ["outbound", "external"] } }
+                      ]
+                    }
+                  },
+                  {
+                    "bool": {
+                      "filter": [
+                        { "terms": { "source.ip": ["118.70.81.176", "101.99.13.33"] } },
+                        { "terms": { "network.direction": ["outbound", "external"] } },
+                        { "bool": { "must_not": { "exists": { "field": "fortinet.firewall.transip" } } } }
+                      ]
+                    }
+                  }
                 ],
                 "minimum_should_match": 1
               }
             }
-          ],
-          "should": [{ "term": { "observer.egress.interface.name": "port1" } }, { "term": { "observer.egress.interface.name": "port2" } }],
-          "minimum_should_match": 1
+          ]
         }
       },
       "aggs": {
@@ -2365,7 +2416,9 @@
       "đường truyền internet",
       "24h qua",
       "observer.ingress.interface.name",
-      "external to internal"
+      "external to internal",
+      "network.direction",
+      "destination.ip"
     ],
     "query": {
       "size": 0,
@@ -2373,18 +2426,9 @@
         "bool": {
           "filter": [
             { "range": { "@timestamp": { "gte": "now-24h" } } },
-            {
-              "bool": {
-                "should": [
-                  { "terms": { "source.nat.ip": ["118.70.81.176", "101.99.13.33"] } },
-                  { "terms": { "destination.nat.ip": ["118.70.81.176", "101.99.13.33"] } }
-                ],
-                "minimum_should_match": 1
-              }
-            }
-          ],
-          "should": [{ "term": { "observer.ingress.interface.name": "port1" } }, { "term": { "observer.ingress.interface.name": "port2" } }],
-          "minimum_should_match": 1
+            { "terms": { "destination.ip": ["118.70.81.176", "101.99.13.33"] } },
+            { "term": { "network.direction": "inbound" } }
+          ]
         }
       },
       "aggs": {
@@ -2396,6 +2440,12 @@
               "terms": { "field": "destination.ip", "size": 10, "order": { "dest_bytes": "desc" } },
               "aggs": {
                 "dest_bytes": { "sum": { "field": "network.bytes" } }
+              }
+            },
+            "by_source_country": {
+              "terms": { "field": "source.geo.country_name", "size": 10 },
+              "aggs": {
+                "country_bytes": { "sum": { "field": "network.bytes" } }
               }
             }
           }
@@ -2428,7 +2478,11 @@
       "https",
       "7 ngày qua",
       "tổ chức đích",
-      "destination.as.organization.name"
+      "destination.as.organization.name",
+      "network.direction",
+      "outbound",
+      "external",
+      "fortinet.firewall.transip"
     ],
     "query": {
       "size": 0,
@@ -2440,15 +2494,28 @@
             {
               "bool": {
                 "should": [
-                  { "terms": { "source.nat.ip": ["118.70.81.176", "101.99.13.33"] } },
-                  { "terms": { "destination.nat.ip": ["118.70.81.176", "101.99.13.33"] } }
+                  {
+                    "bool": {
+                      "filter": [
+                        { "terms": { "fortinet.firewall.transip": ["118.70.81.176", "101.99.13.33"] } },
+                        { "terms": { "network.direction": ["outbound", "external"] } }
+                      ]
+                    }
+                  },
+                  {
+                    "bool": {
+                      "filter": [
+                        { "terms": { "source.ip": ["118.70.81.176", "101.99.13.33"] } },
+                        { "terms": { "network.direction": ["outbound", "external"] } },
+                        { "bool": { "must_not": { "exists": { "field": "fortinet.firewall.transip" } } } }
+                      ]
+                    }
+                  }
                 ],
                 "minimum_should_match": 1
               }
             }
-          ],
-          "should": [{ "term": { "observer.egress.interface.name": "port1" } }, { "term": { "observer.egress.interface.name": "port2" } }],
-          "minimum_should_match": 1
+          ]
         }
       },
       "aggs": {
@@ -2498,7 +2565,11 @@
       "https",
       "network.protocol",
       "tổ chức đích",
-      "destination.as.organization.name"
+      "destination.as.organization.name",
+      "network.direction",
+      "outbound",
+      "external",
+      "fortinet.firewall.transip"
     ],
     "query": {
       "query": {
@@ -2516,12 +2587,26 @@
                 }
               }
             },
-
             {
               "bool": {
                 "should": [
-                  { "terms": { "source.nat.ip": ["118.70.81.176", "101.99.13.33"] } },
-                  { "terms": { "destination.nat.ip": ["118.70.81.176", "101.99.13.33"] } }
+                  {
+                    "bool": {
+                      "filter": [
+                        { "terms": { "fortinet.firewall.transip": ["118.70.81.176", "101.99.13.33"] } },
+                        { "terms": { "network.direction": ["outbound", "external"] } }
+                      ]
+                    }
+                  },
+                  {
+                    "bool": {
+                      "filter": [
+                        { "terms": { "source.ip": ["118.70.81.176", "101.99.13.33"] } },
+                        { "terms": { "network.direction": ["outbound", "external"] } },
+                        { "bool": { "must_not": { "exists": { "field": "fortinet.firewall.transip" } } } }
+                      ]
+                    }
+                  }
                 ],
                 "minimum_should_match": 1
               }
@@ -2579,7 +2664,11 @@
       "tổ chức đích",
       "internet usage",
       "web traffic",
-      "outbound traffic"
+      "outbound traffic",
+      "network.direction",
+      "outbound",
+      "external",
+      "fortinet.firewall.transip"
     ],
     "query": {
       "size": 0,
@@ -2592,8 +2681,23 @@
             {
               "bool": {
                 "should": [
-                  { "terms": { "source.nat.ip": ["118.70.81.176", "101.99.13.33"] } },
-                  { "terms": { "destination.nat.ip": ["118.70.81.176", "101.99.13.33"] } }
+                  {
+                    "bool": {
+                      "filter": [
+                        { "terms": { "fortinet.firewall.transip": ["118.70.81.176", "101.99.13.33"] } },
+                        { "terms": { "network.direction": ["outbound", "external"] } }
+                      ]
+                    }
+                  },
+                  {
+                    "bool": {
+                      "filter": [
+                        { "terms": { "source.ip": ["118.70.81.176", "101.99.13.33"] } },
+                        { "terms": { "network.direction": ["outbound", "external"] } },
+                        { "bool": { "must_not": { "exists": { "field": "fortinet.firewall.transip" } } } }
+                      ]
+                    }
+                  }
                 ],
                 "minimum_should_match": 1
               }
@@ -2609,13 +2713,16 @@
             "unique_users": { "cardinality": { "field": "source.user.name" } },
             "total_sessions": { "value_count": { "field": "@timestamp" } },
             "top_users": {
-              "terms": { "field": "source.user.name", "size": 10, "order": { "user_bytes": "desc" } },
+              "terms": { "field": "source.user.name", "size": 5, "order": { "user_bytes": "desc" } },
               "aggs": {
                 "user_bytes": { "sum": { "field": "network.bytes" } }
               }
             },
             "by_country": {
-              "terms": { "field": "destination.geo.country_name", "size": 5 }
+              "terms": { "field": "destination.geo.country_name", "size": 5 },
+              "aggs": {
+                "country_bytes": { "sum": { "field": "network.bytes" } }
+              }
             }
           }
         },
