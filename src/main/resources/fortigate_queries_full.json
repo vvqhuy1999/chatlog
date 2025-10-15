@@ -2733,5 +2733,1910 @@
         }
       }
     }
+  },
+  {
+    "question": "User truy cập web ra ngoài qua public IP trong 7 ngày qua",
+    "keywords": ["user", "người dùng", "truy cập web", "web access", "public IP", "IP công cộng", "source.nat.ip", "7 ngày qua", "network.protocol", "http", "https", "destination.as.organization.name"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "terms": {
+                "network.protocol": ["http", "https"]
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-7d"
+                }
+              }
+            },
+            {
+              "exists": {
+                "field": "destination.as.organization.name"
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "observer.egress.interface.name": "port1"
+              }
+            },
+            {
+              "term": {
+                "observer.egress.interface.name": "port2"
+              }
+            },
+            {
+              "terms": {
+                "source.nat.ip": ["118.70.81.176", "101.99.13.33"]
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "by_user": {
+          "terms": {
+            "field": "source.user.name",
+            "size": 50
+          },
+          "aggs": {
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "websites": {
+              "terms": {
+                "field": "destination.as.organization.name",
+                "size": 100
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Ai sử dụng lưu lượng internet nhiều nhất ngày 7/10 (đi ra)",
+    "keywords": ["ai", "user", "sử dụng", "lưu lượng", "internet", "nhiều nhất", "top", "ngày 7/10", "outbound", "đi ra", "network.direction", "source.nat.ip", "public IP"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-10-07T00:00:00.000+07:00",
+                  "lte": "2025-10-07T23:59:59.999+07:00"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.direction": "outbound"
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "observer.egress.interface.name": "port1"
+              }
+            },
+            {
+              "term": {
+                "observer.egress.interface.name": "port2"
+              }
+            },
+            {
+              "terms": {
+                "source.nat.ip": ["118.70.81.176", "101.99.13.33"]
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "top_users": {
+          "terms": {
+            "field": "source.user.name",
+            "size": 20,
+            "order": {
+              "total_bytes": "desc"
+            }
+          },
+          "aggs": {
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "total_sessions": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            },
+            "by_interface": {
+              "terms": {
+                "field": "observer.egress.interface.name",
+                "size": 5
+              },
+              "aggs": {
+                "interface_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Traffic đi vào (inbound) đến public IP của tổ chức",
+    "keywords": ["traffic", "lưu lượng", "inbound", "đi vào", "public IP", "IP công cộng", "destination.ip", "observer.ingress.interface.name"],
+    "query": {
+      "size": 50,
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
+      "_source": [
+        "@timestamp",
+        "source.ip",
+        "source.geo.country_name",
+        "destination.ip",
+        "destination.port",
+        "network.bytes",
+        "rule.name",
+        "observer.ingress.interface.name"
+      ],
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.direction": "inbound"
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "observer.ingress.interface.name": "port1"
+              }
+            },
+            {
+              "term": {
+                "observer.ingress.interface.name": "port2"
+              }
+            },
+            {
+              "terms": {
+                "destination.ip": ["118.70.81.176", "101.99.13.33"]
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      }
+    }
+  },
+  {
+    "question": "Phân tích traffic inbound theo public IP và interface",
+    "keywords": ["phân tích", "analysis", "traffic", "lưu lượng", "inbound", "đi vào", "public IP", "IP công cộng", "interface", "destination.ip", "source.geo.country_name"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "observer.ingress.interface.name": "port1"
+              }
+            },
+            {
+              "term": {
+                "observer.ingress.interface.name": "port2"
+              }
+            },
+            {
+              "terms": {
+                "destination.ip": ["118.70.81.176", "101.99.13.33"]
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "by_public_ip": {
+          "terms": {
+            "field": "destination.ip",
+            "include": ["118.70.81.176", "101.99.13.33"],
+            "size": 10
+          },
+          "aggs": {
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "total_connections": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            },
+            "top_source_countries": {
+              "terms": {
+                "field": "source.geo.country_name",
+                "size": 10
+              }
+            },
+            "top_ports": {
+              "terms": {
+                "field": "destination.port",
+                "size": 10
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "So sánh traffic outbound và inbound qua public IP",
+    "keywords": ["so sánh", "compare", "traffic", "lưu lượng", "outbound", "inbound", "đi ra", "đi vào", "public IP", "IP công cộng", "network.direction"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
+              }
+            }
+          ],
+          "should": [
+            {
+              "bool": {
+                "filter": [
+                  {
+                    "term": {
+                      "network.direction": "outbound"
+                    }
+                  },
+                  {
+                    "terms": {
+                      "source.nat.ip": ["118.70.81.176", "101.99.13.33"]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "bool": {
+                "filter": [
+                  {
+                    "term": {
+                      "network.direction": "inbound"
+                    }
+                  },
+                  {
+                    "terms": {
+                      "destination.ip": ["118.70.81.176", "101.99.13.33"]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "by_direction": {
+          "terms": {
+            "field": "network.direction",
+            "size": 10
+          },
+          "aggs": {
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "total_sessions": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "User truy cập web nhiều nhất với đầy đủ thông tin",
+    "keywords": ["user", "người dùng", "truy cập web", "web access", "nhiều nhất", "top", "đầy đủ thông tin", "source.nat.ip", "public IP", "network.direction", "outbound"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "terms": {
+                "network.protocol": ["http", "https"]
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-7d"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.direction": "outbound"
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "observer.egress.interface.name": "port1"
+              }
+            },
+            {
+              "term": {
+                "observer.egress.interface.name": "port2"
+              }
+            },
+            {
+              "terms": {
+                "source.nat.ip": ["118.70.81.176", "101.99.13.33"]
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "top_users": {
+          "terms": {
+            "field": "source.user.name",
+            "size": 20,
+            "order": {
+              "total_bytes": "desc"
+            }
+          },
+          "aggs": {
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "total_sessions": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            },
+            "by_interface": {
+              "terms": {
+                "field": "observer.egress.interface.name"
+              },
+              "aggs": {
+                "interface_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            },
+            "by_nat_ip": {
+              "terms": {
+                "field": "source.nat.ip"
+              },
+              "aggs": {
+                "nat_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            },
+            "unique_websites": {
+              "cardinality": {
+                "field": "destination.as.organization.name"
+              }
+            },
+            "top_websites": {
+              "terms": {
+                "field": "destination.as.organization.name",
+                "size": 10,
+                "order": {
+                  "site_bytes": "desc"
+                }
+              },
+              "aggs": {
+                "site_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Chi tiết các kết nối đi ra qua public IP",
+    "keywords": ["chi tiết", "kết nối", "connection", "đi ra", "outbound", "public IP", "IP công cộng", "source.nat.ip", "network.direction"],
+    "query": {
+      "size": 100,
+      "sort": [
+        {
+          "network.bytes": "desc"
+        }
+      ],
+      "_source": [
+        "@timestamp",
+        "source.ip",
+        "source.user.name",
+        "source.nat.ip",
+        "destination.ip",
+        "destination.port",
+        "destination.as.organization.name",
+        "network.bytes",
+        "network.protocol",
+        "observer.egress.interface.name",
+        "rule.name"
+      ],
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.direction": "outbound"
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "observer.egress.interface.name": "port1"
+              }
+            },
+            {
+              "term": {
+                "observer.egress.interface.name": "port2"
+              }
+            },
+            {
+              "terms": {
+                "source.nat.ip": ["118.70.81.176", "101.99.13.33"]
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      }
+    }
+  },
+  {
+    "question": "User kết nối tới tổ chức nào nhiều nhất trong 7 ngày qua",
+    "keywords": ["user", "người dùng", "kết nối", "tổ chức", "organization", "nhiều nhất", "top", "7 ngày qua", "destination.as.organization.name"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-7d"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.direction": "outbound"
+              }
+            },
+            {
+              "exists": {
+                "field": "destination.as.organization.name"
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "observer.egress.interface.name": "port1"
+              }
+            },
+            {
+              "term": {
+                "observer.egress.interface.name": "port2"
+              }
+            },
+            {
+              "terms": {
+                "source.nat.ip": ["118.70.81.176", "101.99.13.33"]
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "by_user": {
+          "terms": {
+            "field": "source.user.name",
+            "size": 50
+          },
+          "aggs": {
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "total_connections": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            },
+            "top_organizations": {
+              "terms": {
+                "field": "destination.as.organization.name",
+                "size": 20,
+                "order": {
+                  "org_bytes": "desc"
+                }
+              },
+              "aggs": {
+                "org_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Top tổ chức được truy cập nhiều nhất",
+    "keywords": ["top", "tổ chức", "organization", "truy cập nhiều nhất", "destination.as.organization.name", "network.bytes", "sum", "order"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-7d"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.direction": "outbound"
+              }
+            },
+            {
+              "exists": {
+                "field": "destination.as.organization.name"
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "observer.egress.interface.name": "port1"
+              }
+            },
+            {
+              "term": {
+                "observer.egress.interface.name": "port2"
+              }
+            },
+            {
+              "terms": {
+                "source.nat.ip": ["118.70.81.176", "101.99.13.33"]
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "top_organizations": {
+          "terms": {
+            "field": "destination.as.organization.name",
+            "size": 30,
+            "order": {
+              "total_bytes": "desc"
+            }
+          },
+          "aggs": {
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "total_connections": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            },
+            "unique_users": {
+              "cardinality": {
+                "field": "source.user.name"
+              }
+            },
+            "top_users": {
+              "terms": {
+                "field": "source.user.name",
+                "size": 10
+              }
+            },
+            "top_protocols": {
+              "terms": {
+                "field": "network.protocol",
+                "size": 5
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Ai sử dụng lưu lượng nhiều nhất ngày 7/10 (theo tổ chức)",
+    "keywords": ["ai", "user", "sử dụng", "lưu lượng", "nhiều nhất", "top", "ngày 7/10", "specific date", "tổ chức", "organization", "destination.as.organization.name"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-10-07T00:00:00.000+07:00",
+                  "lte": "2025-10-07T23:59:59.999+07:00"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.direction": "outbound"
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "observer.egress.interface.name": "port1"
+              }
+            },
+            {
+              "term": {
+                "observer.egress.interface.name": "port2"
+              }
+            },
+            {
+              "terms": {
+                "source.nat.ip": ["118.70.81.176", "101.99.13.33"]
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "top_users": {
+          "terms": {
+            "field": "source.user.name",
+            "size": 20,
+            "order": {
+              "total_bytes": "desc"
+            }
+          },
+          "aggs": {
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "total_sessions": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            },
+            "unique_organizations": {
+              "cardinality": {
+                "field": "destination.as.organization.name"
+              }
+            },
+            "top_organizations": {
+              "terms": {
+                "field": "destination.as.organization.name",
+                "size": 10,
+                "order": {
+                  "org_bytes": "desc"
+                }
+              },
+              "aggs": {
+                "org_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Chi tiết kết nối tới từng tổ chức",
+    "keywords": ["chi tiết", "kết nối", "connection", "tổ chức", "organization", "destination.as.organization.name", "destination.as.number"],
+    "query": {
+      "size": 100,
+      "sort": [
+        {
+          "network.bytes": "desc"
+        }
+      ],
+      "_source": [
+        "@timestamp",
+        "source.ip",
+        "source.user.name",
+        "destination.ip",
+        "destination.as.organization.name",
+        "destination.as.number",
+        "destination.geo.country_name",
+        "destination.port",
+        "network.protocol",
+        "network.bytes",
+        "observer.egress.interface.name",
+        "rule.name"
+      ],
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.direction": "outbound"
+              }
+            },
+            {
+              "exists": {
+                "field": "destination.as.organization.name"
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "observer.egress.interface.name": "port1"
+              }
+            },
+            {
+              "term": {
+                "observer.egress.interface.name": "port2"
+              }
+            },
+            {
+              "terms": {
+                "source.nat.ip": ["118.70.81.176", "101.99.13.33"]
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      }
+    }
+  },
+  {
+    "question": "Phân tích theo cả URL và tổ chức (cho HTTP/HTTPS)",
+    "keywords": ["phân tích", "analysis", "URL", "tổ chức", "organization", "HTTP", "HTTPS", "network.protocol", "destination.as.organization.name"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "terms": {
+                "network.protocol": ["http", "https"]
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-7d"
+                }
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "observer.egress.interface.name": "port1"
+              }
+            },
+            {
+              "term": {
+                "observer.egress.interface.name": "port2"
+              }
+            },
+            {
+              "terms": {
+                "source.nat.ip": ["118.70.81.176", "101.99.13.33"]
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "by_organization": {
+          "terms": {
+            "field": "destination.as.organization.name",
+            "size": 20,
+            "order": {
+              "total_bytes": "desc"
+            }
+          },
+          "aggs": {
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "unique_users": {
+              "cardinality": {
+                "field": "source.user.name"
+              }
+            },
+            "top_domains": {
+              "terms": {
+                "field": "destination.as.organization.name",
+                "size": 10
+              }
+            },
+            "top_users": {
+              "terms": {
+                "field": "source.user.name",
+                "size": 10,
+                "order": {
+                  "user_bytes": "desc"
+                }
+              },
+              "aggs": {
+                "user_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Tìm các tổ chức đáng ngờ hoặc không phổ biến",
+    "keywords": ["tìm", "tổ chức", "organization", "đáng ngờ", "suspicious", "không phổ biến", "rare", "destination.as.organization.name", "must_not"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.direction": "outbound"
+              }
+            },
+            {
+              "exists": {
+                "field": "destination.as.organization.name"
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "observer.egress.interface.name": "port1"
+              }
+            },
+            {
+              "term": {
+                "observer.egress.interface.name": "port2"
+              }
+            }
+          ],
+          "minimum_should_match": 1,
+          "must_not": [
+            {
+              "terms": {
+                "destination.as.organization.name": [
+                  "Google LLC",
+                  "Microsoft Corporation",
+                  "Facebook, Inc.",
+                  "Amazon.com, Inc.",
+                  "Cloudflare, Inc.",
+                  "Akamai Technologies, Inc."
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "rare_organizations": {
+          "terms": {
+            "field": "destination.as.organization.name",
+            "size": 50,
+            "order": {
+              "total_connections": "asc"
+            }
+          },
+          "aggs": {
+            "total_connections": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            },
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "users": {
+              "terms": {
+                "field": "source.user.name",
+                "size": 5
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Xem các sự kiện nguy hiểm của từng tổ chức",
+    "keywords": ["sự kiện nguy hiểm", "dangerous events", "tổ chức", "organization", "destination.as.organization.name", "fortinet.firewall.action", "deny", "attack", "virus", "botnet"],
+    "query": {
+      "size": 100,
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
+      "_source": [
+        "@timestamp",
+        "source.ip",
+        "source.user.name",
+        "destination.ip",
+        "destination.as.organization.name",
+        "destination.geo.country_name",
+        "destination.port",
+        "network.protocol",
+        "network.bytes",
+        "fortinet.firewall.action",
+        "fortinet.firewall.attack",
+        "fortinet.firewall.crlevel",
+        "fortinet.firewall.virus",
+        "fortinet.firewall.botnetip",
+        "rule.name"
+      ],
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-10-01T00:00:00.000+07:00",
+                  "lte": "2025-10-31T23:59:59.999+07:00"
+                }
+              }
+            },
+            {
+              "exists": {
+                "field": "destination.as.organization.name"
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "fortinet.firewall.action": "deny"
+              }
+            },
+            {
+              "exists": {
+                "field": "fortinet.firewall.attack"
+              }
+            },
+            {
+              "exists": {
+                "field": "fortinet.firewall.virus"
+              }
+            },
+            {
+              "exists": {
+                "field": "fortinet.firewall.botnetip"
+              }
+            },
+            {
+              "terms": {
+                "fortinet.firewall.crlevel": ["high", "critical"]
+              }
+            },
+            {
+              "terms": {
+                "destination.geo.country_name": [
+                  "Russia",
+                  "China",
+                  "North Korea",
+                  "Iran"
+                ]
+              }
+            },
+            {
+              "terms": {
+                "destination.port": [
+                  22,
+                  23,
+                  3389,
+                  445,
+                  135,
+                  139,
+                  1433,
+                  3306
+                ]
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      }
+    }
+  },
+  {
+    "question": "Top 20 tổ chức nguy hiểm với thông tin chi tiết",
+    "keywords": ["top 20", "tổ chức nguy hiểm", "dangerous organizations", "destination.as.organization.name", "fortinet.firewall.action", "deny", "attack", "virus", "botnet"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-10-01T00:00:00.000+07:00",
+                  "lte": "2025-10-31T23:59:59.999+07:00"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.direction": "outbound"
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "fortinet.firewall.action": "deny"
+              }
+            },
+            {
+              "exists": {
+                "field": "fortinet.firewall.attack"
+              }
+            },
+            {
+              "exists": {
+                "field": "fortinet.firewall.virus"
+              }
+            },
+            {
+              "exists": {
+                "field": "fortinet.firewall.botnetip"
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "top_dangerous_orgs": {
+          "terms": {
+            "field": "destination.as.organization.name",
+            "size": 20
+          },
+          "aggs": {
+            "total_incidents": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            },
+            "unique_users_affected": {
+              "cardinality": {
+                "field": "source.user.name"
+              }
+            },
+            "unique_ips": {
+              "cardinality": {
+                "field": "destination.ip"
+              }
+            },
+            "threat_breakdown": {
+              "filters": {
+                "filters": {
+                  "blocked": {
+                    "term": {
+                      "fortinet.firewall.action": "deny"
+                    }
+                  },
+                  "ips_alerts": {
+                    "exists": {
+                      "field": "fortinet.firewall.attack"
+                    }
+                  },
+                  "malware": {
+                    "exists": {
+                      "field": "fortinet.firewall.virus"
+                    }
+                  },
+                  "botnet": {
+                    "exists": {
+                      "field": "fortinet.firewall.botnetip"
+                    }
+                  },
+                  "critical_ips": {
+                    "terms": {
+                      "fortinet.firewall.crlevel": ["critical"]
+                    }
+                  }
+                }
+              }
+            },
+            "top_attacks": {
+              "terms": {
+                "field": "fortinet.firewall.attack",
+                "size": 5
+              }
+            },
+            "top_malware": {
+              "terms": {
+                "field": "fortinet.firewall.virus",
+                "size": 5
+              }
+            },
+            "affected_users": {
+              "terms": {
+                "field": "source.user.name",
+                "size": 10
+              }
+            },
+            "countries": {
+              "terms": {
+                "field": "destination.geo.country_name",
+                "size": 5
+              }
+            },
+            "timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "day"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Ma trận rủi ro theo tổ chức và người dùng",
+    "keywords": ["ma trận rủi ro", "risk matrix", "tổ chức", "organization", "người dùng", "user", "destination.as.organization.name", "source.user.name"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-10-01T00:00:00.000+07:00",
+                  "lte": "2025-10-31T23:59:59.999+07:00"
+                }
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "fortinet.firewall.action": "deny"
+              }
+            },
+            {
+              "exists": {
+                "field": "fortinet.firewall.attack"
+              }
+            },
+            {
+              "exists": {
+                "field": "fortinet.firewall.virus"
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "risk_matrix": {
+          "terms": {
+            "field": "source.user.name",
+            "size": 30
+          },
+          "aggs": {
+            "dangerous_orgs": {
+              "terms": {
+                "field": "destination.as.organization.name",
+                "size": 10
+              },
+              "aggs": {
+                "threat_count": {
+                  "value_count": {
+                    "field": "@timestamp"
+                  }
+                },
+                "threat_types": {
+                  "filters": {
+                    "filters": {
+                      "blocked": {
+                        "term": {
+                          "fortinet.firewall.action": "deny"
+                        }
+                      },
+                      "ips": {
+                        "exists": {
+                          "field": "fortinet.firewall.attack"
+                        }
+                      },
+                      "malware": {
+                        "exists": {
+                          "field": "fortinet.firewall.virus"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Tổ chức đích nguy hiểm nhất trong tháng 10",
+    "keywords": ["tổ chức đích", "nguy hiểm nhất", "most dangerous", "destination organization", "tháng 10", "October", "risk score", "destination.as.organization.name"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-10-01T00:00:00.000+07:00",
+                  "lte": "2025-10-31T23:59:59.999+07:00"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.direction": "outbound"
+              }
+            },
+            {
+              "exists": {
+                "field": "destination.as.organization.name"
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "observer.egress.interface.name": "port1"
+              }
+            },
+            {
+              "term": {
+                "observer.egress.interface.name": "port2"
+              }
+            },
+            {
+              "terms": {
+                "source.nat.ip": ["118.70.81.176", "101.99.13.33"]
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "dangerous_organizations": {
+          "terms": {
+            "field": "destination.as.organization.name",
+            "size": 50,
+            "order": {
+              "total_connections": "desc"
+            }
+          },
+          "aggs": {
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "total_connections": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            },
+            "unique_users": {
+              "cardinality": {
+                "field": "source.user.name"
+              }
+            },
+            "blocked_count": {
+              "filter": {
+                "term": {
+                  "fortinet.firewall.action": "deny"
+                }
+              }
+            },
+            "ips_alerts": {
+              "filter": {
+                "exists": {
+                  "field": "fortinet.firewall.attack"
+                }
+              },
+              "aggs": {
+                "critical_count": {
+                  "filter": {
+                    "terms": {
+                      "fortinet.firewall.crlevel": ["high", "critical"]
+                    }
+                  }
+                },
+                "attack_types": {
+                  "terms": {
+                    "field": "fortinet.firewall.attack",
+                    "size": 10
+                  }
+                }
+              }
+            },
+            "malware_detected": {
+              "filter": {
+                "exists": {
+                  "field": "fortinet.firewall.virus"
+                }
+              },
+              "aggs": {
+                "virus_types": {
+                  "terms": {
+                    "field": "fortinet.firewall.virus",
+                    "size": 10
+                  }
+                }
+              }
+            },
+            "botnet_detected": {
+              "filter": {
+                "exists": {
+                  "field": "fortinet.firewall.botnetip"
+                }
+              }
+            },
+            "high_risk_countries": {
+              "filter": {
+                "terms": {
+                  "destination.geo.country_name": [
+                    "Russia",
+                    "China",
+                    "North Korea",
+                    "Iran"
+                  ]
+                }
+              }
+            },
+            "webfilter_blocks": {
+              "filter": {
+                "bool": {
+                  "filter": [
+                    {
+                      "term": {
+                        "fortinet.firewall.subtype": "webfilter"
+                      }
+                    },
+                    {
+                      "term": {
+                        "fortinet.firewall.action": "deny"
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "suspicious_ports": {
+              "filter": {
+                "terms": {
+                  "destination.port": [
+                    22,
+                    23,
+                    3389,
+                    445,
+                    135,
+                    139,
+                    1433,
+                    3306,
+                    5432
+                  ]
+                }
+              }
+            },
+            "after_hours_activity": {
+              "filter": {
+                "script": {
+                  "script": {
+                    "source": "doc['@timestamp'].value.getHour() >= 22 || doc['@timestamp'].value.getHour() < 6"
+                  }
+                }
+              }
+            },
+            "large_data_transfer": {
+              "filter": {
+                "range": {
+                  "network.bytes": {
+                    "gt": 104857600
+                  }
+                }
+              }
+            },
+            "risk_score": {
+              "bucket_script": {
+                "buckets_path": {
+                  "blocked": "blocked_count._count",
+                  "ips": "ips_alerts._count",
+                  "critical": "ips_alerts>critical_count._count",
+                  "malware": "malware_detected._count",
+                  "botnet": "botnet_detected._count",
+                  "high_risk": "high_risk_countries._count",
+                  "webfilter": "webfilter_blocks._count",
+                  "sus_ports": "suspicious_ports._count",
+                  "after_hours": "after_hours_activity._count",
+                  "large_transfer": "large_data_transfer._count"
+                },
+                "script": "(params.blocked * 10) + (params.ips * 8) + (params.critical * 15) + (params.malware * 20) + (params.botnet * 25) + (params.high_risk * 12) + (params.webfilter * 7) + (params.sus_ports * 5) + (params.after_hours * 3) + (params.large_transfer * 2)"
+              }
+            },
+            "top_risky_users": {
+              "terms": {
+                "field": "source.user.name",
+                "size": 10
+              }
+            },
+            "risk_bucket_sort": {
+              "bucket_sort": {
+                "sort": [
+                  {
+                    "risk_score": {
+                      "order": "desc"
+                    }
+                  }
+                ],
+                "size": 50
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Chỉ lấy các tổ chức có mối đe dọa thực sự",
+    "keywords": ["tổ chức", "organization", "đe dọa thực sự", "real threats", "destination.as.organization.name", "fortinet.firewall.attack", "fortinet.firewall.virus", "fortinet.firewall.botnetip"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-10-01T00:00:00.000+07:00",
+                  "lte": "2025-10-31T23:59:59.999+07:00"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.direction": "outbound"
+              }
+            },
+            {
+              "exists": {
+                "field": "destination.as.organization.name"
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "fortinet.firewall.action": "deny"
+              }
+            },
+            {
+              "exists": {
+                "field": "fortinet.firewall.attack"
+              }
+            },
+            {
+              "exists": {
+                "field": "fortinet.firewall.virus"
+              }
+            },
+            {
+              "exists": {
+                "field": "fortinet.firewall.botnetip"
+              }
+            },
+            {
+              "terms": {
+                "fortinet.firewall.crlevel": ["high", "critical"]
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "dangerous_organizations": {
+          "terms": {
+            "field": "destination.as.organization.name",
+            "size": 30
+          },
+          "aggs": {
+            "total_threats": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            },
+            "unique_users_affected": {
+              "cardinality": {
+                "field": "source.user.name"
+              }
+            },
+            "threat_breakdown": {
+              "filters": {
+                "filters": {
+                  "blocked": {
+                    "term": {
+                      "fortinet.firewall.action": "deny"
+                    }
+                  },
+                  "ips_alerts": {
+                    "exists": {
+                      "field": "fortinet.firewall.attack"
+                    }
+                  },
+                  "critical_ips": {
+                    "term": {
+                      "fortinet.firewall.crlevel": "critical"
+                    }
+                  },
+                  "high_ips": {
+                    "term": {
+                      "fortinet.firewall.crlevel": "high"
+                    }
+                  },
+                  "malware": {
+                    "exists": {
+                      "field": "fortinet.firewall.virus"
+                    }
+                  },
+                  "botnet": {
+                    "exists": {
+                      "field": "fortinet.firewall.botnetip"
+                    }
+                  }
+                }
+              }
+            },
+            "top_attacks": {
+              "terms": {
+                "field": "fortinet.firewall.attack",
+                "size": 5
+              }
+            },
+            "top_malware": {
+              "terms": {
+                "field": "fortinet.firewall.virus",
+                "size": 5
+              }
+            },
+            "affected_users": {
+              "terms": {
+                "field": "source.user.name",
+                "size": 10
+              }
+            },
+            "countries": {
+              "terms": {
+                "field": "destination.geo.country_name",
+                "size": 5
+              }
+            },
+            "timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "day"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Tính weighted risk score bằng sub-aggregation",
+    "keywords": ["weighted risk score", "sub-aggregation", "destination.as.organization.name", "bucket_script", "bucket_sort", "fortinet.firewall.virus", "fortinet.firewall.botnetip", "fortinet.firewall.crlevel"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-10-01T00:00:00.000+07:00",
+                  "lte": "2025-10-31T23:59:59.999+07:00"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "all_orgs": {
+          "terms": {
+            "field": "destination.as.organization.name",
+            "size": 1000
+          },
+          "aggs": {
+            "malware_weight": {
+              "filter": {
+                "exists": {
+                  "field": "fortinet.firewall.virus"
+                }
+              }
+            },
+            "botnet_weight": {
+              "filter": {
+                "exists": {
+                  "field": "fortinet.firewall.botnetip"
+                }
+              }
+            },
+            "critical_ips_weight": {
+              "filter": {
+                "term": {
+                  "fortinet.firewall.crlevel": "critical"
+                }
+              }
+            },
+            "blocked_weight": {
+              "filter": {
+                "term": {
+                  "fortinet.firewall.action": "deny"
+                }
+              }
+            },
+            "weighted_score": {
+              "bucket_script": {
+                "buckets_path": {
+                  "malware": "malware_weight._count",
+                  "botnet": "botnet_weight._count",
+                  "critical": "critical_ips_weight._count",
+                  "blocked": "blocked_weight._count"
+                },
+                "script": "(params.malware * 20) + (params.botnet * 25) + (params.critical * 15) + (params.blocked * 10)"
+              }
+            },
+            "sort_by_risk": {
+              "bucket_sort": {
+                "sort": [
+                  {
+                    "weighted_score": {
+                      "order": "desc"
+                    }
+                  }
+                ],
+                "size": 30
+              }
+            },
+            "threat_details": {
+              "filters": {
+                "filters": {
+                  "malware": {
+                    "exists": {
+                      "field": "fortinet.firewall.virus"
+                    }
+                  },
+                  "botnet": {
+                    "exists": {
+                      "field": "fortinet.firewall.botnetip"
+                    }
+                  },
+                  "critical_ips": {
+                    "term": {
+                      "fortinet.firewall.crlevel": "critical"
+                    }
+                  },
+                  "blocked": {
+                    "term": {
+                      "fortinet.firewall.action": "deny"
+                    }
+                  }
+                }
+              }
+            },
+            "affected_users": {
+              "terms": {
+                "field": "source.user.name",
+                "size": 10
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Tổ chức nguy hiểm nhất trong trong tháng 10",
+    "keywords": ["tổ chức nguy hiểm nhất", "most dangerous organization", "tháng ", "month", "destination.as.organization.name", "fortinet.firewall.attack", "fortinet.firewall.virus", "fortinet.firewall.botnetip", "fortinet.firewall.action"],
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-10-01T00:00:00.000+07:00",
+                  "lte": "2025-10-31T23:59:59.999+07:00"
+                }
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "fortinet.firewall.action": "deny"
+              }
+            },
+            {
+              "exists": {
+                "field": "fortinet.firewall.attack"
+              }
+            },
+            {
+              "exists": {
+                "field": "fortinet.firewall.virus"
+              }
+            },
+            {
+              "exists": {
+                "field": "fortinet.firewall.botnetip"
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "top_dangerous": {
+          "terms": {
+            "field": "destination.as.organization.name",
+            "size": 30
+          },
+          "aggs": {
+            "threats": {
+              "filters": {
+                "filters": {
+                  "malware": {"exists": {"field": "fortinet.firewall.virus"}},
+                  "botnet": {"exists": {"field": "fortinet.firewall.botnetip"}},
+                  "critical": {"term": {"fortinet.firewall.crlevel": "critical"}},
+                  "high": {"term": {"fortinet.firewall.crlevel": "high"}},
+                  "blocked": {"term": {"fortinet.firewall.action": "deny"}},
+                  "ips": {"exists": {"field": "fortinet.firewall.attack"}}
+                }
+              }
+            },
+            "users": {"cardinality": {"field": "source.user.name"}},
+            "bytes": {"sum": {"field": "network.bytes"}},
+            "top_users": {"terms": {"field": "source.user.name", "size": 5}}
+          }
+        }
+      }
+    }
   }
 ]
