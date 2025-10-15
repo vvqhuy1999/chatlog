@@ -119,6 +119,16 @@ public class PromptTemplate {
                 - "từ VN ra ngoài" = source: Vietnam + must_not destination: Vietnam
                 - "vào VN từ ngoài" = destination: Vietnam + must_not source: Vietnam
                 
+                WEBSITE/DOMAIN ANALYSIS ⭐ CRITICAL
+                - NEVER use "url.domain" field (contains no data)
+                - ALWAYS use "destination.as.organization.name" for website/domain queries
+                - For website analysis: {"terms": {"field": "destination.as.organization.name", "size": 50}}
+                - For domain filtering: {"exists": {"field": "destination.as.organization.name"}}
+                - Examples:
+                  • "trang web nào được truy cập nhiều nhất" → terms agg on destination.as.organization.name
+                  • "phân tích traffic web" → filter + agg on destination.as.organization.name
+                  • "organization nào có traffic cao" → terms agg on destination.as.organization.name
+                
                 FIREWALL ACTIONS
                 - "chặn/block/deny" → "fortinet.firewall.action": "deny"
                 - "cho phép/allow" → "fortinet.firewall.action": "allow"
