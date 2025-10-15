@@ -76,29 +76,7 @@ public class AiQueryService {
                 ClassPathResource resource = new ClassPathResource(fileName);
                 InputStream inputStream = resource.getInputStream();
                 
-                // Debug: Print all questions from incident_response_playbooks.json
-                if (fileName.equals("incident_response_playbooks.json")) {
-                    System.out.println("\n🔍 ===== DEBUG: " + fileName + " CONTENT =====");
-                    String content = new String(inputStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-
-                    // Re-create input stream for parsing
-                    inputStream = new java.io.ByteArrayInputStream(content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-                }
-                
                 List<DataExample> examples = objectMapper.readValue(inputStream, new TypeReference<List<DataExample>>() {});
-                
-                // Debug: Print parsed examples from incident_response_playbooks.json
-                if (fileName.equals("incident_response_playbooks.json")) {
-                    System.out.println("📋 Parsed examples from " + fileName + ":");
-                    for (int i = 0; i < examples.size(); i++) {
-                        DataExample example = examples.get(i);
-                        System.out.println("  " + (i+1) + ". " + example.getQuestion());
-                        if (example.getQuestion().toLowerCase().contains("top 20 applications")) {
-                            System.out.println("     🎯 FOUND TARGET QUESTION!");
-                            System.out.println("     Keywords: " + String.join(", ", example.getKeywords()));
-                        }
-                    }
-                }
                 
                 this.exampleLibrary.addAll(examples);
                 totalLoaded += examples.size();
@@ -111,7 +89,10 @@ public class AiQueryService {
             }
         }
         
+        System.out.println("\n📊 ===== KNOWLEDGE BASE LOADING SUMMARY =====");
         System.out.println("[AiQueryService] 🎯 Total loaded: " + totalLoaded + " examples from " + knowledgeBaseFiles.length + " knowledge base files");
+        System.out.println("📁 Files processed: " + java.util.Arrays.toString(knowledgeBaseFiles));
+        System.out.println("===============================================\n");
         
         if (this.exampleLibrary.isEmpty()) {
             System.err.println("[AiQueryService] ❌ No examples loaded from any knowledge base file!");
@@ -197,6 +178,13 @@ public class AiQueryService {
     }
     
 
+    /**
+     * Get the example library for external services
+     */
+    public List<DataExample> getExampleLibrary() {
+        return new ArrayList<>(exampleLibrary); // Return a copy to prevent external modification
+    }
+    
     /**
      * Thực hiện tìm kiếm Elasticsearch với retry logic
      */

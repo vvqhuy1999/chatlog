@@ -6,7 +6,6 @@ import com.example.chatlog.dto.RequestBody;
 import com.example.chatlog.enums.ModelProvider;
 import com.example.chatlog.service.LogApiService;
 import com.example.chatlog.utils.SchemaHint;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -16,11 +15,8 @@ import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -41,7 +37,6 @@ public class AiComparisonService {
     private AiResponseService aiResponseService;
     
     private final ObjectMapper objectMapper;
-    private List<DataExample> exampleLibrary;
     
     @Autowired
     private PerformanceMonitoringService performanceMonitoringService;
@@ -55,54 +50,8 @@ public class AiComparisonService {
     public AiComparisonService(ChatClient.Builder builder) {
         this.objectMapper = new ObjectMapper();
         this.chatClient = builder.build();
-        loadExampleLibrary();
     }
     
-    /**
-     * Load the example library from multiple JSON knowledge base files
-     */
-    private void loadExampleLibrary() {
-        this.exampleLibrary = new ArrayList<>();
-        
-        // Define all knowledge base files to load (same as AiQueryService)
-        String[] knowledgeBaseFiles = {
-            "fortigate_queries_full.json",
-            "advanced_security_scenarios.json",
-            "network_forensics_performance.json",
-            "business_intelligence_operations.json",
-            "incident_response_playbooks.json",
-            "compliance_audit_scenarios.json",
-            "zero_trust_scenarios.json",
-            "threat_intelligence_scenarios.json",
-            "operational_security_scenarios.json",
-            "email_data_security.json",
-            "network_anomaly_detection.json"
-        };
-        
-        int totalLoaded = 0;
-        
-        for (String fileName : knowledgeBaseFiles) {
-            try {
-                ClassPathResource resource = new ClassPathResource(fileName);
-                InputStream inputStream = resource.getInputStream();
-                List<DataExample> examples = objectMapper.readValue(inputStream, new TypeReference<List<DataExample>>() {});
-                
-                this.exampleLibrary.addAll(examples);
-                totalLoaded += examples.size();
-                
-                System.out.println("[AiComparisonService] ✅ Loaded " + examples.size() + " examples from " + fileName);
-            } catch (IOException e) {
-                System.err.println("[AiComparisonService] ❌ Failed to load " + fileName + ": " + e.getMessage());
-            }
-        }
-        
-        System.out.println("[AiComparisonService] 📚 Total examples loaded: " + totalLoaded);
-        
-        if (this.exampleLibrary.isEmpty()) {
-            System.err.println("[AiComparisonService] ⚠️ No examples loaded! Creating empty list.");
-            this.exampleLibrary = new ArrayList<>();
-        }
-    }
     
     /**
      * Tạo chuỗi thông tin ngày tháng cho system message
@@ -168,6 +117,8 @@ public class AiComparisonService {
             
             // Sử dụng QueryPromptTemplate và đưa dynamic examples xuống cuối cùng
             String dynamicExamples = buildDynamicExamples(chatRequest.message());
+            System.out.println("dynamicExamples: " + dynamicExamples);
+
             String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPrompt(
                 chatRequest.message(),
                 dateContext,
@@ -196,7 +147,7 @@ public class AiComparisonService {
 //            Prompt prompt = new Prompt(List.of(systemMessage, sampleLogMsg, userMessage));
             Prompt prompt = new Prompt(List.of(systemMessage, userMessage));
 
-            System.out.println("Prompt very long: " + prompt);
+//            System.out.println("Prompt very long: " + prompt);
 
 
             ChatOptions chatOptions = ChatOptions.builder()
@@ -502,6 +453,9 @@ public class AiComparisonService {
         System.out.println("\n🔍 ===== QUERY MATCHING PROCESS =====");
         System.out.println("📝 User Query: \"" + userQuery + "\"");
         
+        // Get example library from AiQueryService
+        List<DataExample> exampleLibrary = aiQueryService.getExampleLibrary();
+        
         if (exampleLibrary == null || exampleLibrary.isEmpty()) {
             System.out.println("❌ Knowledge base is empty or not loaded");
             return new ArrayList<>();
@@ -563,6 +517,7 @@ public class AiComparisonService {
      */
     private String buildDynamicExamples(String userQuery) {
         // Use enhanced matching service for better accuracy
+        List<DataExample> exampleLibrary = aiQueryService.getExampleLibrary();
         List<DataExample> relevantExamples = enhancedExampleMatchingService.findRelevantExamples(userQuery, exampleLibrary);
         
         if (relevantExamples.isEmpty()) {
