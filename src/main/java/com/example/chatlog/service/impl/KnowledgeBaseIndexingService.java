@@ -4,7 +4,7 @@ import com.example.chatlog.dto.DataExample;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.vectorstore.SimpleVectorStore;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
@@ -20,7 +20,7 @@ import java.util.Map;
 public class KnowledgeBaseIndexingService {
 
     @Autowired
-    private SimpleVectorStore vectorStore;
+    private VectorStore vectorStore;
 
     private final File vectorStoreFile = new File("vector_store.json");
 
@@ -78,7 +78,9 @@ public class KnowledgeBaseIndexingService {
         vectorStore.add(documents);
         
         // Lưu toàn bộ Vector Store xuống file
-        vectorStore.save(vectorStoreFile);
+        if (vectorStore instanceof org.springframework.ai.vectorstore.SimpleVectorStore) {
+            ((org.springframework.ai.vectorstore.SimpleVectorStore) vectorStore).save(vectorStoreFile);
+        }
         
         System.out.println("✅ Đã vector hóa và lưu trữ " + documents.size() + " ví dụ vào file " + vectorStoreFile.getAbsolutePath());
     }
