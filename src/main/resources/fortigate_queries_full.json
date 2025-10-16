@@ -3813,14 +3813,7 @@
           "must_not": [
             {
               "terms": {
-                "destination.as.organization.name": [
-                  "Google LLC",
-                  "Microsoft Corporation",
-                  "Facebook, Inc.",
-                  "Amazon.com, Inc.",
-                  "Cloudflare, Inc.",
-                  "Akamai Technologies, Inc."
-                ]
+                "destination.as.organization.name": ["GOOGLE", "MICROSOFT-CORP-MSN-AS-BLOCK", "FACEBOOK", "AMAZON-AES", "CLOUDFLARENET"]
               }
             }
           ]
