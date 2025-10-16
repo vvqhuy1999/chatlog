@@ -1,7 +1,6 @@
 package com.example.chatlog.service.impl;
 
 import com.example.chatlog.dto.ChatRequest;
-import com.example.chatlog.dto.DataExample;
 import com.example.chatlog.dto.RequestBody;
 import com.example.chatlog.enums.ModelProvider;
 import com.example.chatlog.service.LogApiService;
@@ -20,7 +19,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Service xử lý chế độ so sánh giữa OpenAI và OpenRouter
@@ -37,9 +35,7 @@ public class AiComparisonService {
     private AiResponseService aiResponseService;
     
     private final ObjectMapper objectMapper;
-    
-    @Autowired
-    private PerformanceMonitoringService performanceMonitoringService;
+
     
     // THAY THẾ EnhancedExampleMatchingService bằng VectorSearchService
     @Autowired
@@ -467,10 +463,7 @@ public class AiComparisonService {
             System.out.println("[AiComparisonService] 📝 Smart features: DISABLED to avoid lazy loading");
             System.out.println("[AiComparisonService] 🔍 Query optimization impact: " + (openaiQueryString.equals(openrouterQueryString) ? "Cùng optimized pattern" : "Khác biệt được tối ưu"));
             System.out.println("[AiComparisonService] 📊 Data consistency: " + (openaiContent.equals(openrouterContent) ? "Consistent results" : "Different results detected"));
-            
-            // Ghi nhận performance metrics
-            performanceMonitoringService.recordRequest("comparison_mode", totalProcessingTime, true);
-            
+
         } catch (Exception e) {
             long errorProcessingTime = System.currentTimeMillis() - overallStartTime;
             
@@ -482,87 +475,18 @@ public class AiComparisonService {
             result.put("error", e.getMessage());
             result.put("timestamp", now.toString());
             result.put("processing_time_ms", errorProcessingTime);
-            
-            // Ghi nhận lỗi vào performance metrics
-            performanceMonitoringService.recordRequest("comparison_mode", errorProcessingTime, false);
+
         }
         
         return result;
     }
     
-    /**
-     * Find relevant examples based on user query keywords (LEGACY METHOD - kept for fallback)
-     * @deprecated Use EnhancedExampleMatchingService.findRelevantExamples() instead
-     */
-    @Deprecated
-    private List<DataExample> findRelevantExamples(String userQuery) {
-        System.out.println("\n🔍 ===== QUERY MATCHING PROCESS =====");
-        System.out.println("📝 User Query: \"" + userQuery + "\"");
-        
-        // Get example library from AiQueryService
-        List<DataExample> exampleLibrary = aiQueryService.getExampleLibrary();
-        
-        if (exampleLibrary == null || exampleLibrary.isEmpty()) {
-            System.out.println("❌ Knowledge base is empty or not loaded");
-            return new ArrayList<>();
-        }
-        
-        System.out.println("📚 Knowledge base contains " + exampleLibrary.size() + " examples");
-        
-        // Step 1: Extract keywords
-        String queryLower = userQuery.toLowerCase();
-        List<String> queryWords = Arrays.stream(queryLower.split("\\s+"))
-                .filter(word -> word.length() > 2) // Filter out short words
-                .collect(Collectors.toList());
-        
-        // Step 2: Find matching examples
-        List<DataExample> matchingExamples = new ArrayList<>();
-        Map<DataExample, Integer> exampleScores = new HashMap<>();
-        
-        for (int i = 0; i < exampleLibrary.size(); i++) {
-            DataExample example = exampleLibrary.get(i);
-            if (example.getKeywords() == null) continue;
-            
-            int score = 0;
-            List<String> matchedKeywords = new ArrayList<>();
-            
-            // Calculate score for this example
-            for (String keyword : example.getKeywords()) {
-                for (String queryWord : queryWords) {
-                    boolean isMatch = keyword.toLowerCase().contains(queryWord) || 
-                                    queryWord.contains(keyword.toLowerCase());
-                    if (isMatch) {
-                        score++;
-                        matchedKeywords.add(keyword);
-                    }
-                }
-            }
-            
-            if (score > 0) {
-                matchingExamples.add(example);
-                exampleScores.put(example, score);
-            }
-        }
-        
-        // Step 3: Sort by score
-        List<DataExample> sortedExamples = matchingExamples.stream()
-                .sorted((e1, e2) -> {
-                    int score1 = exampleScores.get(e1);
-                    int score2 = exampleScores.get(e2);
-                    return Integer.compare(score2, score1); // Descending order
-                })
-                .limit(10) // Return top 10 most relevant examples
-                .collect(Collectors.toList());
-        
-        System.out.println("✅ Found " + sortedExamples.size() + " matching examples");
-        return sortedExamples;
-    }
+
     
     /**
      * Build dynamic examples string for the prompt using vector search
      */
     private String buildDynamicExamples(String userQuery) {
-        // Gọi service mới, logic cũ đã được thay thế hoàn toàn
         return vectorSearchService.findRelevantExamples(userQuery);
     }
 }

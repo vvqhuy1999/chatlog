@@ -26,12 +26,6 @@ public class AiServiceImpl implements AiService {
   private AiComparisonService aiComparisonService;
 
 
-  
-  @Autowired
-  private PerformanceMonitoringService performanceMonitoringService;
-
-
-
   /**
    * Constructor khởi tạo AiServiceImpl với ChatClient và memory
    * @param builder ChatClient.Builder để xây dựng client AI
@@ -94,10 +88,6 @@ public class AiServiceImpl implements AiService {
       
       return errorResult;
       
-    } finally {
-      // Ghi nhận performance metrics cho comparison mode
-      long responseTime = System.currentTimeMillis() - startTime;
-      performanceMonitoringService.recordRequest("handleRequestWithComparison", responseTime, success);
     }
   }
 
