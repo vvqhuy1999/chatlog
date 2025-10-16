@@ -89,29 +89,10 @@ management:
       export:
         enabled: true
 
-# Enhanced Matching Configuration
-enhanced-matching:
-  enabled: true
-  semantic-analysis:
-    enabled: true
-    synonym-matching: true
-    bilingual-support: true
-  scoring:
-    semantic-weight: 3.0
-    context-weight: 2.0
-    domain-weight: 1.5
-    diversity-threshold: 0.7
-  performance:
-    cache-enabled: true
-    max-results: 5
-    fallback-enabled: true
-  logging:
-    detailed-scoring: true
-    process-timing: true
-
 # Logging optimization
 logging:
   level:
     com.example.chatlog: INFO
+    com.example.chatlog.service.impl.VectorSearchService: DEBUG
     org.springframework.ai: WARN
     org.hibernate.SQL: ERROR

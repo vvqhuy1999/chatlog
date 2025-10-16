@@ -160,9 +160,16 @@
       "size": 100,
       "sort": [{ "@timestamp": "desc" }],
       "_source": [
-        "@timestamp", "source.ip", "destination.ip", "source.port", "destination.port",
-        "observer.name", "fortinet.firewall.shapingpolicyname", "fortinet.firewall.action",
-        "network.bytes", "network.protocol"
+        "@timestamp",
+        "source.ip",
+        "destination.ip",
+        "source.port",
+        "destination.port",
+        "observer.name",
+        "fortinet.firewall.shapingpolicyname",
+        "fortinet.firewall.action",
+        "network.bytes",
+        "network.protocol"
       ],
       "query": {
         "bool": {
@@ -243,14 +250,26 @@
   },
   {
     "question": "So sánh hiệu quả kiểm soát băng thông giữa 3 shaping policies: '10Mbps' (deny 15,425), '30Mbps' (deny 4,566) và 'Unlimited' (deny 51) - policy nào cần điều chỉnh và tại sao có sự chênh lệch lớn về số lượng deny?",
-    "keywords": ["policy comparison", "bandwidth control effectiveness", "QoS analysis", "policy optimization", "traffic distribution", "deny rate analysis"],
+    "keywords": [
+      "policy comparison",
+      "bandwidth control effectiveness",
+      "QoS analysis",
+      "policy optimization",
+      "traffic distribution",
+      "deny rate analysis"
+    ],
     "query": {
       "size": 50,
       "sort": [{ "@timestamp": "desc" }],
       "_source": [
-        "@timestamp", "source.ip", "destination.ip", "observer.name",
-        "fortinet.firewall.shapingpolicyname", "fortinet.firewall.action",
-        "network.bytes", "network.protocol"
+        "@timestamp",
+        "source.ip",
+        "destination.ip",
+        "observer.name",
+        "fortinet.firewall.shapingpolicyname",
+        "fortinet.firewall.action",
+        "network.bytes",
+        "network.protocol"
       ],
       "query": {
         "bool": {
@@ -927,7 +946,9 @@
     "keywords": ["user", "người dùng", "truy cập", "access", "nhiều domains", "unique domains", "nhiều nhất", "top", "cardinality"],
     "keywords": ["user", "người dùng", "truy cập", "access", "nhiều domains", "unique domains", "nhiều nhất", "top", "cardinality"],
     "query": {
-      "query": { "bool": { "filter": [{ "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "destination.as.organization.name" } }] } },
+      "query": {
+        "bool": { "filter": [{ "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "destination.as.organization.name" } }] }
+      },
       "aggs": {
         "by_user": {
           "terms": { "field": "source.user.name", "size": 10, "order": { "unique_domains": "desc" } },
@@ -1020,7 +1041,10 @@
     "query": {
       "query": {
         "bool": {
-          "should": [{ "wildcard": { "destination.as.organization.name": "*/admin*" } }, { "wildcard": { "destination.as.organization.name": "*/login*" } }],
+          "should": [
+            { "wildcard": { "destination.as.organization.name": "*/admin*" } },
+            { "wildcard": { "destination.as.organization.name": "*/login*" } }
+          ],
           "minimum_should_match": 1,
           "filter": [{ "range": { "@timestamp": { "gte": "now-24h" } } }]
         }
@@ -2828,7 +2852,20 @@
   },
   {
     "question": "User truy cập web ra ngoài qua public IP trong 7 ngày qua",
-    "keywords": ["user", "người dùng", "truy cập web", "web access", "public IP", "IP công cộng", "source.nat.ip", "7 ngày qua", "network.protocol", "http", "https", "destination.as.organization.name"],
+    "keywords": [
+      "user",
+      "người dùng",
+      "truy cập web",
+      "web access",
+      "public IP",
+      "IP công cộng",
+      "source.nat.ip",
+      "7 ngày qua",
+      "network.protocol",
+      "http",
+      "https",
+      "destination.as.organization.name"
+    ],
     "query": {
       "size": 0,
       "query": {
@@ -2897,7 +2934,21 @@
   },
   {
     "question": "Ai sử dụng lưu lượng internet nhiều nhất ngày 7/10 (đi ra)",
-    "keywords": ["ai", "user", "sử dụng", "lưu lượng", "internet", "nhiều nhất", "top", "ngày 7/10", "outbound", "đi ra", "network.direction", "source.nat.ip", "public IP"],
+    "keywords": [
+      "ai",
+      "user",
+      "sử dụng",
+      "lưu lượng",
+      "internet",
+      "nhiều nhất",
+      "top",
+      "ngày 7/10",
+      "outbound",
+      "đi ra",
+      "network.direction",
+      "source.nat.ip",
+      "public IP"
+    ],
     "query": {
       "size": 0,
       "query": {
@@ -3035,7 +3086,19 @@
   },
   {
     "question": "Phân tích traffic inbound theo public IP và interface",
-    "keywords": ["phân tích", "analysis", "traffic", "lưu lượng", "inbound", "đi vào", "public IP", "IP công cộng", "interface", "destination.ip", "source.geo.country_name"],
+    "keywords": [
+      "phân tích",
+      "analysis",
+      "traffic",
+      "lưu lượng",
+      "inbound",
+      "đi vào",
+      "public IP",
+      "IP công cộng",
+      "interface",
+      "destination.ip",
+      "source.geo.country_name"
+    ],
     "query": {
       "size": 0,
       "query": {
@@ -3106,7 +3169,19 @@
   },
   {
     "question": "So sánh traffic outbound và inbound qua public IP",
-    "keywords": ["so sánh", "compare", "traffic", "lưu lượng", "outbound", "inbound", "đi ra", "đi vào", "public IP", "IP công cộng", "network.direction"],
+    "keywords": [
+      "so sánh",
+      "compare",
+      "traffic",
+      "lưu lượng",
+      "outbound",
+      "inbound",
+      "đi ra",
+      "đi vào",
+      "public IP",
+      "IP công cộng",
+      "network.direction"
+    ],
     "query": {
       "size": 0,
       "query": {
@@ -3181,7 +3256,19 @@
   },
   {
     "question": "User truy cập web nhiều nhất với đầy đủ thông tin",
-    "keywords": ["user", "người dùng", "truy cập web", "web access", "nhiều nhất", "top", "đầy đủ thông tin", "source.nat.ip", "public IP", "network.direction", "outbound"],
+    "keywords": [
+      "user",
+      "người dùng",
+      "truy cập web",
+      "web access",
+      "nhiều nhất",
+      "top",
+      "đầy đủ thông tin",
+      "source.nat.ip",
+      "public IP",
+      "network.direction",
+      "outbound"
+    ],
     "query": {
       "size": 0,
       "query": {
@@ -3530,7 +3617,19 @@
   },
   {
     "question": "Ai sử dụng lưu lượng nhiều nhất ngày 7/10 (theo tổ chức)",
-    "keywords": ["ai", "user", "sử dụng", "lưu lượng", "nhiều nhất", "top", "ngày 7/10", "specific date", "tổ chức", "organization", "destination.as.organization.name"],
+    "keywords": [
+      "ai",
+      "user",
+      "sử dụng",
+      "lưu lượng",
+      "nhiều nhất",
+      "top",
+      "ngày 7/10",
+      "specific date",
+      "tổ chức",
+      "organization",
+      "destination.as.organization.name"
+    ],
     "query": {
       "size": 0,
       "query": {
@@ -3773,7 +3872,17 @@
   },
   {
     "question": "Tìm các tổ chức đáng ngờ hoặc không phổ biến",
-    "keywords": ["tìm", "tổ chức", "organization", "đáng ngờ", "suspicious", "không phổ biến", "rare", "destination.as.organization.name", "must_not"],
+    "keywords": [
+      "tìm",
+      "tổ chức",
+      "organization",
+      "đáng ngờ",
+      "suspicious",
+      "không phổ biến",
+      "rare",
+      "destination.as.organization.name",
+      "must_not"
+    ],
     "query": {
       "size": 0,
       "query": {
@@ -3852,7 +3961,18 @@
   },
   {
     "question": "Xem các sự kiện nguy hiểm của từng tổ chức",
-    "keywords": ["sự kiện nguy hiểm", "dangerous events", "tổ chức", "organization", "destination.as.organization.name", "fortinet.firewall.action", "deny", "attack", "virus", "botnet"],
+    "keywords": [
+      "sự kiện nguy hiểm",
+      "dangerous events",
+      "tổ chức",
+      "organization",
+      "destination.as.organization.name",
+      "fortinet.firewall.action",
+      "deny",
+      "attack",
+      "virus",
+      "botnet"
+    ],
     "query": {
       "size": 100,
       "sort": [
@@ -3922,26 +4042,12 @@
             },
             {
               "terms": {
-                "destination.geo.country_name": [
-                  "Russia",
-                  "China",
-                  "North Korea",
-                  "Iran"
-                ]
+                "destination.geo.country_name": ["Russia", "China", "North Korea", "Iran"]
               }
             },
             {
               "terms": {
-                "destination.port": [
-                  22,
-                  23,
-                  3389,
-                  445,
-                  135,
-                  139,
-                  1433,
-                  3306
-                ]
+                "destination.port": [22, 23, 3389, 445, 135, 139, 1433, 3306]
               }
             }
           ],
@@ -3952,7 +4058,17 @@
   },
   {
     "question": "Top 20 tổ chức nguy hiểm với thông tin chi tiết",
-    "keywords": ["top 20", "tổ chức nguy hiểm", "dangerous organizations", "destination.as.organization.name", "fortinet.firewall.action", "deny", "attack", "virus", "botnet"],
+    "keywords": [
+      "top 20",
+      "tổ chức nguy hiểm",
+      "dangerous organizations",
+      "destination.as.organization.name",
+      "fortinet.firewall.action",
+      "deny",
+      "attack",
+      "virus",
+      "botnet"
+    ],
     "query": {
       "size": 0,
       "query": {
@@ -4087,7 +4203,16 @@
   },
   {
     "question": "Ma trận rủi ro theo tổ chức và người dùng",
-    "keywords": ["ma trận rủi ro", "risk matrix", "tổ chức", "organization", "người dùng", "user", "destination.as.organization.name", "source.user.name"],
+    "keywords": [
+      "ma trận rủi ro",
+      "risk matrix",
+      "tổ chức",
+      "organization",
+      "người dùng",
+      "user",
+      "destination.as.organization.name",
+      "source.user.name"
+    ],
     "query": {
       "size": 0,
       "query": {
@@ -4170,7 +4295,16 @@
   },
   {
     "question": "Tổ chức đích nguy hiểm nhất trong tháng 10",
-    "keywords": ["tổ chức đích", "nguy hiểm nhất", "most dangerous", "destination organization", "tháng 10", "October", "risk score", "destination.as.organization.name"],
+    "keywords": [
+      "tổ chức đích",
+      "nguy hiểm nhất",
+      "most dangerous",
+      "destination organization",
+      "tháng 10",
+      "October",
+      "risk score",
+      "destination.as.organization.name"
+    ],
     "query": {
       "size": 0,
       "query": {
@@ -4294,12 +4428,7 @@
             "high_risk_countries": {
               "filter": {
                 "terms": {
-                  "destination.geo.country_name": [
-                    "Russia",
-                    "China",
-                    "North Korea",
-                    "Iran"
-                  ]
+                  "destination.geo.country_name": ["Russia", "China", "North Korea", "Iran"]
                 }
               }
             },
@@ -4324,17 +4453,7 @@
             "suspicious_ports": {
               "filter": {
                 "terms": {
-                  "destination.port": [
-                    22,
-                    23,
-                    3389,
-                    445,
-                    135,
-                    139,
-                    1433,
-                    3306,
-                    5432
-                  ]
+                  "destination.port": [22, 23, 3389, 445, 135, 139, 1433, 3306, 5432]
                 }
               }
             },
@@ -4398,7 +4517,16 @@
   },
   {
     "question": "Chỉ lấy các tổ chức có mối đe dọa thực sự",
-    "keywords": ["tổ chức", "organization", "đe dọa thực sự", "real threats", "destination.as.organization.name", "fortinet.firewall.attack", "fortinet.firewall.virus", "fortinet.firewall.botnetip"],
+    "keywords": [
+      "tổ chức",
+      "organization",
+      "đe dọa thực sự",
+      "real threats",
+      "destination.as.organization.name",
+      "fortinet.firewall.attack",
+      "fortinet.firewall.virus",
+      "fortinet.firewall.botnetip"
+    ],
     "query": {
       "size": 0,
       "query": {
@@ -4543,7 +4671,16 @@
   },
   {
     "question": "Tính weighted risk score bằng sub-aggregation",
-    "keywords": ["weighted risk score", "sub-aggregation", "destination.as.organization.name", "bucket_script", "bucket_sort", "fortinet.firewall.virus", "fortinet.firewall.botnetip", "fortinet.firewall.crlevel"],
+    "keywords": [
+      "weighted risk score",
+      "sub-aggregation",
+      "destination.as.organization.name",
+      "bucket_script",
+      "bucket_sort",
+      "fortinet.firewall.virus",
+      "fortinet.firewall.botnetip",
+      "fortinet.firewall.crlevel"
+    ],
     "query": {
       "size": 0,
       "query": {
@@ -4657,7 +4794,17 @@
   },
   {
     "question": "Tổ chức nguy hiểm nhất trong trong tháng 10",
-    "keywords": ["tổ chức nguy hiểm nhất", "most dangerous organization", "tháng ", "month", "destination.as.organization.name", "fortinet.firewall.attack", "fortinet.firewall.virus", "fortinet.firewall.botnetip", "fortinet.firewall.action"],
+    "keywords": [
+      "tổ chức nguy hiểm nhất",
+      "most dangerous organization",
+      "tháng ",
+      "month",
+      "destination.as.organization.name",
+      "fortinet.firewall.attack",
+      "fortinet.firewall.virus",
+      "fortinet.firewall.botnetip",
+      "fortinet.firewall.action"
+    ],
     "query": {
       "size": 0,
       "query": {
@@ -4707,18 +4854,18 @@
             "threats": {
               "filters": {
                 "filters": {
-                  "malware": {"exists": {"field": "fortinet.firewall.virus"}},
-                  "botnet": {"exists": {"field": "fortinet.firewall.botnetip"}},
-                  "critical": {"term": {"fortinet.firewall.crlevel": "critical"}},
-                  "high": {"term": {"fortinet.firewall.crlevel": "high"}},
-                  "blocked": {"term": {"fortinet.firewall.action": "deny"}},
-                  "ips": {"exists": {"field": "fortinet.firewall.attack"}}
+                  "malware": { "exists": { "field": "fortinet.firewall.virus" } },
+                  "botnet": { "exists": { "field": "fortinet.firewall.botnetip" } },
+                  "critical": { "term": { "fortinet.firewall.crlevel": "critical" } },
+                  "high": { "term": { "fortinet.firewall.crlevel": "high" } },
+                  "blocked": { "term": { "fortinet.firewall.action": "deny" } },
+                  "ips": { "exists": { "field": "fortinet.firewall.attack" } }
                 }
               }
             },
-            "users": {"cardinality": {"field": "source.user.name"}},
-            "bytes": {"sum": {"field": "network.bytes"}},
-            "top_users": {"terms": {"field": "source.user.name", "size": 5}}
+            "users": { "cardinality": { "field": "source.user.name" } },
+            "bytes": { "sum": { "field": "network.bytes" } },
+            "top_users": { "terms": { "field": "source.user.name", "size": 5 } }
           }
         }
       }
@@ -4726,7 +4873,19 @@
   },
   {
     "question": "Phân tích lưu lượng mạng theo người dùng trong tháng 10/2025",
-    "keywords": ["phân tích", "lưu lượng mạng", "network traffic", "người dùng", "user", "tháng 10", "October", "2025", "network.bytes", "network.protocol", "network.transport"],
+    "keywords": [
+      "phân tích",
+      "lưu lượng mạng",
+      "network traffic",
+      "người dùng",
+      "user",
+      "tháng 10",
+      "October",
+      "2025",
+      "network.bytes",
+      "network.protocol",
+      "network.transport"
+    ],
     "query": {
       "size": 0,
       "query": {

@@ -81,20 +81,6 @@ public class AiResponseService {
                 - If size:0 with only aggregations is returned, base your answer on aggregations instead of hits.
                 - If both count and total are present, report both. If only count is present, report count. If no aggregations, use hits.hits length for count (if applicable).
 
-                NO DATA HANDLING:
-                Lưu ý: Chỉ áp dụng khi không có dữ liệu phù hợp.
-                When hits.total.value = 0 or aggregations return empty buckets or zero count:
-                - Inform the user that no data was found matching their criteria
-                - Suggest possible reasons why no data was found
-                - Suggest possible modifications to the query
-                - DO NOT use a fixed format, respond naturally
-
-                EXAMPLES OF NO DATA SCENARIOS:
-                - {"hits":{"total":{"value":0},"hits":[]}} → No matching documents
-                - {"aggregations":{"total_count":{"value":0}}} → Count is zero
-                - {"aggregations":{"top_users":{"buckets":[]}}} → No aggregation results
-                - Empty aggregation buckets = no matching data found
-
                 LOG DATA EXTRACTION RULES:
                 For each log entry in hits.hits, extract and display these key fields when available:
                 - Người dùng: source.user.name (if available)

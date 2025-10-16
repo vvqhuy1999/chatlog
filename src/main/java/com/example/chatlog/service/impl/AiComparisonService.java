@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Service xử lý chế độ so sánh giữa OpenAI và OpenRouter
@@ -37,9 +36,7 @@ public class AiComparisonService {
     private AiResponseService aiResponseService;
     
     private final ObjectMapper objectMapper;
-    
-    @Autowired
-    private PerformanceMonitoringService performanceMonitoringService;
+
     
     // THAY THẾ EnhancedExampleMatchingService bằng VectorSearchService
     @Autowired
@@ -316,8 +313,15 @@ public class AiComparisonService {
             String finalOpenrouterQuery = openrouterResults[1];
             long openrouterSearchTime = System.currentTimeMillis() - openrouterSearchStartTime;
             timingMetrics.put("openrouter_search_ms", openrouterSearchTime);
+
             System.out.println("[AiComparisonService] 📝 OpenRouter Final Query (ACTUALLY USED): " + finalOpenrouterQuery);
             
+            // Kiểm tra xem query có bị thay đổi không
+            if (!finalOpenrouterQuery.equals(openrouterQueryString)) {
+                System.out.println("[AiComparisonService] ⚠️ OPENROUTER - Query đã bị thay đổi trong quá trình xử lý!");
+                System.out.println("[AiComparisonService] 🔄 OPENROUTER - Original vs Final query khác nhau");
+            }
+
             // Kiểm tra xem query có bị thay đổi không
             if (!finalOpenrouterQuery.equals(openrouterQueryString)) {
                 System.out.println("[AiComparisonService] ⚠️ OPENROUTER - Query đã bị thay đổi trong quá trình xử lý!");
@@ -375,16 +379,18 @@ public class AiComparisonService {
             System.out.println("[AiComparisonService] ✅ OPENROUTER - Phản hồi được tạo thành công trong " + (openrouterResponseEndTime - openrouterResponseStartTime) + "ms");
             
             Map<String, Object> openrouterResponseData = new HashMap<>();
-            openrouterResponseData.put("elasticsearch_query", finalOpenrouterQuery);
+            openrouterResponseData.put("elasticsearch_query", finalOpenrouterQuery);  // ← QUERY HIỂN thị TRONG UI
             openrouterResponseData.put("original_query", openrouterQueryString);     // ← QUERY GỐC AI tạo
             openrouterResponseData.put("response", openrouterResponse);
             openrouterResponseData.put("model", ModelProvider.OPENROUTER.getModelName());
             openrouterResponseData.put("elasticsearch_data", openrouterContent);
             openrouterResponseData.put("response_time_ms", openrouterResponseEndTime - openrouterResponseStartTime);
+
             System.out.println("[AiComparisonService] 📤 OPENROUTER - Trả về query cho UI: " + finalOpenrouterQuery);
             if (!finalOpenrouterQuery.equals(openrouterQueryString)) {
                 System.out.println("[AiComparisonService] ⚠️ OPENROUTER - UI sẽ hiển thị query KHÁC với query ban đầu!");
             }
+
             responseGenerationComparison.put("openai", openaiResponseData);
             responseGenerationComparison.put("openrouter", openrouterResponseData);
             
@@ -444,10 +450,7 @@ public class AiComparisonService {
             System.out.println("[AiComparisonService] 📝 Smart features: DISABLED to avoid lazy loading");
             System.out.println("[AiComparisonService] 🔍 Query optimization impact: " + (openaiQueryString.equals(openrouterQueryString) ? "Cùng optimized pattern" : "Khác biệt được tối ưu"));
             System.out.println("[AiComparisonService] 📊 Data consistency: " + (openaiContent.equals(openrouterContent) ? "Consistent results" : "Different results detected"));
-            
-            // Ghi nhận performance metrics
-            performanceMonitoringService.recordRequest("comparison_mode", totalProcessingTime, true);
-            
+
         } catch (Exception e) {
             long errorProcessingTime = System.currentTimeMillis() - overallStartTime;
             
@@ -459,19 +462,18 @@ public class AiComparisonService {
             result.put("error", e.getMessage());
             result.put("timestamp", now.toString());
             result.put("processing_time_ms", errorProcessingTime);
-            
-            // Ghi nhận lỗi vào performance metrics
-            performanceMonitoringService.recordRequest("comparison_mode", errorProcessingTime, false);
+
         }
         
         return result;
     }
     
+
+    
     /**
      * Build dynamic examples string for the prompt using vector search
      */
     private String buildDynamicExamples(String userQuery) {
-        // Gọi service mới, logic cũ đã được thay thế hoàn toàn
         return vectorSearchService.findRelevantExamples(userQuery);
     }
 }
