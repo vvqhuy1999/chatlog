@@ -160,9 +160,6 @@ public class AiComparisonService {
                 .advisors(advisorSpec -> advisorSpec.param(
                     ChatMemory.CONVERSATION_ID, String.valueOf(sessionId)
                 ))
-                .advisors(advisorSpec -> advisorSpec.param(
-                    ChatMemory.CONVERSATION_ID, String.valueOf(sessionId)
-                ))
                 .call()
                 .content();
             long openaiRawEndTime = System.currentTimeMillis();
@@ -208,9 +205,6 @@ public class AiComparisonService {
                 String openrouterRawResponse = chatClient
                     .prompt(prompt)
                     .options(openrouterChatOptions)
-                    .advisors(advisorSpec -> advisorSpec.param(
-                        ChatMemory.CONVERSATION_ID, String.valueOf(sessionId)
-                    ))
                     .advisors(advisorSpec -> advisorSpec.param(
                         ChatMemory.CONVERSATION_ID, String.valueOf(sessionId)
                     ))
