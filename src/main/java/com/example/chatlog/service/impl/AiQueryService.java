@@ -215,7 +215,38 @@ public class AiQueryService {
             System.out.println("[AiQueryService] Sending query to Elasticsearch: " + query);
             String content = logApiService.search("logs-fortinet_fortigate.log-default*", query);
             System.out.println("[AiQueryService] Elasticsearch response received successfully");
+            
+            // 🔍 DEBUG: Kiểm tra response có phải empty hay error không
+            if (content == null || content.trim().isEmpty()) {
+                System.out.println("[AiQueryService] ⚠️ WARNING: Elasticsearch returned EMPTY response!");
+                return new String[]{
+                    "⚠️ Elasticsearch trả về response rỗng (empty)\n\nKiểm tra lại query hoặc dữ liệu trong Elasticsearch.",
+                    query
+                };
+            }
+            
+            // Kiểm tra xem response có chứa error không
+            if (content.contains("\"error\"") || content.contains("error_type")) {
+                System.out.println("[AiQueryService] ⚠️ WARNING: Elasticsearch returned ERROR in response!");
+                System.out.println("[AiQueryService] Response: " + content.substring(0, Math.min(200, content.length())));
+                return new String[]{
+                    "❌ Elasticsearch trả về lỗi:\n\n" + content,
+                    query
+                };
+            }
+            
+            // Kiểm tra xem có hits không
+            if (content.contains("\"hits\":[]") || content.contains("\"hits\": []")) {
+                System.out.println("[AiQueryService] ℹ️ INFO: Elasticsearch returned 0 results (hits is empty)");
+                return new String[]{
+                    "ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch.\n\nQuery của bạn:\n" + query,
+                    query
+                };
+            }
+            
+            System.out.println("[AiQueryService] ✅ Valid response received with data");
             return new String[]{content, query};
+
         } catch (Exception e) {
             System.out.println("[AiQueryService] ERROR: Log API returned an error! " + e.getMessage());
 

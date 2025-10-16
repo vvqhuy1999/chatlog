@@ -113,6 +113,5 @@ enhanced-matching:
 logging:
   level:
     com.example.chatlog: INFO
-    com.example.chatlog.service.impl.EnhancedExampleMatchingService: DEBUG
     org.springframework.ai: WARN
     org.hibernate.SQL: ERROR
