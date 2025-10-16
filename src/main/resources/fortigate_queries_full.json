@@ -154,20 +154,52 @@
     }
   },
   {
-    "question": "Có traffic bị 'drop' bởi policy shaping tên 'Limit-Guest' trên thiết bị FGT-01 trong 24 giờ qua không?",
-    "keywords": ["traffic", "lưu lượng", "drop", "deny", "policy shaping", "Limit-Guest", "thiết bị", "observer"],
+    "question": "Policy '10Mbps' đang deny rất nhiều traffic (15,425 lần trong 20 ngày) - những IP nguồn nào vi phạm bandwidth limit này nhiều nhất và có xu hướng tăng trong 24h qua không?",
+    "keywords": ["10Mbps policy", "bandwidth violation", "top violators", "deny trend", "traffic abuse", "FTG-CNHN", "bandwidth limit exceeded"],
     "query": {
-      "size": 50,
+      "size": 100,
       "sort": [{ "@timestamp": "desc" }],
-      "_source": ["@timestamp", "source.ip", "destination.ip", "observer.name", "fortinet.firewall.shapingpolicyname", "network.bytes"],
+      "_source": [
+        "@timestamp", "source.ip", "destination.ip", "source.port", "destination.port",
+        "observer.name", "fortinet.firewall.shapingpolicyname", "fortinet.firewall.action",
+        "network.bytes", "network.protocol"
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "observer.name": "FGT-01" } },
-            { "term": { "fortinet.firewall.shapingpolicyname": "Limit-Guest" } },
+            { "term": { "observer.name": "FTG-CNHN" } },
+            { "term": { "fortinet.firewall.shapingpolicyname": "10Mbps" } },
             { "term": { "fortinet.firewall.action": "deny" } },
             { "range": { "@timestamp": { "gte": "now-24h" } } }
           ]
+        }
+      },
+      "aggs": {
+        "top_violating_sources": {
+          "terms": {
+            "field": "source.ip",
+            "size": 10,
+            "order": { "total_denied_bytes": "desc" }
+          },
+          "aggs": {
+            "total_denied_bytes": { "sum": { "field": "network.bytes" } },
+            "deny_count": { "value_count": { "field": "@timestamp" } },
+            "hourly_pattern": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "1h"
+              }
+            }
+          }
+        },
+        "deny_timeline_10mbps": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "calendar_interval": "1h"
+          },
+          "aggs": {
+            "denied_bytes": { "sum": { "field": "network.bytes" } }
+          }
         }
       }
     }
@@ -205,6 +237,66 @@
             { "term": { "source.user.roles": "Administrator" } },
             { "range": { "@timestamp": { "gte": "now-1h" } } }
           ]
+        }
+      }
+    }
+  },
+  {
+    "question": "So sánh hiệu quả kiểm soát băng thông giữa 3 shaping policies: '10Mbps' (deny 15,425), '30Mbps' (deny 4,566) và 'Unlimited' (deny 51) - policy nào cần điều chỉnh và tại sao có sự chênh lệch lớn về số lượng deny?",
+    "keywords": ["policy comparison", "bandwidth control effectiveness", "QoS analysis", "policy optimization", "traffic distribution", "deny rate analysis"],
+    "query": {
+      "size": 50,
+      "sort": [{ "@timestamp": "desc" }],
+      "_source": [
+        "@timestamp", "source.ip", "destination.ip", "observer.name",
+        "fortinet.firewall.shapingpolicyname", "fortinet.firewall.action",
+        "network.bytes", "network.protocol"
+      ],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "observer.name": "FTG-CNHN" } },
+            { "terms": { "fortinet.firewall.shapingpolicyname": ["10Mbps", "30Mbps", "Unlimited"] } },
+            { "term": { "fortinet.firewall.action": "deny" } },
+            { "range": { "@timestamp": { "gte": "now-24h" } } }
+          ]
+        }
+      },
+      "aggs": {
+        "policy_effectiveness": {
+          "terms": {
+            "field": "fortinet.firewall.shapingpolicyname",
+            "size": 5
+          },
+          "aggs": {
+            "deny_count": { "value_count": { "field": "@timestamp" } },
+            "total_denied_bytes": { "sum": { "field": "network.bytes" } },
+            "unique_violators": { "cardinality": { "field": "source.ip" } },
+            "avg_bytes_per_deny": {
+              "avg": { "field": "network.bytes" }
+            },
+            "top_violators_per_policy": {
+              "terms": {
+                "field": "source.ip",
+                "size": 3
+              },
+              "aggs": {
+                "violation_bytes": { "sum": { "field": "network.bytes" } }
+              }
+            }
+          }
+        },
+        "cross_policy_violators": {
+          "terms": {
+            "field": "source.ip",
+            "size": 10
+          },
+          "aggs": {
+            "policies_violated": {
+              "terms": { "field": "fortinet.firewall.shapingpolicyname" }
+            },
+            "total_violations": { "sum": { "field": "network.bytes" } }
+          }
         }
       }
     }
