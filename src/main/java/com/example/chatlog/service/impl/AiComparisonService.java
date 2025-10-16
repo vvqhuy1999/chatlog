@@ -41,8 +41,9 @@ public class AiComparisonService {
     @Autowired
     private PerformanceMonitoringService performanceMonitoringService;
     
+    // THAY THẾ EnhancedExampleMatchingService bằng VectorSearchService
     @Autowired
-    private EnhancedExampleMatchingService enhancedExampleMatchingService;
+    private VectorSearchService vectorSearchService;
     
     private final ChatClient chatClient;
     
@@ -163,6 +164,9 @@ public class AiComparisonService {
                 .advisors(advisorSpec -> advisorSpec.param(
                     ChatMemory.CONVERSATION_ID, String.valueOf(sessionId)
                 ))
+                .advisors(advisorSpec -> advisorSpec.param(
+                    ChatMemory.CONVERSATION_ID, String.valueOf(sessionId)
+                ))
                 .call()
                 .content();
             long openaiRawEndTime = System.currentTimeMillis();
@@ -208,6 +212,9 @@ public class AiComparisonService {
                 String openrouterRawResponse = chatClient
                     .prompt(prompt)
                     .options(openrouterChatOptions)
+                    .advisors(advisorSpec -> advisorSpec.param(
+                        ChatMemory.CONVERSATION_ID, String.valueOf(sessionId)
+                    ))
                     .advisors(advisorSpec -> advisorSpec.param(
                         ChatMemory.CONVERSATION_ID, String.valueOf(sessionId)
                     ))
@@ -283,6 +290,7 @@ public class AiComparisonService {
                 long openaiSearchTime = System.currentTimeMillis() - openaiSearchStartTime;
                 timingMetrics.put("openai_search_ms", openaiSearchTime);
                 System.out.println("[AiComparisonService] 📝 OpenAI Final Query (ACTUALLY USED): " + finalOpenaiQuery);
+                System.out.println("[AiComparisonService] 📝 OpenAI Final Query (ACTUALLY USED): " + finalOpenaiQuery);
                 System.out.println("[AiComparisonService] ⏱️ OpenAI Search Time: " + openaiSearchTime + "ms");
                 
                 // Kiểm tra xem query có bị thay đổi không
@@ -325,6 +333,11 @@ public class AiComparisonService {
                 System.out.println("[AiComparisonService] 🔄 OPENROUTER - Original vs Final query khác nhau");
             }
             
+            // Kiểm tra xem query có bị thay đổi không
+            if (!finalOpenrouterQuery.equals(openrouterQueryString)) {
+                System.out.println("[AiComparisonService] ⚠️ OPENROUTER - Query đã bị thay đổi trong quá trình xử lý!");
+                System.out.println("[AiComparisonService] 🔄 OPENROUTER - Original vs Final query khác nhau");
+            }
             // Kiểm tra nếu có lỗi trong quá trình tìm kiếm
             if (openrouterContent != null && openrouterContent.startsWith("❌")) {
                 System.out.println("[AiComparisonService] ❌ OPENROUTER - Tìm kiếm Elasticsearch gặp lỗi, đang thử sửa query...");
@@ -546,32 +559,10 @@ public class AiComparisonService {
     }
     
     /**
-     * Build dynamic examples string for the prompt using enhanced matching
+     * Build dynamic examples string for the prompt using vector search
      */
     private String buildDynamicExamples(String userQuery) {
-        // Use enhanced matching service for better accuracy
-        List<DataExample> exampleLibrary = aiQueryService.getExampleLibrary();
-        List<DataExample> relevantExamples = enhancedExampleMatchingService.findRelevantExamples(userQuery, exampleLibrary);
-        
-        if (relevantExamples.isEmpty()) {
-            // Fallback to original method if enhanced matching fails
-            relevantExamples = findRelevantExamples(userQuery);
-            if (relevantExamples.isEmpty()) {
-                return "No specific examples found for this query type.";
-            }
-        }
-        
-        StringBuilder examples = new StringBuilder();
-        examples.append("RELEVANT EXAMPLES FROM KNOWLEDGE BASE:\n\n");
-        
-        for (int i = 0; i < relevantExamples.size(); i++) {
-            DataExample example = relevantExamples.get(i);
-            examples.append("Example ").append(i + 1).append(":\n");
-            examples.append("Question: ").append(example.getQuestion()).append("\n");
-            examples.append("Keywords: ").append(String.join(", ", example.getKeywords())).append("\n");
-            examples.append("Query: ").append(example.getQuery().toPrettyString()).append("\n\n");
-        }
-        
-        return examples.toString();
+        // Gọi service mới, logic cũ đã được thay thế hoàn toàn
+        return vectorSearchService.findRelevantExamples(userQuery);
     }
 }
