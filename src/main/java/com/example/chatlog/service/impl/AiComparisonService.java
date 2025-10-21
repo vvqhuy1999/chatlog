@@ -117,8 +117,19 @@ public class AiComparisonService {
             String dynamicExamples = buildDynamicExamples(chatRequest.message());
             System.out.println("dynamicExamples: " + dynamicExamples);
 
+            // ✅ Normalize role names in user query for better prompt context
+            String userQueryForPrompt = chatRequest.message();
+            if (userQueryForPrompt.toLowerCase().contains("admin") || 
+                userQueryForPrompt.toLowerCase().contains("administrator")) {
+                System.out.println("[AiComparisonService] 🔧 Detected admin role query - normalizing...");
+                userQueryForPrompt = userQueryForPrompt.replaceAll("(?i)\\admin\\b", "Administrator")
+                                                      .replaceAll("(?i)\\ad\\b", "Administrator")
+                                                      .replaceAll("(?i)\\administrator\\b", "Administrator");
+                System.out.println("[AiComparisonService] ✅ Normalized query: " + userQueryForPrompt);
+            }
+
             String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPrompt(
-                chatRequest.message(),
+                userQueryForPrompt,
                 dateContext,
                 null,
                 null,
@@ -130,22 +141,20 @@ public class AiComparisonService {
                 dateContext,
                 SchemaHint.getRoleNormalizationRules(),
                 fullSchema,
-                SchemaHint.getCategoryGuides(),
-                SchemaHint.getQuickPatterns()
+                "",  // categoryGuides removed
+                ""   // quickPatterns removed - all patterns now in fortigate_queries_full.json
             );
             
             // Ghép tất cả, đặt dynamic examples xuống cuối cùng để AI dễ đọc
-            String combinedPrompt = queryPrompt + "\n\n" + fullSystemPrompt + "\n\nDYNAMIC EXAMPLES FROM KNOWLEDGE BASE\n" + dynamicExamples;
+            String combinedPrompt = queryPrompt + "\n\n" + fullSystemPrompt + "\n\nSAMPLE LOG (for inference):\n" + SchemaHint.examplelog() + "\n\nDYNAMIC EXAMPLES FROM KNOWLEDGE BASE\n" + dynamicExamples;
             SystemMessage systemMessage = new SystemMessage(combinedPrompt);
             
             UserMessage userMessage = new UserMessage(chatRequest.message());
-//            UserMessage sampleLogMsg = new UserMessage("SAMPLE LOG (for inference):\n" + SchemaHint.examplelog());
             
             System.out.println("---------------------------------------------------------------------------------------");
-//            Prompt prompt = new Prompt(List.of(systemMessage, sampleLogMsg, userMessage));
             Prompt prompt = new Prompt(List.of(systemMessage, userMessage));
 
-            System.out.println("Prompt very long: " + prompt);
+            // System.out.println("Prompt very long: " + prompt);
 
 
             ChatOptions chatOptions = ChatOptions.builder()

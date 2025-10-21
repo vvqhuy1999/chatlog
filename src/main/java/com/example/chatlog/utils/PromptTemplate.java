@@ -215,11 +215,20 @@ public class PromptTemplate {
                 %s
                 
                 RESPONSE FORMAT
-                QUERY STRUCTURE RULES:
-                - Top-level fields: "query", "aggs", "size", "sort", "_source"
-                - "aggs" MUST be at same level as "query", NOT inside it
-                - Aggregation queries: {"query": {...}, "aggs": {...}, "size": 0}
-                - Non-aggregation queries: {"query": {...}, "size": 50}
+                QUERY STRUCTURE RULES ⭐ CRITICAL:
+                1. Top-level fields: "query", "aggs", "size", "sort", "_source"
+                2. "aggs" MUST be at same level as "query", NOT inside it
+                3. Bool clauses (must/should/filter/must_not) MUST ALWAYS be ARRAYS
+                   ✅ CORRECT: "filter": [{"term": {...}}]
+                   ❌ WRONG: "filter": {"term": {...}}
+                4. Aggregation queries: {"query": {...}, "aggs": {...}, "size": 0}
+                5. Non-aggregation queries: {"query": {...}, "size": 50}
+                
+                COMMON MISTAKES TO AVOID:
+                - ❌ {"query": {"aggs": {...}}} → ✅ {"query": {...}, "aggs": {...}}
+                - ❌ {"bool": {"filter": {...}}} → ✅ {"bool": {"filter": [{...}]}}
+                - ❌ {"bool": {"must": {...}}} → ✅ {"bool": {"must": [{...}]}}
+                
                 Return only JSON:
                 - Simple: {"query":{...},"size":50}
                 - Aggregation: {"query":{...},"aggs":{...},"size":0}
@@ -243,12 +252,12 @@ public class PromptTemplate {
                 1. dateContext - String from generateDateContext()
                 2. roleNormalizationRules - String from SchemaHint.getRoleNormalizationRules()
                 3. fieldCatalog - String from SchemaHint.getSchemaHint()
-                4. categoryGuides - String from SchemaHint.getCategoryGuides()
-                5. quickPatterns - String from SchemaHint.getQuickPatterns()
+                4. categoryGuides - DEPRECATED (use empty string "")
+                5. quickPatterns - DEPRECATED (use empty string "") - all patterns now in fortigate_queries_full.json
                 
                 Usage example:
                 String prompt = PromptTemplate.getSystemPrompt(
-                    dateContext, roleRules, fieldCatalog, categoryGuides, quickPatterns);
+                    dateContext, roleRules, fieldCatalog, "", "");
                 """;
     }
 
@@ -274,6 +283,12 @@ public class PromptTemplate {
                 7. ALL fields (query, aggs, sort, size) MUST be in the SAME JSON object
                 8. NEVER return: {"query":{...}},{"aggs":{...}} - This is WRONG!
                 9. ALWAYS return: {"query":{...},"aggs":{...}} - This is CORRECT!
+                10. Bool clauses (must/should/filter/must_not) MUST ALWAYS be ARRAYS
+                    ✅ CORRECT: "filter": [{"term": {...}}]
+                    ❌ WRONG: "filter": {"term": {...}}
+                11. "aggs" MUST be at ROOT level, NOT inside "query"
+                    ✅ CORRECT: {"query": {...}, "aggs": {...}}
+                    ❌ WRONG: {"query": {"bool": {...}, "aggs": {...}}}
                 
                 TIMESTAMP FORMAT:
                 - CORRECT: "2025-09-14T11:41:04.000+07:00"

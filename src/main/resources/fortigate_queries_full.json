@@ -4970,5 +4970,31 @@
         }
       }
     }
+  },
+  {
+    "question": "hôm ngày 11-09 có roles admin nào vào hệ thống hay ko?",
+    "keywords": ["hôm ngày 11-09", "admin", "roles", "Administrator", "vào hệ thống", "login", "đăng nhập", "role", "quyền"],
+    "query": {
+      "size": 50,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "term": {
+                "source.user.roles": "Administrator"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-11T00:00:00.000+07:00",
+                  "lte": "2025-09-11T23:59:59.999+07:00"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
   }
 ]

@@ -26,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 /**
  * Service xử lý chuyển đổi query của người dùng sang Elasticsearch DSL
@@ -417,6 +418,13 @@ public class AiQueryService {
                             return "Bool should must be an array";
                         }
                     }
+                    
+                    if (boolNode.has("must_not")) {
+                        JsonNode mustNotNode = boolNode.get("must_not");
+                        if (!mustNotNode.isArray()) {
+                            return "Bool must_not must be an array";
+                        }
+                    }
                 }
             }
             
@@ -444,80 +452,132 @@ public class AiQueryService {
     }
     
     /**
-     * Attempt to fix common Elasticsearch query structure issues
+     * Attempt to fix query structure issues
      */
     private String fixQueryStructure(String query) {
         try {
+            // First try to heal basic JSON issues
+            String healedQuery = healJsonString(query);
+            
             ObjectMapper mapper = new ObjectMapper();
-            JsonNode jsonNode = mapper.readTree(query);
+            JsonNode jsonNode = mapper.readTree(healedQuery);
             
-            // Fix: Ensure bool must/should/filter are arrays
-            if (jsonNode.has("query") && jsonNode.get("query").has("bool")) {
-                JsonNode boolNode = jsonNode.get("query").get("bool");
-                ObjectNode fixedBoolNode = boolNode.deepCopy();
-                boolean needsFix = false;
-                
-                // Fix must field - should be array
-                if (boolNode.has("must") && !boolNode.get("must").isArray()) {
-                    ObjectNode mustArray = mapper.createObjectNode();
-                    mustArray.set("0", boolNode.get("must"));
-                    fixedBoolNode.set("must", mustArray);
-                    needsFix = true;
-                }
-                
-                // Fix should field - should be array
-                if (boolNode.has("should") && !boolNode.get("should").isArray()) {
-                    ObjectNode shouldArray = mapper.createObjectNode();
-                    shouldArray.set("0", boolNode.get("should"));
-                    fixedBoolNode.set("should", shouldArray);
-                    needsFix = true;
-                }
-                
-                if (needsFix) {
-                    ObjectNode fixedQuery = jsonNode.deepCopy();
-                    ObjectNode fixedQueryNode = fixedQuery.get("query").deepCopy();
-                    fixedQueryNode.set("bool", fixedBoolNode);
-                    fixedQuery.set("query", fixedQueryNode);
-                    
-                    String fixedQueryString = mapper.writeValueAsString(fixedQuery);
-                    System.out.println("[AiQueryService] Fixed query structure - converted must/should to arrays");
-                    return fixedQueryString;
-                }
+            // Fix: Ensure bool must/should/filter/must_not are arrays (recursively)
+            JsonNode fixedNode = fixNestedBoolClauses(jsonNode, mapper);
+            
+            String fixedQueryString = mapper.writeValueAsString(fixedNode);
+            if (!fixedQueryString.equals(healedQuery)) {
+                System.out.println("[AiQueryService] ✅ Fixed query structure - converted bool clauses to arrays");
+                System.out.println("[AiQueryService] 📝 Original length: " + query.length() + ", Fixed length: " + fixedQueryString.length());
             }
-            
-            // Fix: Move aggs from inside query to root level
-            if (jsonNode.has("query")) {
-                JsonNode queryNode = jsonNode.get("query");
-                
-                if (queryNode.has("aggs")) {
-                    JsonNode aggsNode = queryNode.get("aggs");
-                    
-                    // Create a new root object with aggs moved out
-                    ObjectNode fixedQuery = mapper.createObjectNode();
-                    ObjectNode newQueryNode = queryNode.deepCopy();
-                    newQueryNode.remove("aggs");
-                    fixedQuery.set("query", newQueryNode);
-                    fixedQuery.set("aggs", aggsNode);
-                    
-                    // Copy other root-level fields
-                    jsonNode.fieldNames().forEachRemaining(fieldName -> {
-                        if (!fieldName.equals("query") && !fieldName.equals("aggs")) {
-                            fixedQuery.set(fieldName, jsonNode.get(fieldName));
-                        }
-                    });
-                    
-                    String fixedQueryString = mapper.writeValueAsString(fixedQuery);
-                    System.out.println("[AiQueryService] Fixed query structure - moved aggs to root level");
-                    return fixedQueryString;
-                }
-            }
-            
-            return query; // No fixes needed
+            return fixedQueryString;
             
         } catch (Exception e) {
-            System.out.println("[AiQueryService] Failed to fix query structure: " + e.getMessage());
+            System.out.println("[AiQueryService] ❌ Failed to fix query structure: " + e.getMessage());
+            System.out.println("[AiQueryService] 📝 Query length: " + query.length());
             return query; // Return original query if fix fails
         }
+    }
+    
+    /**
+     * Attempt to heal basic JSON string issues
+     */
+    private String healJsonString(String json) {
+        if (json == null || json.isEmpty()) {
+            return json;
+        }
+        
+        // Count braces to find imbalances
+        int openBraces = 0;
+        int closeBraces = 0;
+        int openBrackets = 0;
+        int closeBrackets = 0;
+        
+        for (char c : json.toCharArray()) {
+            if (c == '{') openBraces++;
+            else if (c == '}') closeBraces++;
+            else if (c == '[') openBrackets++;
+            else if (c == ']') closeBrackets++;
+        }
+        
+        String healed = json;
+        
+        // Add missing closing braces
+        for (int i = 0; i < (openBraces - closeBraces); i++) {
+            healed += "}";
+        }
+        
+        // Add missing closing brackets
+        for (int i = 0; i < (openBrackets - closeBrackets); i++) {
+            healed += "]";
+        }
+        
+        if (!healed.equals(json)) {
+            System.out.println("[AiQueryService] 🔨 Healed JSON - Added " + (openBraces - closeBraces) + " braces and " + (openBrackets - closeBrackets) + " brackets");
+        }
+        
+        return healed;
+    }
+    
+    /**
+     * Recursively fix nested bool clauses to ensure must/should/filter/must_not are arrays
+     */
+    private JsonNode fixNestedBoolClauses(JsonNode node, ObjectMapper mapper) {
+        if (node == null || node.isNull()) {
+            return node;
+        }
+        
+        if (node.isArray()) {
+            ArrayNode arrayNode = mapper.createArrayNode();
+            for (JsonNode item : node) {
+                arrayNode.add(fixNestedBoolClauses(item, mapper));
+            }
+            return arrayNode;
+        }
+        
+        if (node.isObject()) {
+            ObjectNode objectNode = mapper.createObjectNode();
+            
+            node.fields().forEachRemaining(entry -> {
+                String fieldName = entry.getKey();
+                JsonNode fieldValue = entry.getValue();
+                
+                // If this is a bool clause, fix it
+                if ("bool".equals(fieldName) && fieldValue.isObject()) {
+                    ObjectNode boolObject = mapper.createObjectNode();
+                    fieldValue.fields().forEachRemaining(boolEntry -> {
+                        String boolKey = boolEntry.getKey();
+                        JsonNode boolValue = boolEntry.getValue();
+                        
+                        if (("must".equals(boolKey) || "should".equals(boolKey) || 
+                             "filter".equals(boolKey) || "must_not".equals(boolKey))) {
+                            // These fields must be arrays
+                            if (boolValue.isArray()) {
+                                ArrayNode fixedArray = mapper.createArrayNode();
+                                for (JsonNode item : boolValue) {
+                                    fixedArray.add(fixNestedBoolClauses(item, mapper));
+                                }
+                                boolObject.set(boolKey, fixedArray);
+                            } else {
+                                // Convert to array
+                                ArrayNode arrayNode = mapper.createArrayNode();
+                                arrayNode.add(fixNestedBoolClauses(boolValue, mapper));
+                                boolObject.set(boolKey, arrayNode);
+                            }
+                        } else {
+                            boolObject.set(boolKey, fixNestedBoolClauses(boolValue, mapper));
+                        }
+                    });
+                    objectNode.set("bool", boolObject);
+                } else {
+                    objectNode.set(fieldName, fixNestedBoolClauses(fieldValue, mapper));
+                }
+            });
+            
+            return objectNode;
+        }
+        
+        return node;
     }
     
 
