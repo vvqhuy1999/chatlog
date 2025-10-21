@@ -145,7 +145,7 @@ public class AiComparisonService {
 //            Prompt prompt = new Prompt(List.of(systemMessage, sampleLogMsg, userMessage));
             Prompt prompt = new Prompt(List.of(systemMessage, userMessage));
 
-//            System.out.println("Prompt very long: " + prompt);
+            System.out.println("Prompt very long: " + prompt);
 
 
             ChatOptions chatOptions = ChatOptions.builder()
@@ -186,7 +186,7 @@ public class AiComparisonService {
             // BỎ TỐI ƯU HÓA: dùng trực tiếp query từ OpenAI
             long openaiEndTime = openaiRawEndTime;
             String openaiQueryString = openaiQuery != null ? openaiQuery.getBody() : null;
-            System.out.println("[AiComparisonService] ✅ OPENAI - Query được tạo trong " + (openaiEndTime - openaiStartTime) + "ms");
+//            System.out.println("[AiComparisonService] ✅ OPENAI - Query được tạo trong " + (openaiEndTime - openaiStartTime) + "ms");
             System.out.println("[AiComparisonService] 📝 OPENAI - Query (ORIGINAL): " + openaiQueryString);
         
             
@@ -239,7 +239,7 @@ public class AiComparisonService {
             }
             
             long openrouterEndTime = System.currentTimeMillis();
-            System.out.println("[AiComparisonService] ✅ OPENROUTER - Query được tạo trong " + (openrouterEndTime - openrouterStartTime) + "ms");
+//            System.out.println("[AiComparisonService] ✅ OPENROUTER - Query được tạo trong " + (openrouterEndTime - openrouterStartTime) + "ms");
              System.out.println("[AiComparisonService] 📝 OPENROUTER - Query (ORIGINAL): " + openrouterQueryString);
             
             // Lưu trữ kết quả tạo query
@@ -277,23 +277,32 @@ public class AiComparisonService {
                 System.out.println("[AiComparisonService] 🔵 OPENAI - Đang thực hiện tìm kiếm Elasticsearch với query...");
                 long openaiSearchStartTime = System.currentTimeMillis();
                 String[] openaiResults = aiQueryService.getLogData(openaiQuery, chatRequest);
-                openaiContent = openaiResults[0];
-                finalOpenaiQuery = openaiResults[1];
-                long openaiSearchTime = System.currentTimeMillis() - openaiSearchStartTime;
-                timingMetrics.put("openai_search_ms", openaiSearchTime);
-                System.out.println("[AiComparisonService] 📝 OpenAI Final Query (ACTUALLY USED): " + finalOpenaiQuery);
-                System.out.println("[AiComparisonService] ⏱️ OpenAI Search Time: " + openaiSearchTime + "ms");
-                // Kiểm tra xem query có bị thay đổi không
-                if (!finalOpenaiQuery.equals(openaiQueryString)) {
-                    System.out.println("[AiComparisonService] ⚠️ OPENAI - Query đã bị thay đổi trong quá trình xử lý!");
-                    System.out.println("[AiComparisonService] 🔄 OPENAI - Original vs Final query khác nhau");
-                }
-                if (openaiContent != null && openaiContent.startsWith("❌")) {
-                    System.out.println("[AiComparisonService] ❌ OPENAI - Tìm kiếm Elasticsearch gặp lỗi, đang thử sửa query...");
-                    System.out.println("[AiComparisonService] 🔧 OPENAI - Đang tạo lại query với thông tin lỗi...");
+                
+                // ✅ Null check and array length validation
+                if (openaiResults == null || openaiResults.length < 2) {
+                    System.out.println("[AiComparisonService] ❌ OPENAI - getLogData returned invalid result (null or length < 2)");
+                    openaiContent = "❌ getLogData returned invalid result";
+                    finalOpenaiQuery = openaiQueryString;
+                    timingMetrics.put("openai_search_ms", 0L);
                 } else {
-                    System.out.println("[AiComparisonService] ✅ OPENAI - Tìm kiếm Elasticsearch hoàn thành thành công");
-                    System.out.println("[AiComparisonService] 📊 DỮ LIỆU TRẢ VỀ (OpenAI): " + (openaiContent.length() > 500 ? openaiContent.substring(0, 500) + "..." : openaiContent));
+                    openaiContent = openaiResults[0];
+                    finalOpenaiQuery = openaiResults[1];
+                    long openaiSearchTime = System.currentTimeMillis() - openaiSearchStartTime;
+                    timingMetrics.put("openai_search_ms", openaiSearchTime);
+//                System.out.println("[AiComparisonService] 📝 OpenAI Final Query (ACTUALLY USED): " + finalOpenaiQuery);
+//                System.out.println("[AiComparisonService] ⏱️ OpenAI Search Time: " + openaiSearchTime + "ms");
+                    // Kiểm tra xem query có bị thay đổi không
+                    if (!finalOpenaiQuery.equals(openaiQueryString)) {
+                        System.out.println("[AiComparisonService] ⚠️ OPENAI - Query đã bị thay đổi trong quá trình xử lý!");
+                        System.out.println("[AiComparisonService] 🔄 OPENAI - Original vs Final query khác nhau");
+                    }
+                    if (openaiContent != null && openaiContent.startsWith("❌")) {
+                        System.out.println("[AiComparisonService] ❌ OPENAI - Tìm kiếm Elasticsearch gặp lỗi, đang thử sửa query...");
+                        System.out.println("[AiComparisonService] 🔧 OPENAI - Đang tạo lại query với thông tin lỗi...");
+                    } else {
+                        System.out.println("[AiComparisonService] ✅ OPENAI - Tìm kiếm Elasticsearch hoàn thành thành công");
+                        System.out.println("[AiComparisonService] 📊 DỮ LIỆU TRẢ VỀ (OpenAI): " + (openaiContent.length() > 500 ? openaiContent.substring(0, 500) + "..." : openaiContent));
+                    }
                 }
             }
 
@@ -309,31 +318,36 @@ public class AiComparisonService {
             System.out.println("[AiComparisonService] 🟠 OPENROUTER - Đang thực hiện tìm kiếm Elasticsearch với query...");
             long openrouterSearchStartTime = System.currentTimeMillis();
             String[] openrouterResults = aiQueryService.getLogData(openrouterQuery, chatRequest);
-            String openrouterContent = openrouterResults[0];
-            String finalOpenrouterQuery = openrouterResults[1];
-            long openrouterSearchTime = System.currentTimeMillis() - openrouterSearchStartTime;
-            timingMetrics.put("openrouter_search_ms", openrouterSearchTime);
-
-            System.out.println("[AiComparisonService] 📝 OpenRouter Final Query (ACTUALLY USED): " + finalOpenrouterQuery);
             
-            // Kiểm tra xem query có bị thay đổi không
-            if (!finalOpenrouterQuery.equals(openrouterQueryString)) {
-                System.out.println("[AiComparisonService] ⚠️ OPENROUTER - Query đã bị thay đổi trong quá trình xử lý!");
-                System.out.println("[AiComparisonService] 🔄 OPENROUTER - Original vs Final query khác nhau");
-            }
-
-            // Kiểm tra xem query có bị thay đổi không
-            if (!finalOpenrouterQuery.equals(openrouterQueryString)) {
-                System.out.println("[AiComparisonService] ⚠️ OPENROUTER - Query đã bị thay đổi trong quá trình xử lý!");
-                System.out.println("[AiComparisonService] 🔄 OPENROUTER - Original vs Final query khác nhau");
-            }
-            // Kiểm tra nếu có lỗi trong quá trình tìm kiếm
-            if (openrouterContent != null && openrouterContent.startsWith("❌")) {
-                System.out.println("[AiComparisonService] ❌ OPENROUTER - Tìm kiếm Elasticsearch gặp lỗi, đang thử sửa query...");
-                System.out.println("[AiComparisonService] 🔧 OPENROUTER - Đang tạo lại query với thông tin lỗi...");
+            // ✅ Null check and array length validation
+            String openrouterContent;
+            String finalOpenrouterQuery;
+            if (openrouterResults == null || openrouterResults.length < 2) {
+                System.out.println("[AiComparisonService] ❌ OPENROUTER - getLogData returned invalid result (null or length < 2)");
+                openrouterContent = "❌ getLogData returned invalid result";
+                finalOpenrouterQuery = openrouterQueryString;
+                timingMetrics.put("openrouter_search_ms", 0L);
             } else {
-                System.out.println("[AiComparisonService] ✅ OPENROUTER - Tìm kiếm Elasticsearch hoàn thành thành công");
-                System.out.println("[AiComparisonService] 📊 DỮ LIỆU TRẢ VỀ (OpenRouter): " + (openrouterContent.length() > 500 ? openrouterContent.substring(0, 500) + "..." : openrouterContent));
+                openrouterContent = openrouterResults[0];
+                finalOpenrouterQuery = openrouterResults[1];
+                long openrouterSearchTime = System.currentTimeMillis() - openrouterSearchStartTime;
+                timingMetrics.put("openrouter_search_ms", openrouterSearchTime);
+
+//            System.out.println("[AiComparisonService] 📝 OpenRouter Final Query (ACTUALLY USED): " + finalOpenrouterQuery);
+
+                // Kiểm tra xem query có bị thay đổi không
+                if (!finalOpenrouterQuery.equals(openrouterQueryString)) {
+                    System.out.println("[AiComparisonService] ⚠️ OPENROUTER - Query đã bị thay đổi trong quá trình xử lý!");
+                    System.out.println("[AiComparisonService] 🔄 OPENROUTER - Original vs Final query khác nhau");
+                }
+                // Kiểm tra nếu có lỗi trong quá trình tìm kiếm
+                if (openrouterContent != null && openrouterContent.startsWith("❌")) {
+                    System.out.println("[AiComparisonService] ❌ OPENROUTER - Tìm kiếm Elasticsearch gặp lỗi, đang thử sửa query...");
+                    System.out.println("[AiComparisonService] 🔧 OPENROUTER - Đang tạo lại query với thông tin lỗi...");
+                } else {
+                    System.out.println("[AiComparisonService] ✅ OPENROUTER - Tìm kiếm Elasticsearch hoàn thành thành công");
+                    System.out.println("[AiComparisonService] 📊 DỮ LIỆU TRẢ VỀ (OpenRouter): " + (openrouterContent.length() > 500 ? openrouterContent.substring(0, 500) + "..." : openrouterContent));
+                }
             }
             
             Map<String, Object> openrouterElasticsearch = new HashMap<>();

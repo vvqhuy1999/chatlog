@@ -37,110 +37,24 @@ public class AiQueryService {
     @Autowired
     private LogApiService logApiService;
     
+    // ✅ Inject KnowledgeBaseIndexingService thay vì load lại file
+    @Autowired
+    private KnowledgeBaseIndexingService knowledgeBaseIndexingService;
+    
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper;
-    private List<DataExample> exampleLibrary;
     
     @Autowired
     public AiQueryService(ChatClient.Builder builder) {
         this.chatClient = builder.build();
         this.objectMapper = new ObjectMapper();
-        loadExampleLibrary();
     }
-    
+
     /**
-     * Load the example library from multiple JSON knowledge base files
+     * Get the example library from KnowledgeBaseIndexingService
      */
-    private void loadExampleLibrary() {
-        this.exampleLibrary = new ArrayList<>();
-        
-        // Define all knowledge base files to load
-        String[] knowledgeBaseFiles = {
-            "fortigate_queries_full.json",
-            "advanced_security_scenarios.json",
-            "network_forensics_performance.json",
-            "business_intelligence_operations.json",
-            "incident_response_playbooks.json",
-            "compliance_audit_scenarios.json",
-            "zero_trust_scenarios.json",
-            "threat_intelligence_scenarios.json",
-            "operational_security_scenarios.json",
-            "email_data_security.json",
-            "network_anomaly_detection.json"
-        };
-        
-        int totalLoaded = 0;
-        
-        for (String fileName : knowledgeBaseFiles) {
-            try {
-                ClassPathResource resource = new ClassPathResource(fileName);
-                InputStream inputStream = resource.getInputStream();
-                
-                List<DataExample> examples = objectMapper.readValue(inputStream, new TypeReference<List<DataExample>>() {});
-                
-                this.exampleLibrary.addAll(examples);
-                totalLoaded += examples.size();
-                System.out.println("[AiQueryService] ✅ Loaded " + examples.size() + " examples from " + fileName);
-                
-            } catch (IOException e) {
-                System.err.println("[AiQueryService] ⚠️ Failed to load " + fileName + ": " + e.getMessage());
-                e.printStackTrace();
-                // Continue loading other files even if one fails
-            }
-        }
-        
-        System.out.println("\n📊 ===== KNOWLEDGE BASE LOADING SUMMARY =====");
-        System.out.println("[AiQueryService] 🎯 Total loaded: " + totalLoaded + " examples from " + knowledgeBaseFiles.length + " knowledge base files");
-        System.out.println("📁 Files processed: " + java.util.Arrays.toString(knowledgeBaseFiles));
-        System.out.println("===============================================\n");
-        
-        if (this.exampleLibrary.isEmpty()) {
-            System.err.println("[AiQueryService] ❌ No examples loaded from any knowledge base file!");
-        } else {
-            // Display knowledge base statistics
-            displayKnowledgeBaseStats();
-        }
-    }
-    
-    /**
-     * Display statistics about loaded knowledge base
-     */
-    private void displayKnowledgeBaseStats() {
-        System.out.println("\n📊 ===== KNOWLEDGE BASE STATISTICS =====");
-        
-        Map<String, Integer> scenarioCount = new HashMap<>();
-        int withScenario = 0;
-        int withPhase = 0;
-        int withBusinessValue = 0;
-        
-        for (DataExample example : exampleLibrary) {
-            if (example.getScenario() != null && !example.getScenario().isEmpty()) {
-                withScenario++;
-                scenarioCount.put(example.getScenario(), 
-                    scenarioCount.getOrDefault(example.getScenario(), 0) + 1);
-            }
-            if (example.getPhase() != null && !example.getPhase().isEmpty()) {
-                withPhase++;
-            }
-            if (example.getBusinessValue() != null && !example.getBusinessValue().isEmpty()) {
-                withBusinessValue++;
-            }
-        }
-        
-        System.out.println("📋 Total Examples: " + exampleLibrary.size());
-        System.out.println("🎭 With Scenario Info: " + withScenario);
-        System.out.println("⚡ With Phase Info: " + withPhase);
-        System.out.println("💼 With Business Value: " + withBusinessValue);
-        
-        if (!scenarioCount.isEmpty()) {
-            System.out.println("\n🎯 Scenarios Distribution:");
-            scenarioCount.entrySet().stream()
-                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-                .forEach(entry -> System.out.printf("  • %s: %d examples\n", 
-                    entry.getKey(), entry.getValue()));
-        }
-        
-        System.out.println("✅ Knowledge base ready for intelligent query matching\n");
+    public List<DataExample> getExampleLibrary() {
+        return knowledgeBaseIndexingService.getExampleLibrary();
     }
     
 
@@ -177,14 +91,6 @@ public class AiQueryService {
         );
     }
     
-
-    /**
-     * Get the example library for external services
-     */
-    public List<DataExample> getExampleLibrary() {
-        return new ArrayList<>(exampleLibrary); // Return a copy to prevent external modification
-    }
-    
     /**
      * Thực hiện tìm kiếm Elasticsearch với retry logic
      */
@@ -214,7 +120,7 @@ public class AiQueryService {
         try {
             System.out.println("[AiQueryService] Sending query to Elasticsearch: " + query);
             String content = logApiService.search("logs-fortinet_fortigate.log-default*", query);
-            System.out.println("[AiQueryService] Elasticsearch response received successfully");
+            // System.out.println("[AiQueryService] Elasticsearch response received successfully");
             
             // 🔍 DEBUG: Kiểm tra response có phải empty hay error không
             if (content == null || content.trim().isEmpty()) {
@@ -235,14 +141,19 @@ public class AiQueryService {
                 };
             }
             
-            // Kiểm tra xem có hits không
-            if (content.contains("\"hits\":[]") || content.contains("\"hits\": []")) {
-                System.out.println("[AiQueryService] ℹ️ INFO: Elasticsearch returned 0 results (hits is empty)");
+            // ✅ Kiểm tra xem có hits hoặc aggregations không
+            // CHỈ check hits empty NẾU KHÔNG CÓ aggregations (vì size:0 query sẽ có aggs thay vì hits)
+            boolean hasAggregations = content.contains("\"aggregations\"") || content.contains("\"aggs\"");
+            boolean hitsEmpty = content.contains("\"hits\":[]") || content.contains("\"hits\": []");
+            
+            if (hitsEmpty && !hasAggregations) {
+                System.out.println("[AiQueryService] ℹ️ INFO: Elasticsearch returned 0 results (no hits and no aggregations)");
                 return new String[]{
-                    "ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch.\n\nQuery của bạn:\n" + query,
+                    "ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch.",
                     query
                 };
             }
+
             
             System.out.println("[AiQueryService] ✅ Valid response received with data");
             return new String[]{content, query};

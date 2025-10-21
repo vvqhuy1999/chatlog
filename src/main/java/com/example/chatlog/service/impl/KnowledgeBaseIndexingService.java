@@ -2,6 +2,7 @@ package com.example.chatlog.service.impl;
 
 import com.example.chatlog.dto.DataExample;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -58,11 +59,15 @@ public class KnowledgeBaseIndexingService {
 
                 for (DataExample example : examples) {
                     if (example.getQuestion() != null && example.getQuery() != null) {
+                        // 🔧 Chuyển JsonNode thành Object rồi serialize thành JSON string (không escape)
+                        Object queryDslObj = objectMapper.treeToValue(example.getQuery(), Object.class);
+                        String queryDslJson = objectMapper.writeValueAsString(queryDslObj);
+                        
                         Document doc = new Document(
                             example.getQuestion(),
                             Map.of(
                                 "question", example.getQuestion(),
-                                "query_dsl", example.getQuery().toString(),
+                                "query_dsl", queryDslJson,  // ✅ Lưu dưới dạng JSON string sạch sẽ
                                 "source_file", fileName
                             )
                         );
@@ -83,5 +88,35 @@ public class KnowledgeBaseIndexingService {
         }
         
         System.out.println("✅ Đã vector hóa và lưu trữ " + documents.size() + " ví dụ vào file " + vectorStoreFile.getAbsolutePath());
+    }
+
+    public List<DataExample> getExampleLibrary() {
+        List<DataExample> exampleLibrary = new ArrayList<>();
+        String[] knowledgeBaseFiles = {
+            "fortigate_queries_full.json",
+            "advanced_security_scenarios.json",
+            "network_forensics_performance.json",
+            "business_intelligence_operations.json",
+            "incident_response_playbooks.json",
+            "compliance_audit_scenarios.json",
+            "zero_trust_scenarios.json",
+            "threat_intelligence_scenarios.json",
+            "operational_security_scenarios.json",
+            "email_data_security.json",
+            "network_anomaly_detection.json"
+        };
+        
+        ObjectMapper objectMapper = new ObjectMapper();
+        for (String fileName : knowledgeBaseFiles) {
+            try {
+                ClassPathResource resource = new ClassPathResource(fileName);
+                InputStream inputStream = resource.getInputStream();
+                List<DataExample> examples = objectMapper.readValue(inputStream, new TypeReference<List<DataExample>>() {});
+                exampleLibrary.addAll(examples);
+            } catch (Exception e) {
+                System.err.println("❌ Lỗi khi đọc file " + fileName + ": " + e.getMessage());
+            }
+        }
+        return exampleLibrary;
     }
 }

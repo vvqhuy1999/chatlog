@@ -192,6 +192,14 @@ public class AiResponseService {
         UserMessage userMessage = new UserMessage(chatRequest.message());
         Prompt prompt = new Prompt(systemMessage, userMessage);
 
+        // ✅ Log context được gửi cho AI (để debug)
+        System.out.println("[AiResponseService] 📤 Sending context to AI:");
+        System.out.println("[AiResponseService] 📝 User question: " + chatRequest.message());
+        System.out.println("[AiResponseService] 📊 Content length: " + content.length() + " characters");
+        System.out.println("[AiResponseService] 🔍 Content preview: " + 
+            (content.length() > 500 ? content.substring(0, 500) + "..." : content));
+        System.out.println("[AiResponseService] 🔎 Query: " + query);
+
         // Gọi AI với conversation ID tùy chỉnh để tránh memory contamination
         return chatClient
             .prompt(prompt)

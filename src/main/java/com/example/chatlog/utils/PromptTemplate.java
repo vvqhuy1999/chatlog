@@ -215,6 +215,11 @@ public class PromptTemplate {
                 %s
                 
                 RESPONSE FORMAT
+                QUERY STRUCTURE RULES:
+                - Top-level fields: "query", "aggs", "size", "sort", "_source"
+                - "aggs" MUST be at same level as "query", NOT inside it
+                - Aggregation queries: {"query": {...}, "aggs": {...}, "size": 0}
+                - Non-aggregation queries: {"query": {...}, "size": 50}
                 Return only JSON:
                 - Simple: {"query":{...},"size":50}
                 - Aggregation: {"query":{...},"aggs":{...},"size":0}
