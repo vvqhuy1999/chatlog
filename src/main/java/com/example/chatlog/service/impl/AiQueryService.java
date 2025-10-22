@@ -120,7 +120,7 @@ public class AiQueryService {
 
         try {
             System.out.println("[AiQueryService] Sending query to Elasticsearch: " + query);
-            String content = logApiService.search("logs-fortinet_fortigate.log-default*", query);
+            String content = logApiService.search("logs-*", query);
             // System.out.println("[AiQueryService] Elasticsearch response received successfully");
             
             // 🔍 DEBUG: Kiểm tra response có phải empty hay error không
@@ -174,7 +174,7 @@ public class AiQueryService {
 
                 try {
                     // Lấy field mapping và tạo comparison prompt với error details
-                    String allFields = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
+                    String allFields = logApiService.getAllField("logs-*");
                     String prevQuery = requestBody.getBody();
                     String userMess = chatRequest.message();
 
@@ -304,7 +304,7 @@ public class AiQueryService {
 
                     // Retry với query mới
                     System.out.println("[AiQueryService] 🔄 Đang thử lại với query đã sửa...");
-                    String retryContent = logApiService.search("logs-fortinet_fortigate.log-default*", newQuery);
+                    String retryContent = logApiService.search("logs-*", newQuery);
                     System.out.println("[AiQueryService] ✅ Retry successful with corrected query");
                     return new String[]{retryContent, newQuery};
 
