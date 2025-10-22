@@ -23,7 +23,8 @@ public class KnowledgeBaseIndexingService {
     @Autowired
     private VectorStore vectorStore;
 
-    private final File vectorStoreFile = new File("vector_store.json");
+    // ⭐ Chuyển file vào resources folder
+    private final File vectorStoreFile = new File("src/main/resources/vector_store.json");
 
     @PostConstruct
     public void indexKnowledgeBase() {

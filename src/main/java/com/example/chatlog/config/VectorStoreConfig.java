@@ -11,8 +11,8 @@ import java.io.File;
 @Configuration
 public class VectorStoreConfig {
 
-    // Định nghĩa tên file để lưu trữ vector
-    private final File vectorStoreFile = new File("vector_store.json");
+    // ⭐ Chuyển file vào resources folder
+    private final File vectorStoreFile = new File("src/main/resources/vector_store.json");
 
     @Bean
     public VectorStore vectorStore(EmbeddingModel embeddingModel) {

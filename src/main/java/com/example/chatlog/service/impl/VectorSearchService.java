@@ -21,7 +21,7 @@ public class VectorSearchService {
         
         // 🔍 DEBUG: Kiểm tra kết quả tìm kiếm
         System.out.println("[VectorSearchService] 🔍 DEBUG: Số lượng kết quả tìm được: " + similarDocuments.size());
-        
+        System.out.println("[VectorSearchService] 🔍 DEBUG: Kết quả tìm được: " + similarDocuments);
         if (similarDocuments.isEmpty()) {
             System.out.println("[VectorSearchService] ⚠️ WARNING: Vector store không tìm thấy ví dụ tương đồng!");
             System.out.println("[VectorSearchService] 💡 Có thể nguyên nhân:");
