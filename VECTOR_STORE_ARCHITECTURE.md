@@ -248,17 +248,17 @@ AiComparisonService.handleRequestWithComparison()
    │
    └─ Format kết quả
       ↓
-      "RELEVANT EXAMPLES FROM KNOWLEDGE BASE (Semantic Search):
-       
-       Example 1:
+"RELEVANT EXAMPLES FROM KNOWLEDGE BASE (Semantic Search):
+
+Example 1:
        Question: Show failed authentication attempts
-       Query: {...elasticsearch query...}
-       
-       Example 2:
+Query: {...elasticsearch query...}
+
+Example 2:
        Question: Display unsuccessful login events
-       Query: {...elasticsearch query...}
-       
-       ..."
+Query: {...elasticsearch query...}
+
+..."
       ↓
    Thêm vào LLM Prompt
       ↓
