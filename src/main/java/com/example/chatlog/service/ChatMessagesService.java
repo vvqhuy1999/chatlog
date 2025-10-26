@@ -1,6 +1,6 @@
 package com.example.chatlog.service;
 
-import com.example.chatlog.entity.ChatMessages;
+import com.example.chatlog.entity.chat.ChatMessages;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

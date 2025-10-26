@@ -1,4 +1,4 @@
-package com.example.chatlog.entity;
+package com.example.chatlog.entity.chat;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;

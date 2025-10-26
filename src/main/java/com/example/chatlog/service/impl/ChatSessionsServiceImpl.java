@@ -1,7 +1,7 @@
 package com.example.chatlog.service.impl;
 
-import com.example.chatlog.entity.ChatSessions;
-import com.example.chatlog.entity.ChatMessages;
+import com.example.chatlog.entity.chat.ChatSessions;
+import com.example.chatlog.entity.chat.ChatMessages;
 import com.example.chatlog.repository.ChatSessionsRepository;
 import com.example.chatlog.service.ChatSessionsService;
 import com.example.chatlog.service.ChatMessagesService;

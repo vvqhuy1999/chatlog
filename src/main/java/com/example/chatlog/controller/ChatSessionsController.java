@@ -1,9 +1,9 @@
 package com.example.chatlog.controller;
 
-import com.example.chatlog.entity.ChatSessions;
+import com.example.chatlog.entity.chat.ChatSessions;
 import com.example.chatlog.service.ChatSessionsService;
 import com.example.chatlog.repository.ChatMessagesRepository;
-import com.example.chatlog.entity.ChatMessages;
+import com.example.chatlog.entity.chat.ChatMessages;
 
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;

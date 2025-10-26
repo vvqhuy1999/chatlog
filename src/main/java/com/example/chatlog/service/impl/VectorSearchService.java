@@ -1,5 +1,7 @@
 package com.example.chatlog.service.impl;
 
+import com.example.chatlog.entity.ai.AiEmbedding;
+import com.example.chatlog.service.AiEmbeddingService;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -7,19 +9,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class VectorSearchService {
 
     @Autowired
     private VectorStore vectorStore;
-    
-    @Autowired(required = false)
+
+    @Autowired
     private EmbeddingModel embeddingModel;
+
+    @Autowired
+    private AiEmbeddingService aiEmbeddingService;
 
     public String findRelevantExamples(String userQuery) {
         System.out.println("\n" + "=".repeat(100));
-        System.out.println("🔍 VECTOR SEARCH - EMBEDDING & COMPARISON");
+        System.out.println("🔍 VECTOR SEARCH - EMBEDDING & COMPARISON (Database)");
         System.out.println("=".repeat(100));
         
         // BƯỚC 1: Tạo Query Embedding
@@ -66,14 +72,31 @@ public class VectorSearchService {
             }
         }
         
-        // BƯỚC 2: Similarity Search
-        System.out.println("\n🔍 STEP 2: Similarity Search");
-        System.out.println("   Calling: vectorStore.similaritySearch(userQuery)");
-        System.out.println("   → This will compare Query Embedding với 2300 document embeddings");
+        // BƯỚC 2: Similarity Search từ Database
+        System.out.println("\n🔍 STEP 2: Similarity Search from Database");
+        System.out.println("   Calling: aiEmbeddingService.findSimilarEmbeddings(queryEmbedding, limit)");
+        System.out.println("   → This will search embeddings in PostgreSQL using vector similarity");
         
+        List<AiEmbedding> similarEmbeddings = null;
+        if (queryEmbedding != null) {
+            // Convert float[] to PostgreSQL vector format: "[0.1, 0.2, 0.3, ...]"
+            StringBuilder sb = new StringBuilder("[");
+            for (int i = 0; i < queryEmbedding.length; i++) {
+                if (i > 0) sb.append(",");
+                sb.append(queryEmbedding[i]);
+            }
+            sb.append("]");
+            String queryEmbeddingString = sb.toString();
+            
+            similarEmbeddings = aiEmbeddingService.findSimilarEmbeddings(queryEmbeddingString, 10);
+        } else {
+            similarEmbeddings = List.of();
+        }
+        
+        // Fallback: Dùng VectorStore in-memory nếu không có embeddings từ DB
         List<Document> similarDocuments = vectorStore.similaritySearch(userQuery);
         
-        System.out.println("   ✅ Found: " + similarDocuments.size() + " similar documents");
+        System.out.println("   ✅ Found: " + similarDocuments.size() + " similar documents from Vector Store");
         
         if (similarDocuments.isEmpty()) {
             System.out.println("   ⚠️ No similar documents found!");
@@ -93,8 +116,6 @@ public class VectorSearchService {
             
             // Nếu có query embedding, tính similarity
             if (queryEmbedding != null) {
-                // Note: Spring AI Document không expose embedding trực tiếp
-                // Nhưng ta có thể giải thích cách nó so sánh
                 System.out.println("   ");
                 System.out.println("   🧮 Cosine Similarity Calculation:");
                 
@@ -106,7 +127,7 @@ public class VectorSearchService {
                 }
                 System.out.println("]... (" + queryEmbedding.length + " dims)");
                 
-                System.out.println("      Doc Embedding:   [stored internally in Document]");
+                System.out.println("      Doc Embedding:   [stored in PostgreSQL/Supabase]");
                 System.out.println("      ");
                 System.out.println("      Formula: similarity = (Query · Doc) / (||Query|| × ||Doc||)");
                 System.out.println("      Process:");
@@ -123,7 +144,7 @@ public class VectorSearchService {
         
         // Format kết quả cho LLM
         StringBuilder examples = new StringBuilder();
-        examples.append("RELEVANT EXAMPLES FROM KNOWLEDGE BASE (Semantic Search):\n\n");
+        examples.append("RELEVANT EXAMPLES FROM KNOWLEDGE BASE (Semantic Search from Database):\n\n");
 
         for (int i = 0; i < similarDocuments.size(); i++) {
             Document doc = similarDocuments.get(i);

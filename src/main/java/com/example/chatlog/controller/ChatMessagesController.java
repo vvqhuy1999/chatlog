@@ -1,8 +1,8 @@
 package com.example.chatlog.controller;
 
 import com.example.chatlog.dto.ChatRequest;
-import com.example.chatlog.entity.ChatMessages;
-import com.example.chatlog.entity.ChatSessions;
+import com.example.chatlog.entity.chat.ChatMessages;
+import com.example.chatlog.entity.chat.ChatSessions;
 import com.example.chatlog.service.ChatMessagesService;
 import com.example.chatlog.service.ChatSessionsService;
 import com.example.chatlog.service.impl.AiServiceImpl;
