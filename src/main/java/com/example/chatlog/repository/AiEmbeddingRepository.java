@@ -2,9 +2,13 @@ package com.example.chatlog.repository;
 
 import com.example.chatlog.entity.ai.AiEmbedding;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,4 +31,27 @@ public interface AiEmbeddingRepository extends JpaRepository<AiEmbedding, UUID> 
     // Vector similarity search - Native SQL vì HQL không support vector operators
     @Query(nativeQuery = true, value = "SELECT * FROM ai_embedding WHERE is_deleted = 0 ORDER BY embedding <=> ?1::vector LIMIT ?2")
     List<AiEmbedding> findSimilarEmbeddings(String queryEmbedding, int limit);
+    
+    // Custom insert với explicit vector cast
+    @Modifying
+    @Transactional
+    @Query(nativeQuery = true, value = """
+        INSERT INTO ai_embedding (id, content, embedding, metadata, created_at, updated_at, is_deleted)
+        VALUES (:id, :content, CAST(:embedding AS vector), CAST(:metadata AS jsonb), :createdAt, :updatedAt, :isDeleted)
+        ON CONFLICT (id) DO UPDATE SET
+            content = EXCLUDED.content,
+            embedding = EXCLUDED.embedding,
+            metadata = EXCLUDED.metadata,
+            updated_at = EXCLUDED.updated_at,
+            is_deleted = EXCLUDED.is_deleted
+        """)
+    void saveWithVectorCast(
+        @Param("id") UUID id,
+        @Param("content") String content,
+        @Param("embedding") String embedding,
+        @Param("metadata") String metadata,
+        @Param("createdAt") OffsetDateTime createdAt,
+        @Param("updatedAt") OffsetDateTime updatedAt,
+        @Param("isDeleted") Integer isDeleted
+    );
 }

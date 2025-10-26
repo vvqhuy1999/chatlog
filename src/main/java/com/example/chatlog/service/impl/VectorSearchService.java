@@ -7,11 +7,13 @@ import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
 
 @Service
+@Transactional("secondaryTransactionManager")  // SỬ DỤNG TRANSACTION MANAGER PHỤ
 public class VectorSearchService {
 
     @Autowired
@@ -79,7 +81,7 @@ public class VectorSearchService {
         
         List<AiEmbedding> similarEmbeddings = null;
         if (queryEmbedding != null) {
-            // Convert float[] to PostgreSQL vector format: "[0.1, 0.2, 0.3, ...]"
+            // Convert float[] to PostgreSQL vector format: "[0.1,0.2,0.3,...]"
             StringBuilder sb = new StringBuilder("[");
             for (int i = 0; i < queryEmbedding.length; i++) {
                 if (i > 0) sb.append(",");

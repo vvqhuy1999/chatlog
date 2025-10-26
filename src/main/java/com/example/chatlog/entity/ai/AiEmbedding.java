@@ -36,6 +36,8 @@ public class AiEmbedding implements Serializable {
     @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> metadata;
 
+    // Lưu dưới dạng String để tránh lỗi deserialization
+    // PostgreSQL vẫn lưu dưới dạng vector, nhưng Java nhận/gửi dưới dạng String "[0.1,0.2,...]"
     @Column(name = "embedding", columnDefinition = "vector(1536)")
     private String embedding;
 

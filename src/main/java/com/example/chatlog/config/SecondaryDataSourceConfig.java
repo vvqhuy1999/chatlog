@@ -45,6 +45,12 @@ public class SecondaryDataSourceConfig {
         config.setIdleTimeout(600000);
         config.setMaxLifetime(1800000);
         config.setAutoCommit(true);
+        
+        // Fix prepared statement "already exists" error
+        config.addDataSourceProperty("cachePrepStmts", "false");
+        config.addDataSourceProperty("prepStmtCacheSize", "0");
+        config.addDataSourceProperty("prepStmtCacheSqlLimit", "0");
+        
         return new HikariDataSource(config);
     }
 
@@ -57,14 +63,14 @@ public class SecondaryDataSourceConfig {
         em.setPackagesToScan("com.example.chatlog.entity.ai");
         
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
-        vendorAdapter.setShowSql(false);  // Reduce logging noise
-        vendorAdapter.setGenerateDdl(false);  // Don't generate DDL for vector type
+        vendorAdapter.setShowSql(true);  // Enable to see SQL queries
+        vendorAdapter.setGenerateDdl(true);  // Enable DDL for Supabase (has pgvector)
         em.setJpaVendorAdapter(vendorAdapter);
 
         java.util.Map<String, Object> properties = new java.util.HashMap<>();
         properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
-        properties.put("hibernate.ddl-auto", "none");  // Don't create tables (pgvector not available for creation)
-        properties.put("hibernate.format_sql", "false");
+        properties.put("hibernate.ddl-auto", "update");  // Enable DDL update for Secondary DB (Supabase with pgvector)
+        properties.put("hibernate.format_sql", "true");
         properties.put("hibernate.jdbc.batch_size", "20");
         properties.put("hibernate.jdbc.fetch_size", "50");
         em.setJpaPropertyMap(properties);

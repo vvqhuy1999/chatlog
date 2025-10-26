@@ -13,19 +13,52 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional("secondaryTransactionManager")  // CHỈ ĐỊNH RÕ TRANSACTION MANAGER PHỤ
 public class AiEmbeddingServiceImpl implements AiEmbeddingService {
 
     private final AiEmbeddingRepository aiEmbeddingRepository;
 
     @Override
     public AiEmbedding saveEmbedding(String content, String embedding, Map<String, Object> metadata) {
-        AiEmbedding aiEmbedding = AiEmbedding.builder()
+        // Generate ID and timestamps manually (since @PrePersist won't be triggered)
+        java.util.UUID id = java.util.UUID.randomUUID();
+        java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
+        
+        // Convert metadata Map to JSON String
+        String metadataJson = convertMapToJson(metadata);
+        
+        // Use custom native query with explicit vector cast
+        aiEmbeddingRepository.saveWithVectorCast(
+            id,
+            content,
+            embedding,
+            metadataJson,
+            now,  // createdAt
+            now,  // updatedAt
+            0     // isDeleted
+        );
+        
+        // Return the saved entity (build it for return)
+        return AiEmbedding.builder()
+                .id(id)
                 .content(content)
                 .embedding(embedding)
                 .metadata(metadata)
+                .createdAt(now)
+                .updatedAt(now)
+                .isDeleted(0)
                 .build();
-        return aiEmbeddingRepository.save(aiEmbedding);
+    }
+    
+    private String convertMapToJson(Map<String, Object> map) {
+        if (map == null) return "{}";
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            return mapper.writeValueAsString(map);
+        } catch (Exception e) {
+            System.err.println("Error converting map to JSON: " + e.getMessage());
+            return "{}";
+        }
     }
 
     @Override
@@ -71,19 +104,5 @@ public class AiEmbeddingServiceImpl implements AiEmbeddingService {
     @Override
     public long countAllNotDeleted() {
         return aiEmbeddingRepository.findAllNotDeleted().size();
-    }
-
-    /**
-     * Convert float[] embedding to PostgreSQL vector format string
-     * Example: [0.1, 0.2, 0.3] → "[0.1,0.2,0.3]"
-     */
-    private String convertEmbeddingToVectorString(float[] embedding) {
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < embedding.length; i++) {
-            if (i > 0) sb.append(",");
-            sb.append(embedding[i]);
-        }
-        sb.append("]");
-        return sb.toString();
     }
 }

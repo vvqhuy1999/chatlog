@@ -10,6 +10,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import jakarta.annotation.PostConstruct;
 
 import java.io.File;
@@ -32,6 +33,7 @@ public class KnowledgeBaseIndexingService {
     private AiEmbeddingService aiEmbeddingService;
 
     @PostConstruct
+    @Transactional("secondaryTransactionManager")  // BỌC TOÀN BỘ PHƯƠNG THỨC TRONG TRANSACTION PHỤ
     public void indexKnowledgeBase() {
         System.out.println("🚀 Bắt đầu quá trình vector hóa kho tri thức và lưu vào Database...");
         
@@ -74,18 +76,10 @@ public class KnowledgeBaseIndexingService {
                         String queryDslJson = objectMapper.writeValueAsString(queryDslObj);
                         
                         // Tạo embedding cho câu hỏi
-                        String embeddingString = null;
+                        float[] embedding = null;
                         if (embeddingModel != null) {
                             try {
-                                float[] embedding = embeddingModel.embed(example.getQuestion());
-                                // Convert float[] to PostgreSQL vector format: "[0.1, 0.2, 0.3, ...]"
-                                StringBuilder sb = new StringBuilder("[");
-                                for (int i = 0; i < embedding.length; i++) {
-                                    if (i > 0) sb.append(",");
-                                    sb.append(embedding[i]);
-                                }
-                                sb.append("]");
-                                embeddingString = sb.toString();
+                                embedding = embeddingModel.embed(example.getQuestion());
                             } catch (Exception e) {
                                 System.err.println("❌ Lỗi tạo embedding cho: " + example.getQuestion());
                                 e.printStackTrace();
@@ -99,7 +93,16 @@ public class KnowledgeBaseIndexingService {
                         metadata.put("source_file", fileName);
 
                         // Lưu embedding vào database
-                        if (embeddingString != null) {
+                        if (embedding != null) {
+                            // Convert float[] to PostgreSQL vector format: "[0.1,0.2,0.3,...]"
+                            StringBuilder sb = new StringBuilder("[");
+                            for (int i = 0; i < embedding.length; i++) {
+                                if (i > 0) sb.append(",");
+                                sb.append(embedding[i]);
+                            }
+                            sb.append("]");
+                            String embeddingString = sb.toString();
+                            
                             aiEmbeddingService.saveEmbedding(
                                 example.getQuestion(),
                                 embeddingString,

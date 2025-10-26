@@ -14,7 +14,7 @@ public interface AiEmbeddingService {
     // Tìm embedding theo content
     AiEmbedding findByContent(String content);
 
-    // Lấy tất cả embedding chưa xóa
+    // Lấu tất cả embedding chưa xóa
     List<AiEmbedding> getAllNotDeleted();
 
     // Tìm embeddings tương tự

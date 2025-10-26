@@ -56,7 +56,7 @@ public class PrimaryDataSourceConfig {
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(primaryDataSource());
         
-        // Chỉ scan package chat entities cụ thể
+        // CHỈ scan package chat entities
         em.setPackagesToScan("com.example.chatlog.entity.chat");
         
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
@@ -64,18 +64,12 @@ public class PrimaryDataSourceConfig {
         vendorAdapter.setGenerateDdl(true);
         em.setJpaVendorAdapter(vendorAdapter);
 
-        // Thêm property để exclude ai package
         java.util.Map<String, Object> properties = new java.util.HashMap<>();
         properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
-        properties.put("hibernate.ddl-auto", "update");
+        properties.put("hibernate.ddl-auto", "update"); // Enable DDL for Primary DB (chat tables)
         properties.put("hibernate.format_sql", "true");
         properties.put("hibernate.jdbc.batch_size", "20");
         properties.put("hibernate.jdbc.fetch_size", "50");
-        // Bỏ qua lỗi DDL cho các table không tạo được (như ai_embedding với vector type)
-        properties.put("hibernate.hbm2ddl.halt_on_error", "false");
-        // Exclude ai package from scanning
-        properties.put("hibernate.archive.autodetection", "class");
-        properties.put("hibernate.exclude_unlisted_classes", "true");
         em.setJpaPropertyMap(properties);
 
         return em;
