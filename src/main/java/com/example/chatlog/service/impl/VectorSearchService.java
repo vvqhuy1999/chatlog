@@ -4,6 +4,7 @@ import com.example.chatlog.entity.ai.AiEmbedding;
 import com.example.chatlog.service.AiEmbeddingService;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -74,10 +75,18 @@ public class VectorSearchService {
             }
         }
         
-        // BƯỚC 2: Similarity Search từ Database
+        // BƯỚC 2: Similarity Search từ Database với SearchRequest
         System.out.println("\n🔍 STEP 2: Similarity Search from Database");
-        System.out.println("   Calling: aiEmbeddingService.findSimilarEmbeddings(queryEmbedding, limit)");
-        System.out.println("   → This will search embeddings in PostgreSQL using vector similarity");
+        
+        // Tạo SearchRequest theo Spring AI API pattern
+        SearchRequest searchRequest = SearchRequest.builder()
+            .query(userQuery)
+            .topK(8)  // Lấy 8 ví dụ tương tự nhất
+            .similarityThreshold(0.0)  // Accept all results
+            .build();
+        
+        System.out.println("   Using SearchRequest with topK=" + searchRequest.getTopK());
+        System.out.println("   → Searching for " + searchRequest.getTopK() + " most similar embeddings using vector similarity");
         
         List<AiEmbedding> similarEmbeddings = null;
         if (queryEmbedding != null) {
@@ -90,19 +99,27 @@ public class VectorSearchService {
             sb.append("]");
             String queryEmbeddingString = sb.toString();
             
-            similarEmbeddings = aiEmbeddingService.findSimilarEmbeddings(queryEmbeddingString, 10);
+            // Query với topK từ SearchRequest
+            similarEmbeddings = aiEmbeddingService.findSimilarEmbeddings(queryEmbeddingString, searchRequest.getTopK());
         } else {
             similarEmbeddings = List.of();
         }
         
-        // Fallback: Dùng VectorStore in-memory nếu không có embeddings từ DB
-        List<Document> similarDocuments = vectorStore.similaritySearch(userQuery);
+        System.out.println("   ✅ Found: " + similarEmbeddings.size() + " similar embeddings (topK=" + searchRequest.getTopK() + ")");
         
-        System.out.println("   ✅ Found: " + similarDocuments.size() + " similar documents from Vector Store");
+        if (similarEmbeddings.isEmpty()) {
+            System.out.println("   ⚠️ No similar documents found in database!");
+            return "⚠️ Không tìm thấy ví dụ tương đồng trong database.";
+        }
         
-        if (similarDocuments.isEmpty()) {
-            System.out.println("   ⚠️ No similar documents found!");
-            return "⚠️ Không tìm thấy ví dụ tương đồng trong vector store.";
+        // Convert AiEmbedding to Document format for compatibility
+        List<Document> similarDocuments = new java.util.ArrayList<>();
+        for (AiEmbedding embedding : similarEmbeddings) {
+            Document doc = new Document(
+                embedding.getContent(),
+                embedding.getMetadata()
+            );
+            similarDocuments.add(doc);
         }
         
         // BƯỚC 3: Hiển thị chi tiết so sánh
@@ -127,18 +144,6 @@ public class VectorSearchService {
                     System.out.print(String.format("%.4f", queryEmbedding[j]));
                     if (j < Math.min(5, queryEmbedding.length) - 1) System.out.print(", ");
                 }
-                System.out.println("]... (" + queryEmbedding.length + " dims)");
-                
-                System.out.println("      Doc Embedding:   [stored in PostgreSQL/Supabase]");
-                System.out.println("      ");
-                System.out.println("      Formula: similarity = (Query · Doc) / (||Query|| × ||Doc||)");
-                System.out.println("      Process:");
-                System.out.println("        1. Dot Product = Σ(query[i] × doc[i]) for i=0 to " + (queryEmbedding.length-1));
-                System.out.println("        2. Query Magnitude = √(Σ(query[i]²))");
-                System.out.println("        3. Doc Magnitude = √(Σ(doc[i]²))");
-                System.out.println("        4. Similarity = DotProduct / (QueryMag × DocMag)");
-                System.out.println("      ");
-                System.out.println("      ✅ Similarity Score: ~" + String.format("%.4f", 0.98 - i*0.01) + " (estimated)");
             }
         }
         

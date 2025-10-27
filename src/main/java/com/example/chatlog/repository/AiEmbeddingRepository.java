@@ -29,8 +29,8 @@ public interface AiEmbeddingRepository extends JpaRepository<AiEmbedding, UUID> 
     List<AiEmbedding> findBySourceFile(String sourceFile);
 
     // Vector similarity search - Native SQL vì HQL không support vector operators
-    @Query(nativeQuery = true, value = "SELECT * FROM ai_embedding WHERE is_deleted = 0 ORDER BY embedding <=> ?1::vector LIMIT ?2")
-    List<AiEmbedding> findSimilarEmbeddings(String queryEmbedding, int limit);
+    @Query(nativeQuery = true, value = "SELECT * FROM ai_embedding WHERE is_deleted = 0 ORDER BY embedding <=> CAST(:queryEmbedding AS vector) LIMIT :limit")
+    List<AiEmbedding> findSimilarEmbeddings(@Param("queryEmbedding") String queryEmbedding, @Param("limit") int limit);
     
     // Custom insert với explicit vector cast
     @Modifying

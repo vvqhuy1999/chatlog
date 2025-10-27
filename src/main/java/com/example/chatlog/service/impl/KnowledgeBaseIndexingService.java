@@ -42,17 +42,7 @@ public class KnowledgeBaseIndexingService {
         System.out.println("📊 Hiện có " + existingCount + " embeddings trong database");
 
         String[] knowledgeBaseFiles = {
-            "fortigate_queries_full.json",
-            "advanced_security_scenarios.json",
-            "network_forensics_performance.json",
-            "business_intelligence_operations.json",
-            "incident_response_playbooks.json",
-            "compliance_audit_scenarios.json",
-            "zero_trust_scenarios.json",
-            "threat_intelligence_scenarios.json",
-            "operational_security_scenarios.json",
-            "email_data_security.json",
-            "network_anomaly_detection.json"
+            "fortigate_queries_full.json"
         };
         ObjectMapper objectMapper = new ObjectMapper();
         List<Document> documents = new ArrayList<>();
@@ -137,17 +127,7 @@ public class KnowledgeBaseIndexingService {
     public List<DataExample> getExampleLibrary() {
         List<DataExample> exampleLibrary = new ArrayList<>();
         String[] knowledgeBaseFiles = {
-            "fortigate_queries_full.json",
-            "advanced_security_scenarios.json",
-            "network_forensics_performance.json",
-            "business_intelligence_operations.json",
-            "incident_response_playbooks.json",
-            "compliance_audit_scenarios.json",
-            "zero_trust_scenarios.json",
-            "threat_intelligence_scenarios.json",
-            "operational_security_scenarios.json",
-            "email_data_security.json",
-            "network_anomaly_detection.json"
+            "fortigate_queries_full.json"
         };
         
         ObjectMapper objectMapper = new ObjectMapper();

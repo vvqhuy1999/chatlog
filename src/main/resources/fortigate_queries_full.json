@@ -4996,5 +4996,2855 @@
         }
       }
     }
+  },
+  {
+    "question": "Những IP nào kết nối đều đặn vào lúc ngoài giờ làm việc (18h-8h) trong 30 ngày qua?",
+    "keywords": [
+      "apt detection",
+      "advanced persistent threat",
+      "phát hiện mối đe dọa",
+      "beacon tín hiệu",
+      "c2 command control",
+      "command and control",
+      "ngoài giờ làm việc",
+      "after hours",
+      "kết nối liên tục",
+      "persistent connection",
+      "đều đặn",
+      "regular pattern",
+      "IP addresses",
+      "địa chỉ IP",
+      "30 ngày",
+      "mô hình dài hạn",
+      "long term pattern"
+    ],
+    "scenario": "PHÁT HIỆN MỐI ĐE DỌA BỀN VỮNG NÂNG CAO (APT DETECTION)",
+    "phase": "Giai đoạn 1: Phân tích mô hình dài hạn",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-1d" } } },
+            {
+              "script": {
+                "script": "doc['@timestamp'].value.getHour() < 8 || doc['@timestamp'].value.getHour() > 18"
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "after_hours_ips": {
+          "terms": { "field": "destination.ip", "size": 100 },
+          "aggs": {
+            "daily_pattern": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "1d"
+              }
+            },
+            "total_connections": {
+              "value_count": { "field": "@timestamp" }
+            },
+            "unique_days": {
+              "cardinality": {
+                "script": "doc['@timestamp'].value.dayOfYear"
+              }
+            },
+            "consistency_score": {
+              "bucket_script": {
+                "buckets_path": {
+                  "total": "total_connections",
+                  "days": "unique_days"
+                },
+                "script": "params.days > 20 && params.total > 100 ? 1 : 0"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Phát hiện đường hầm DNS (DNS tunneling): các truy vấn có tên miền dài bất thường?",
+    "keywords": [
+      "dns tunneling",
+      "đường hầm dns",
+      "tên miền dài",
+      "đánh cắp dữ liệu",
+      "c2 communication",
+      "command and control",
+      "domain length",
+      "chiều dài tên miền",
+      "unusual domains",
+      "tên miền bất thường",
+      "data exfiltration",
+      "covert channel",
+      "kênh bí mật",
+      "dns queries",
+      "truy vấn dns"
+    ],
+    "scenario": "PHÁT HIỆN MỐI ĐE DỌA BỀN VỮNG NÂNG CAO (APT DETECTION)",
+    "phase": "Giai đoạn 1: Phân tích mô hình dài hạn",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-7d" } } },
+            { "term": { "network.protocol": "dns" } },
+            {
+              "script": {
+                "script": "doc['url.domain'].size() > 0 && doc['url.domain'].value.length() > 50"
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "suspicious_domains": {
+          "terms": { "field": "url.domain", "size": 50 },
+          "aggs": {
+            "query_frequency": { "value_count": { "field": "@timestamp" } },
+            "unique_sources": { "cardinality": { "field": "source.ip" } },
+            "domain_length": {
+              "max": {
+                "script": "doc['url.domain'].size() > 0 ? doc['url.domain'].value.length() : 0"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Tận dụng công cụ hệ thống (Living off the land): Sử dụng PowerShell, WMI, hoặc công cụ hệ thống bất thường?",
+    "keywords": [
+      "living off the land",
+      "powershell",
+      "wmi",
+      "fileless malware",
+      "tận dụng công cụ",
+      "system tools abuse",
+      "lạm dụng công cụ hệ thống",
+      "công cụ hệ thống",
+      "system tools",
+      "mã độc không tập tin",
+      "certutil",
+      "bitsadmin",
+      "encoded command",
+      "lệnh mã hóa",
+      "process execution",
+      "thực thi tiến trình"
+    ],
+    "scenario": "PHÁT HIỆN MỐI ĐE DỌA BỀN VỮNG NÂNG CAO (APT DETECTION)",
+    "phase": "Giai đoạn 1: Phân tích mô hình dài hạn",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-7d" } } }],
+          "should": [
+            { "wildcard": { "process.name": "*powershell*" } },
+            { "wildcard": { "process.name": "*wmic*" } },
+            { "wildcard": { "process.name": "*certutil*" } },
+            { "wildcard": { "process.name": "*bitsadmin*" } },
+            { "wildcard": { "process.command_line": "*-EncodedCommand*" } },
+            { "wildcard": { "process.command_line": "*DownloadString*" } }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "suspicious_processes": {
+          "terms": { "field": "process.name", "size": 20 },
+          "aggs": {
+            "by_user": { "terms": { "field": "source.user.name" } },
+            "command_patterns": { "terms": { "field": "process.command_line" } }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Có tài khoản nào đột ngột truy cập nhiều máy chủ trong thời gian ngắn?",
+    "keywords": [
+      "lateral movement",
+      "di chuyển ngang",
+      "credential abuse",
+      "lạm dụng đăng nhập",
+      "truy cập đa máy chủ",
+      "multiple servers",
+      "thời gian ngắn",
+      "short time",
+      "đột ngột",
+      "sudden access",
+      "tài khoản",
+      "account",
+      "user activity",
+      "hoạt động người dùng",
+      "suspicious access",
+      "truy cập đáng nghi"
+    ],
+    "scenario": "PHÁT HIỆN DI CHUYỂN NGANG (LATERAL MOVEMENT DETECTION)",
+    "phase": "Giai đoạn 2: Phát hiện di chuyển ngang",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-24h" } } }, { "term": { "network.direction": "internal" } }]
+        }
+      },
+      "aggs": {
+        "by_user": {
+          "terms": { "field": "source.user.name", "size": 50 },
+          "aggs": {
+            "unique_destinations": {
+              "cardinality": { "field": "destination.ip" }
+            },
+            "destination_details": {
+              "terms": { "field": "destination.ip", "size": 20 },
+              "aggs": {
+                "first_access": { "min": { "field": "@timestamp" } },
+                "services_accessed": { "terms": { "field": "destination.port" } }
+              }
+            },
+            "suspicious_spread": {
+              "bucket_selector": {
+                "buckets_path": { "destinations": "unique_destinations" },
+                "script": "params.destinations > 10"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Tấn công Pass-the-Hash: Xác thực từ các workstation bất thường?",
+    "keywords": [
+      "pass-the-hash",
+      "pass the hash",
+      "tấn công hash",
+      "hash attack",
+      "xác thực bất thường",
+      "unusual authentication",
+      "workstation lạ",
+      "unusual workstation",
+      "ntlm hash",
+      "authentication",
+      "xác thực",
+      "đăng nhập",
+      "login",
+      "credential theft",
+      "đánh cắp thông tin đăng nhập"
+    ],
+    "scenario": "PHÁT HIỆN DI CHUYỂN NGANG (LATERAL MOVEMENT DETECTION)",
+    "phase": "Giai đoạn 2: Phát hiện di chuyển ngang",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-24h" } } }, { "term": { "event.action": "authentication" } }]
+        }
+      },
+      "aggs": {
+        "by_user": {
+          "terms": { "field": "source.user.name", "size": 50 },
+          "aggs": {
+            "workstation_diversity": {
+              "cardinality": { "field": "source.hostname" }
+            },
+            "auth_methods": {
+              "terms": { "field": "fortinet.firewall.authmethod" }
+            },
+            "unusual_workstations": {
+              "bucket_selector": {
+                "buckets_path": { "diversity": "workstation_diversity" },
+                "script": "params.diversity > 5"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Mô hình truy cập dữ liệu thông thường của user 'nguyenvanb' trong 90 ngày qua?",
+    "keywords": [
+      "insider threat",
+      "mối đe dọa nội bộ",
+      "mô hình truy cập",
+      "access pattern",
+      "baseline behavior",
+      "hành vi bình thường",
+      "normal behavior",
+      "user pattern",
+      "nguyenvanb",
+      "user activity",
+      "hoạt động người dùng",
+      "data access",
+      "truy cập dữ liệu",
+      "90 ngày",
+      "90 days",
+      "thông thường",
+      "typical"
+    ],
+    "scenario": "ĐIỀU TRA INSIDER THREAT - MỐI ĐE DỌA NỘI BỘ",
+    "phase": "Giai đoạn 1: Phân tích baseline hành vi",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "term": { "source.user.name": "nguyenvanb" } }, { "range": { "@timestamp": { "gte": "now-90d" } } }]
+        }
+      },
+      "aggs": {
+        "access_patterns": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "calendar_interval": "1w"
+          },
+          "aggs": {
+            "resources_accessed": { "terms": { "field": "destination.ip" } },
+            "data_volume": { "sum": { "field": "network.bytes" } },
+            "access_times": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Hoạt động gần đây (30 ngày qua) có bất thường so với mức cơ bản không?",
+    "keywords": [
+      "deviation analysis",
+      "phân tích độ lệch",
+      "hoạt động gần đây",
+      "recent activity",
+      "baseline comparison",
+      "so sánh mức cơ bản",
+      "bất thường",
+      "anomaly",
+      "unusual",
+      "hành vi thay đổi",
+      "behavior change",
+      "anomaly detection",
+      "phát hiện bất thường",
+      "30 ngày",
+      "30 days",
+      "mức cơ bản",
+      "baseline"
+    ],
+    "scenario": "ĐIỀU TRA INSIDER THREAT - PHÂN TÍCH DEVIATION",
+    "phase": "Giai đoạn 2: Phát hiện anomaly",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "term": { "source.user.name": "nguyenvanb" } }, { "range": { "@timestamp": { "gte": "now-30d" } } }]
+        }
+      },
+      "aggs": {
+        "recent_vs_baseline": {
+          "filters": {
+            "filters": {
+              "recent": { "range": { "@timestamp": { "gte": "now-30d" } } },
+              "baseline": { "range": { "@timestamp": { "gte": "now-120d", "lt": "now-30d" } } }
+            }
+          },
+          "aggs": {
+            "avg_daily_activity": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "1d"
+              }
+            },
+            "unique_resources": { "cardinality": { "field": "destination.ip" } },
+            "data_transfer": { "sum": { "field": "network.bytes" } }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Tải xuống hàng loạt (Mass download): Có tải xuống nhiều files trong thời gian ngắn?",
+    "keywords": [
+      "data exfiltration",
+      "đánh cắp dữ liệu",
+      "tải xuống hàng loạt",
+      "mass download",
+      "bulk download",
+      "bulk transfer",
+      "dữ liệu nhạy cảm",
+      "sensitive data",
+      "suspicious download",
+      "tải xuống đáng nghi",
+      "nhiều files",
+      "multiple files",
+      "thời gian ngắn",
+      "short time",
+      "download pattern",
+      "mô hình tải xuống"
+    ],
+    "scenario": "ĐIỀU TRA INSIDER THREAT - DATA EXFILTRATION",
+    "phase": "Giai đoạn 3: Phân tích exfiltration",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "source.user.name": "nguyenvanb" } },
+            { "range": { "@timestamp": { "gte": "now-24h" } } },
+            { "term": { "network.direction": "outbound" } }
+          ]
+        }
+      },
+      "aggs": {
+        "download_analysis": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "fixed_interval": "1h"
+          },
+          "aggs": {
+            "file_count": { "value_count": { "field": "url.original" } },
+            "total_bytes": { "sum": { "field": "source.bytes" } },
+            "suspicious_volume": {
+              "bucket_selector": {
+                "buckets_path": {
+                  "files": "file_count",
+                  "bytes": "total_bytes"
+                },
+                "script": "params.files > 100 || params.bytes > 1073741824"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Sử dụng tài khoản đặc quyền: Tài khoản quản trị có được sử dụng đúng mục đích?",
+    "keywords": [
+      "compliance audit",
+      "kiểm toán tuân thủ",
+      "tài khoản đặc quyền",
+      "privileged account",
+      "admin account",
+      "administrator",
+      "admin usage",
+      "sử dụng quản trị",
+      "quyền quản trị",
+      "admin rights",
+      "compliance check",
+      "kiểm tra tuân thủ",
+      "đúng mục đích",
+      "proper usage",
+      "gdpr",
+      "data protection"
+    ],
+    "scenario": "COMPLIANCE AUDIT - GDPR & DATA PROTECTION",
+    "phase": "Giai đoạn 1: Audit truy cập dữ liệu",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-30d" } } }, { "terms": { "source.user.roles": ["admin", "Administrator", "root"] } }]
+        }
+      },
+      "aggs": {
+        "admin_usage": {
+          "terms": { "field": "source.user.name", "size": 20 },
+          "aggs": {
+            "actions_performed": { "terms": { "field": "event.action" } },
+            "resources_accessed": { "terms": { "field": "destination.ip" } },
+            "time_pattern": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              }
+            },
+            "total_actions": {
+              "value_count": { "field": "event.action" }
+            },
+            "compliance_check": {
+              "bucket_script": {
+                "buckets_path": { "actions": "total_actions" },
+                "script": "params.actions > 0 ? 1 : 0"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Quyền được quên (Right to be forgotten): Dữ liệu của người dùng đã được xóa theo yêu cầu chưa?",
+    "keywords": [
+      "gdpr compliance",
+      "tuân thủ gdpr",
+      "quyền được quên",
+      "right to be forgotten",
+      "data deletion",
+      "xóa dữ liệu",
+      "delete data",
+      "privacy compliance",
+      "tuân thủ quyền riêng tư",
+      "data removal",
+      "loại bỏ dữ liệu",
+      "user data",
+      "dữ liệu người dùng",
+      "deletion verification",
+      "xác minh xóa",
+      "deleted_user"
+    ],
+    "scenario": "COMPLIANCE AUDIT - RIGHT TO BE FORGOTTEN",
+    "phase": "Giai đoạn 2: Data deletion verification",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-90d" } } }, { "term": { "source.user.name": "deleted_user_123" } }]
+        }
+      },
+      "aggs": {
+        "deletion_verification": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "calendar_interval": "1d"
+          },
+          "aggs": {
+            "data_access": { "value_count": { "field": "@timestamp" } },
+            "systems_accessed": { "terms": { "field": "destination.ip" } },
+            "data_presence": {
+              "bucket_selector": {
+                "buckets_path": { "access": "data_access" },
+                "script": "params.access > 0"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  {
+    "question": "Machine nào đầu tiên có signs của file encryption?",
+    "keywords": [
+      "ransomware detection",
+      "phát hiện ransomware",
+      "file encryption",
+      "mã hóa tập tin",
+      "patient zero",
+      "bệnh nhân số 0",
+      "encryption signs",
+      "dấu hiệu mã hóa",
+      "ransomware outbreak",
+      "bùng phát ransomware",
+      "initial infection",
+      "nhiễm bệnh ban đầu",
+      "đầu tiên",
+      "first",
+      "machine",
+      "máy tính",
+      "signs",
+      "dấu hiệu",
+      "encrypted",
+      "mã hóa"
+    ],
+    "scenario": "RANSOMWARE INCIDENT RESPONSE",
+    "phase": "Giai đoạn 1: Patient zero identification",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-48h" } } }, { "terms": { "file.extension": ["encrypted", "locked", "crypt"] } }]
+        }
+      },
+      "aggs": {
+        "infection_timeline": {
+          "terms": { "field": "host.name", "size": 100 },
+          "aggs": {
+            "first_encryption": { "min": { "field": "@timestamp" } },
+            "encrypted_files": { "value_count": { "field": "file.name" } },
+            "file_types": { "terms": { "field": "file.extension" } }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "SQL Injection attempts: Pattern và success rate?",
+    "keywords": [
+      "sql injection",
+      "tấn công sql injection",
+      "web application attack",
+      "tấn công ứng dụng web",
+      "injection patterns",
+      "mô hình injection",
+      "success rate",
+      "tỷ lệ thành công",
+      "database security",
+      "bảo mật cơ sở dữ liệu",
+      "web security",
+      "bảo mật web",
+      "sql",
+      "injection",
+      "database",
+      "cơ sở dữ liệu",
+      "pattern",
+      "mô hình",
+      "attempts",
+      "nỗ lực",
+      "tấn công",
+      "attack"
+    ],
+    "scenario": "WEB APPLICATION SECURITY MONITORING",
+    "phase": "Giai đoạn 1: Attack pattern analysis",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "url.query" } }],
+          "should": [
+            { "wildcard": { "url.query": "*union*select*" } },
+            { "wildcard": { "url.query": "*or*1=1*" } },
+            { "wildcard": { "url.query": "*drop*table*" } },
+            { "wildcard": { "url.query": "*insert*into*" } },
+            { "wildcard": { "url.query": "*'*or*'*" } }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "injection_analysis": {
+          "terms": { "field": "source.ip", "size": 100 },
+          "aggs": {
+            "attack_patterns": { "terms": { "field": "url.query" } },
+            "response_codes": { "terms": { "field": "http.response.status_code" } },
+            "successful_attempts": {
+              "filter": { "term": { "http.response.status_code": 200 } }
+            },
+            "success_rate": {
+              "bucket_script": {
+                "buckets_path": {
+                  "total": "_count",
+                  "success": "successful_attempts>_count"
+                },
+                "script": "params.total > 0 ? (params.success / params.total) * 100 : 0"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  {
+    "question": "Tối ưu hóa chi phí băng thông: Phân tích sử dụng vs dung lượng?",
+    "keywords": [
+      "bandwidth optimization",
+      "tối ưu hóa băng thông",
+      "cost analysis",
+      "phân tích chi phí",
+      "usage vs capacity",
+      "sử dụng vs dung lượng",
+      "network efficiency",
+      "hiệu quả mạng",
+      "resource utilization",
+      "sử dụng tài nguyên",
+      "chi phí",
+      "cost",
+      "băng thông",
+      "bandwidth",
+      "tối ưu hóa",
+      "optimization",
+      "phân tích",
+      "analysis"
+    ],
+    "scenario": "COST OPTIMIZATION ANALYSIS",
+    "phase": "Giai đoạn 2: Phân tích cơ hội tối ưu chi phí",
+    "businessValue": "Giảm chi phí vận hành, tối ưu phân bổ tài nguyên",
+    "query": {
+      "query": {
+        "range": { "@timestamp": { "gte": "now-3d" } }
+      },
+      "aggs": {
+        "bandwidth_cost_analysis": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "calendar_interval": "1d"
+          },
+          "aggs": {
+            "daily_usage": { "sum": { "field": "network.bytes" } },
+            "peak_hour_usage": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              },
+              "aggs": {
+                "hourly_usage": { "sum": { "field": "network.bytes" } }
+              }
+            },
+            "95th_percentile_usage": {
+              "percentiles_bucket": {
+                "buckets_path": "peak_hour_usage>hourly_usage",
+                "percents": [95]
+              }
+            },
+            "underutilization_score": {
+              "bucket_script": {
+                "buckets_path": {
+                  "daily": "daily_usage",
+                  "peak": "95th_percentile_usage[95.0]"
+                },
+                "script": "params.peak > 0 ? (params.daily / (params.peak * 24)) * 100 : 0"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  {
+    "question": "Hiệu quả làm việc từ xa: Mô hình sử dụng VPN và tương quan năng suất?",
+    "keywords": [
+      "remote work",
+      "làm việc từ xa",
+      "work from home",
+      "làm việc tại nhà",
+      "vpn usage",
+      "sử dụng vpn",
+      "productivity correlation",
+      "tương quan năng suất",
+      "remote productivity",
+      "năng suất từ xa",
+      "hiệu quả",
+      "effectiveness",
+      "từ xa",
+      "remote",
+      "vpn",
+      "mô hình sử dụng",
+      "usage pattern",
+      "tương quan",
+      "correlation"
+    ],
+    "scenario": "REMOTE WORK EFFECTIVENESS ANALYSIS",
+    "phase": "Giai đoạn 2: Phân tích remote work",
+    "businessValue": "Tối ưu chính sách làm việc từ xa, lập kế hoạch dung lượng VPN",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-3d" } } },
+            { "range": { "source.ip": { "gte": "192.168.0.0", "lte": "192.168.255.255" } } }
+          ]
+        }
+      },
+      "aggs": {
+        "remote_work_analysis": {
+          "terms": { "field": "source.user.name", "size": 100 },
+          "aggs": {
+            "vpn_usage_pattern": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "1d"
+              },
+              "aggs": {
+                "daily_vpn_hours": {
+                  "date_histogram": {
+                    "field": "@timestamp",
+                    "fixed_interval": "1h"
+                  },
+                  "aggs": {
+                    "active_hour": {
+                      "bucket_selector": {
+                        "buckets_path": { "count": "_count" },
+                        "script": "params.count > 10"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "remote_productivity": {
+              "filters": {
+                "filters": {
+                  "business_hours": {
+                    "script": {
+                      "script": "doc['@timestamp'].value.getHour() >= 8 && doc['@timestamp'].value.getHour() <= 17"
+                    }
+                  },
+                  "off_hours": {
+                    "script": {
+                      "script": "doc['@timestamp'].value.getHour() < 8 || doc['@timestamp'].value.getHour() > 17"
+                    }
+                  }
+                }
+              },
+              "aggs": {
+                "activity_count": { "value_count": { "field": "@timestamp" } },
+                "data_usage": { "sum": { "field": "network.bytes" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  {
+    "question": "Tỉ lệ operations thủ công vs tự động?",
+    "keywords": [
+      "manual operations",
+      "hoạt động thủ công",
+      "thủ công",
+      "manual",
+      "automation ratio",
+      "tỉ lệ tự động",
+      "operational efficiency",
+      "hiệu quả vận hành",
+      "process automation",
+      "tự động hóa quy trình",
+      "digital operations",
+      "vận hành số",
+      "tỉ lệ",
+      "ratio",
+      "operations",
+      "vận hành",
+      "tự động",
+      "automation",
+      "vs",
+      "so với"
+    ],
+    "scenario": "OPERATIONAL EXCELLENCE & AUTOMATION",
+    "phase": "Giai đoạn 1: Automation Impact Assessment",
+    "businessValue": "Giảm chi phí vận hành, cải thiện độ tin cậy",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-60d" } } }, { "term": { "event.type": "configuration" } }]
+        }
+      },
+      "aggs": {
+        "automation_metrics": {
+          "filters": {
+            "filters": {
+              "manual_operations": {
+                "bool": {
+                  "must_not": [
+                    { "wildcard": { "source.user.name": "*system*" } },
+                    { "wildcard": { "source.user.name": "*service*" } },
+                    { "wildcard": { "source.user.name": "*auto*" } }
+                  ]
+                }
+              },
+              "automated_operations": {
+                "bool": {
+                  "should": [
+                    { "wildcard": { "source.user.name": "*system*" } },
+                    { "wildcard": { "source.user.name": "*service*" } },
+                    { "wildcard": { "source.user.name": "*auto*" } }
+                  ],
+                  "minimum_should_match": 1
+                }
+              }
+            }
+          },
+          "aggs": {
+            "operation_timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "1w"
+              },
+              "aggs": {
+                "operation_count": { "value_count": { "field": "@timestamp" } },
+                "error_rate": {
+                  "filter": { "term": { "event.outcome": "failure" } },
+                  "aggs": {
+                    "error_count": { "value_count": { "field": "@timestamp" } }
+                  }
+                }
+              }
+            },
+            "total_operations": {
+              "sum_bucket": {
+                "buckets_path": "operation_timeline>operation_count"
+              }
+            },
+            "automation_ratio": {
+              "bucket_script": {
+                "buckets_path": {
+                  "automated": "_count",
+                  "total": "total_operations"
+                },
+                "script": "params.total > 0 ? (params.automated / params.total) * 100 : 0"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Báo cáo truy cập dữ liệu nhạy cảm theo quy định GDPR: Ai đã truy cập thông tin từ EU trong 90 ngày qua?",
+    "keywords": [
+      "GDPR compliance",
+      "tuân thủ GDPR",
+      "EU access",
+      "truy cập EU",
+      "data protection",
+      "bảo vệ dữ liệu",
+      "compliance report",
+      "báo cáo tuân thủ",
+      "90 ngày",
+      "privacy regulation",
+      "quy định bảo mật",
+      "user activity",
+      "hoạt động người dùng"
+    ],
+    "scenario": "GDPR COMPLIANCE MONITORING",
+    "phase": "Giai đoạn 1: Thu thập bằng chứng truy cập",
+    "complianceType": "GDPR Article 30 - Records of Processing",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-30d" } } },
+            { "term": { "source.geo.continent_name": "Europe" } },
+            {
+              "bool": {
+                "should": [{ "terms": { "destination.port": [443, 80, 8080] } }, { "term": { "fortinet.firewall.action": "accept" } }]
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "gdpr_access_report": {
+          "terms": { "field": "source.user.name", "size": 100 },
+          "aggs": {
+            "access_countries": {
+              "terms": { "field": "source.geo.country_name", "size": 20 }
+            },
+            "access_timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "1d"
+              }
+            },
+            "data_volume": {
+              "sum": { "field": "network.bytes" }
+            },
+            "unique_destinations": {
+              "cardinality": { "field": "destination.ip" }
+            },
+            "session_count": {
+              "value_count": { "field": "@timestamp" }
+            }
+          }
+        },
+        "eu_traffic_summary": {
+          "filter": { "term": { "source.geo.continent_name": "Europe" } },
+          "aggs": {
+            "total_bytes": {
+              "sum": { "field": "network.bytes" }
+            },
+            "unique_users": {
+              "cardinality": { "field": "source.user.name" }
+            }
+          }
+        }
+      },
+      "sort": [{ "@timestamp": "desc" }],
+      "size": 1000
+    }
+  },
+  {
+    "question": "Kiểm toán quyền truy cập đặc quyền: Tài khoản admin nào có hoạt động bất thường?",
+    "keywords": [
+      "privileged access",
+      "truy cập đặc quyền",
+      "admin accounts",
+      "tài khoản admin",
+      "unusual activity",
+      "hoạt động bất thường",
+      "audit privileged access",
+      "kiểm toán quyền admin",
+      "insider threat",
+      "mối đe dọa nội bộ",
+      "administrative rights",
+      "quyền quản trị"
+    ],
+    "scenario": "PRIVILEGED ACCESS MONITORING",
+    "phase": "Giai đoạn 2: Phát hiện hoạt động đặc quyền bất thường",
+    "complianceType": "SOX Section 404 - Internal Controls",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-30d" } } },
+            {
+              "bool": {
+                "should": [
+                  { "wildcard": { "source.user.name": "*admin*" } },
+                  { "wildcard": { "source.user.name": "*root*" } },
+                  { "term": { "source.user.roles": "Administrator" } },
+                  { "term": { "source.user.group.name": "administrators" } }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "admin_activity_analysis": {
+          "terms": { "field": "source.user.name", "size": 50 },
+          "aggs": {
+            "login_pattern": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              }
+            },
+            "after_hours_activity": {
+              "filter": {
+                "script": {
+                  "script": {
+                    "source": "doc['@timestamp'].value.getHour() < 6 || doc['@timestamp'].value.getHour() > 22"
+                  }
+                }
+              }
+            },
+            "geographic_locations": {
+              "terms": { "field": "source.geo.country_name", "size": 10 }
+            },
+            "failed_attempts": {
+              "filter": { "term": { "event.outcome": "failure" } }
+            },
+            "successful_connections": {
+              "filter": { "term": { "fortinet.firewall.action": "accept" } }
+            },
+            "data_access_volume": {
+              "sum": { "field": "network.bytes" }
+            },
+            "unique_destinations": {
+              "cardinality": { "field": "destination.ip" }
+            }
+          }
+        },
+        "risk_indicators": {
+          "filters": {
+            "filters": {
+              "multiple_countries": {
+                "range": {
+                  "source.geo.country_name": { "gte": 2 }
+                }
+              },
+              "high_volume_access": {
+                "range": { "network.bytes": { "gte": 10485760 } }
+              },
+              "weekend_access": {
+                "bool": {
+                  "filter": {
+                    "script": {
+                      "script": {
+                        "source": "doc['@timestamp'].value.getDayOfWeek() >= 6"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Email Security: Phát hiện email phishing và malware qua traffic SMTP/POP3/IMAP?",
+    "keywords": [
+      "email phishing",
+      "phishing qua email",
+      "malware email",
+      "email độc hại",
+      "SMTP traffic",
+      "lưu lượng SMTP",
+      "email security",
+      "bảo mật email",
+      "suspicious attachments",
+      "file đính kèm đáng nghi",
+      "email filtering",
+      "lọc email",
+      "spam detection",
+      "phát hiện spam"
+    ],
+    "scenario": "EMAIL THREAT DETECTION",
+    "phase": "Giai đoạn 1: Phát hiện mối đe dọa qua email",
+    "securityFramework": "MITRE ATT&CK T1566 - Phishing",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-24h" } } },
+            { "term": { "fortinet.firewall.action": "accept" } },
+            {
+              "bool": {
+                "should": [
+                  { "term": { "destination.port": 25 } },
+                  { "term": { "destination.port": 110 } },
+                  { "term": { "destination.port": 143 } },
+                  { "term": { "destination.port": 993 } },
+                  { "term": { "destination.port": 995 } }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "email_traffic_analysis": {
+          "terms": { "field": "destination.port", "size": 10 },
+          "aggs": {
+            "email_servers": {
+              "terms": { "field": "destination.ip", "size": 30 }
+            },
+            "email_users": {
+              "terms": { "field": "source.user.name", "size": 50 }
+            },
+            "email_volume": {
+              "sum": { "field": "network.bytes" }
+            },
+            "connection_timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              }
+            },
+            "external_servers": {
+              "filter": {
+                "bool": {
+                  "must_not": [{ "term": { "network.direction": "internal" } }]
+                }
+              },
+              "aggs": {
+                "server_countries": {
+                  "terms": { "field": "destination.geo.country_name", "size": 20 }
+                },
+                "server_organizations": {
+                  "terms": { "field": "destination.as.organization.name", "size": 15 }
+                }
+              }
+            }
+          }
+        },
+        "suspicious_patterns": {
+          "filters": {
+            "filters": {
+              "large_attachments": {
+                "range": { "network.bytes": { "gte": 10485760 } }
+              },
+              "unusual_hours": {
+                "bool": {
+                  "filter": {
+                    "script": {
+                      "script": {
+                        "source": "doc['@timestamp'].value.getHour() < 6 || doc['@timestamp'].value.getHour() > 22"
+                      }
+                    }
+                  }
+                }
+              },
+              "foreign_servers": {
+                "bool": {
+                  "must_not": [{ "terms": { "destination.geo.country_name": ["Vietnam", "United States"] } }]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Data Loss Prevention: Phát hiện truyền file lớn ra ngoài qua FTP/HTTP?",
+    "keywords": [
+      "data loss prevention",
+      "ngăn chặn mất dữ liệu",
+      "file transfer",
+      "truyền file",
+      "data exfiltration",
+      "đánh cắp dữ liệu",
+      "large file upload",
+      "upload file lớn",
+      "FTP traffic",
+      "lưu lượng FTP",
+      "HTTP upload",
+      "upload qua HTTP",
+      "data leakage",
+      "rò rỉ dữ liệu"
+    ],
+    "scenario": "DATA EXFILTRATION DETECTION",
+    "phase": "Giai đoạn 2: Giám sát truyền dữ liệu ra ngoài",
+    "securityFramework": "MITRE ATT&CK T1041 - Exfiltration Over C2 Channel",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-4h" } } },
+            { "term": { "fortinet.firewall.action": "accept" } },
+            { "term": { "network.direction": "outbound" } },
+            {
+              "bool": {
+                "should": [
+                  { "term": { "destination.port": 21 } },
+                  { "term": { "destination.port": 22 } },
+                  { "term": { "destination.port": 80 } },
+                  { "term": { "destination.port": 443 } }
+                ]
+              }
+            },
+            { "range": { "network.bytes": { "gte": 52428800 } } }
+          ]
+        }
+      },
+      "aggs": {
+        "large_transfers": {
+          "terms": { "field": "source.ip", "size": 50 },
+          "aggs": {
+            "transfer_destinations": {
+              "terms": { "field": "destination.ip", "size": 30 }
+            },
+            "total_data_sent": {
+              "sum": { "field": "network.bytes" }
+            },
+            "transfer_protocols": {
+              "terms": { "field": "destination.port", "size": 10 }
+            },
+            "transfer_timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "30m"
+              },
+              "aggs": {
+                "hourly_bytes": {
+                  "sum": { "field": "network.bytes" }
+                }
+              }
+            },
+            "user_context": {
+              "terms": { "field": "source.user.name", "size": 20 }
+            },
+            "destination_countries": {
+              "terms": { "field": "destination.geo.country_name", "size": 15 }
+            }
+          }
+        },
+        "protocol_analysis": {
+          "terms": { "field": "destination.port", "size": 10 },
+          "aggs": {
+            "avg_transfer_size": {
+              "avg": { "field": "network.bytes" }
+            },
+            "max_transfer_size": {
+              "max": { "field": "network.bytes" }
+            },
+            "transfer_frequency": {
+              "value_count": { "field": "@timestamp" }
+            }
+          }
+        },
+        "risk_indicators": {
+          "filters": {
+            "filters": {
+              "very_large_files": {
+                "range": { "network.bytes": { "gte": 1073741824 } }
+              },
+              "encrypted_transfers": {
+                "terms": { "destination.port": [22, 443, 990, 989] }
+              },
+              "suspicious_destinations": {
+                "bool": {
+                  "must_not": [{ "terms": { "destination.as.organization.name": ["Google LLC", "Microsoft Corporation", "Amazon.com"] } }]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Dòng thời gian đầy đủ các hoạt động của user nguyenvana trong 7 ngày qua?",
+    "keywords": [
+      "user timeline",
+      "dòng thời gian người dùng",
+      "dòng thời gian",
+      "timeline",
+      "user activity",
+      "hoạt động người dùng",
+      "hoạt động",
+      "activity",
+      "account breach",
+      "xâm nhập tài khoản",
+      "forensic analysis",
+      "điều tra số",
+      "forensics",
+      "điều tra",
+      "người dùng",
+      "user",
+      "nguyenvana",
+      "tài khoản",
+      "account",
+      "7 ngày",
+      "week",
+      "phân tích",
+      "analysis"
+    ],
+    "scenario": "ỨNG PHỐ SỰ CỐ - PHÁT HIỆN TÀI KHOẢN BỊ XÂM NHẬP",
+    "phase": "Giai đoạn 1: Xác định thời điểm và phạm vi",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "term": { "source.user.name": "nguyenvana" } }, { "range": { "@timestamp": { "gte": "now-7d" } } }]
+        }
+      },
+      "_source": [
+        "@timestamp",
+        "source.ip",
+        "source.geo.country_name",
+        "destination.ip",
+        "destination.port",
+        "event.action",
+        "rule.name",
+        "network.bytes"
+      ],
+      "sort": [{ "@timestamp": "asc" }],
+      "size": 1000
+    }
+  },
+  {
+    "question": "User nguyenvana đăng nhập từ bao nhiêu IP khác nhau trong 7 ngày qua?",
+    "keywords": [
+      "multiple login locations",
+      "nhiều địa điểm đăng nhập",
+      "multiple logins",
+      "nhiều đăng nhập",
+      "geographic anomaly",
+      "bất thường địa lý",
+      "ip analysis",
+      "phân tích ip",
+      "location tracking",
+      "theo dõi vị trí",
+      "đăng nhập",
+      "login",
+      "ip khác nhau",
+      "different ip",
+      "địa điểm",
+      "locations",
+      "bao nhiêu",
+      "how many",
+      "nguyenvana",
+      "phân tích",
+      "analysis"
+    ],
+    "scenario": "ỨNG PHỐ SỰ CỐ - PHÁT HIỆN TÀI KHOẢN BỊ XÂM NHẬP",
+    "phase": "Giai đoạn 1: Phát hiện nhiều địa điểm đăng nhập",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "source.user.name": "nguyenvana" } },
+            { "term": { "event.action": "login" } },
+            { "range": { "@timestamp": { "gte": "now-7d" } } }
+          ]
+        }
+      },
+      "aggs": {
+        "unique_ips": {
+          "terms": { "field": "source.ip", "size": 100 },
+          "aggs": {
+            "countries": { "terms": { "field": "source.geo.country_name" } },
+            "first_seen": { "min": { "field": "@timestamp" } },
+            "last_seen": { "max": { "field": "@timestamp" } },
+            "login_count": { "value_count": { "field": "@timestamp" } }
+          }
+        }
+      },
+      "size": 0
+    }
+  },
+  {
+    "question": "Có IP nào đăng nhập đồng thời từ 2 địa điểm khác nhau (di chuyển bất khả thi)?",
+    "keywords": [
+      "impossible travel",
+      "di chuyển bất khả thi",
+      "concurrent logins",
+      "đăng nhập đồng thời",
+      "geographic impossibility",
+      "bất khả thi địa lý",
+      "account compromise",
+      "tài khoản bị đánh cắp",
+      "đồng thời",
+      "concurrent",
+      "2 địa điểm",
+      "two locations",
+      "bất khả thi",
+      "impossible",
+      "đăng nhập",
+      "login",
+      "địa điểm khác nhau",
+      "different locations",
+      "nguyenvana"
+    ],
+    "scenario": "ỨNG PHỐ SỰ CỐ - PHÁT HIỆN TÀI KHOẢN BỊ XÂM NHẬP",
+    "phase": "Giai đoạn 1: Phát hiện di chuyển bất khả thi",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "term": { "event.action": "login" } }, { "range": { "@timestamp": { "gte": "now-24h" } } }]
+        }
+      },
+      "aggs": {
+        "login_timeline": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "fixed_interval": "15m"
+          },
+          "aggs": {
+            "unique_countries": {
+              "cardinality": { "field": "source.geo.country_name" }
+            },
+            "countries": {
+              "terms": { "field": "source.geo.country_name" }
+            },
+            "impossible_travel": {
+              "bucket_selector": {
+                "buckets_path": { "countries": "unique_countries" },
+                "script": "params.countries > 1"
+              }
+            }
+          }
+        }
+      },
+      "size": 0
+    }
+  },
+  {
+    "question": "User nguyenvana truy cập những tài nguyên nào khác thường (so với mức cơ bản)?",
+    "keywords": [
+      "abnormal access",
+      "truy cập bất thường",
+      "baseline comparison",
+      "so sánh mức cơ bản",
+      "resource access",
+      "truy cập tài nguyên",
+      "behavioral analysis",
+      "phân tích hành vi",
+      "khác thường",
+      "unusual",
+      "tài nguyên",
+      "resources",
+      "so với",
+      "compared to",
+      "mức cơ bản",
+      "baseline",
+      "nguyenvana",
+      "truy cập",
+      "access",
+      "phân tích",
+      "analysis"
+    ],
+    "scenario": "ỨNG PHỐ SỰ CỐ - PHÁT HIỆN TÀI KHOẢN BỊ XÂM NHẬP",
+    "phase": "Giai đoạn 2: Phân tích hành vi bất thường",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "term": { "source.user.name": "nguyenvana" } }, { "range": { "@timestamp": { "gte": "now-24h" } } }]
+        }
+      },
+      "aggs": {
+        "recent_destinations": {
+          "terms": { "field": "destination.ip", "size": 50 },
+          "aggs": {
+            "ports": { "terms": { "field": "destination.port" } },
+            "total_bytes": { "sum": { "field": "network.bytes" } },
+            "protocols": { "terms": { "field": "network.protocol" } }
+          }
+        }
+      },
+      "size": 0
+    }
+  },
+
+  {
+    "question": "User nguyenvana có kết nối đến IP/domain đáng ngờ không?",
+    "keywords": [
+      "malicious connections",
+      "kết nối độc hại",
+      "c2 communication",
+      "giao tiếp c2",
+      "suspicious domains",
+      "tên miền đáng ngờ",
+      "threat intelligence",
+      "thông tin mối đe dọa",
+      "ip đáng ngờ",
+      "suspicious ip",
+      "domain đáng ngờ",
+      "suspicious domain",
+      "kết nối",
+      "connection",
+      "đáng ngờ",
+      "suspicious",
+      "nguyenvana",
+      "độc hại",
+      "malicious"
+    ],
+    "scenario": "ỨNG PHỐ SỰ CỐ - PHÁT HIỆN TÀI KHOẢN BỊ XÂM NHẬP",
+    "phase": "Giai đoạn 2: Kiểm tra kết nối đến máy chủ điều khiển",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "term": { "source.user.name": "nguyenvana" } }, { "range": { "@timestamp": { "gte": "now-24h" } } }],
+          "should": [
+            { "exists": { "field": "fortinet.firewall.botnetip" } },
+            { "exists": { "field": "threat.feed.name" } },
+            { "term": { "fortinet.firewall.crlevel": "critical" } },
+            { "term": { "rule.category": "malware" } }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "_source": [
+        "@timestamp",
+        "source.ip",
+        "destination.ip",
+        "destination.as.organization.name",
+        "fortinet.firewall.botnetip",
+        "threat.feed.name",
+        "fortinet.firewall.attack"
+      ],
+      "size": 100
+    }
+  },
+  {
+    "question": "Có dấu hiệu di chuyển ngang không? (Kết nối nội bộ đến nhiều máy chủ)",
+    "keywords": [
+      "lateral movement",
+      "di chuyển ngang",
+      "internal reconnaissance",
+      "trinh sát nội bộ",
+      "network enumeration",
+      "liệt kê mạng",
+      "privilege escalation",
+      "leo thang đặc quyền",
+      "dấu hiệu",
+      "signs",
+      "di chuyển",
+      "movement",
+      "nội bộ",
+      "internal",
+      "nhiều máy chủ",
+      "multiple servers",
+      "kết nối",
+      "connections",
+      "nguyenvana"
+    ],
+    "scenario": "ỨNG PHỐ SỰ CỐ - PHÁT HIỆN TÀI KHOẢN BỊ XÂM NHẬP",
+    "phase": "Giai đoạn 2: Phát hiện di chuyển ngang trong mạng",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "source.user.name": "nguyenvana" } },
+            { "term": { "network.direction": "internal" } },
+            { "range": { "@timestamp": { "gte": "now-24h" } } }
+          ]
+        }
+      },
+      "aggs": {
+        "internal_destinations": {
+          "terms": { "field": "destination.ip", "size": 100 },
+          "aggs": {
+            "destination_ports": { "terms": { "field": "destination.port" } },
+            "first_access": { "min": { "field": "@timestamp" } },
+            "protocols_used": { "terms": { "field": "network.protocol" } }
+          }
+        },
+        "unique_dest_count": {
+          "cardinality": { "field": "destination.ip" }
+        }
+      },
+      "size": 0
+    }
+  },
+  {
+    "question": "Sử dụng băng thông hiện tại so với 7 ngày trước cùng thời điểm?",
+    "keywords": [
+      "bandwidth comparison",
+      "so sánh băng thông",
+      "baseline analysis",
+      "phân tích mức cơ bản",
+      "network performance",
+      "hiệu suất mạng",
+      "traffic spike",
+      "đỉnh lưu lượng",
+      "băng thông",
+      "bandwidth",
+      "hiện tại",
+      "current",
+      "so với",
+      "compared to",
+      "7 ngày trước",
+      "7 days ago",
+      "cùng thời điểm",
+      "same time",
+      "so sánh",
+      "comparison"
+    ],
+    "scenario": "SUY GIẢM HIỆU SUẤT - TỐC ĐỘ MẠNG CHẬM",
+    "phase": "Giai đoạn 1: So sánh mức cơ bản",
+    "query": {
+      "query": {
+        "bool": {
+          "should": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-1h",
+                  "lte": "now"
+                }
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-7d-1h",
+                  "lte": "now-7d"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "by_time_range": {
+          "filters": {
+            "filters": {
+              "current": { "range": { "@timestamp": { "gte": "now-1h" } } },
+              "last_week": {
+                "range": {
+                  "@timestamp": {
+                    "gte": "now-7d-1h",
+                    "lte": "now-7d"
+                  }
+                }
+              }
+            }
+          },
+          "aggs": {
+            "total_bandwidth": { "sum": { "field": "network.bytes" } },
+            "total_sessions": { "value_count": { "field": "@timestamp" } },
+            "avg_session_size": { "avg": { "field": "network.bytes" } }
+          }
+        }
+      },
+      "size": 0
+    }
+  },
+  {
+    "question": "Mẫu lưu lượng theo từng 5 phút trong 2 giờ qua?",
+    "keywords": [
+      "traffic pattern",
+      "mẫu lưu lượng",
+      "timeline analysis",
+      "phân tích dòng thời gian",
+      "network trending",
+      "xu hướng mạng",
+      "peak detection",
+      "phát hiện đỉnh",
+      "mẫu",
+      "pattern",
+      "lưu lượng",
+      "traffic",
+      "5 phút",
+      "5 minutes",
+      "2 giờ",
+      "2 hours",
+      "theo từng",
+      "every",
+      "phân tích",
+      "analysis"
+    ],
+    "scenario": "SUY GIẢM HIỆU SUẤT - TỐC ĐỘ MẠNG CHẬM",
+    "phase": "Giai đoạn 1: Vẽ biểu đồ lưu lượng",
+    "query": {
+      "query": {
+        "range": { "@timestamp": { "gte": "now-2h" } }
+      },
+      "aggs": {
+        "traffic_timeline": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "fixed_interval": "5m"
+          },
+          "aggs": {
+            "total_bytes": { "sum": { "field": "network.bytes" } },
+            "session_count": { "value_count": { "field": "@timestamp" } },
+            "unique_sources": { "cardinality": { "field": "source.ip" } },
+            "unique_destinations": { "cardinality": { "field": "destination.ip" } },
+            "inbound": {
+              "filter": { "term": { "network.direction": "inbound" } },
+              "aggs": { "bytes": { "sum": { "field": "network.bytes" } } }
+            },
+            "outbound": {
+              "filter": { "term": { "network.direction": "outbound" } },
+              "aggs": { "bytes": { "sum": { "field": "network.bytes" } } }
+            }
+          }
+        }
+      },
+      "size": 0
+    }
+  },
+  {
+    "question": "Top 20 users tiêu tốn băng thông nhiều nhất trong 2h qua?",
+    "keywords": [
+      "bandwidth hogs",
+      "người dùng tiêu thụ băng thông",
+      "top consumers",
+      "người tiêu thụ hàng đầu",
+      "network abuse",
+      "lạm dụng mạng",
+      "user analysis",
+      "phân tích người dùng",
+      "top 20",
+      "users",
+      "người dùng",
+      "tiêu tốn",
+      "consume",
+      "băng thông",
+      "bandwidth",
+      "nhiều nhất",
+      "most",
+      "2h qua",
+      "2 hours"
+    ],
+    "scenario": "SUY GIẢM HIỆU SUẤT - TỐC ĐỘ MẠNG CHẬM",
+    "phase": "Giai đoạn 2: Tìm thủ phạm tiêu thụ băng thông",
+    "query": {
+      "query": {
+        "range": { "@timestamp": { "gte": "now-2h" } }
+      },
+      "aggs": {
+        "top_users": {
+          "terms": {
+            "field": "source.user.name",
+            "size": 20,
+            "order": { "total_bandwidth": "desc" }
+          },
+          "aggs": {
+            "total_bandwidth": { "sum": { "field": "network.bytes" } },
+            "session_count": { "value_count": { "field": "@timestamp" } },
+            "top_destinations": {
+              "terms": { "field": "destination.ip", "size": 5 },
+              "aggs": { "bytes": { "sum": { "field": "network.bytes" } } }
+            },
+            "top_applications": {
+              "terms": { "field": "network.application", "size": 5 },
+              "aggs": { "bytes": { "sum": { "field": "network.bytes" } } }
+            },
+            "upload_vs_download": {
+              "stats": { "field": "source.bytes" }
+            }
+          }
+        }
+      },
+      "size": 0
+    }
+  },
+  {
+    "question": "Top 20 applications đang chiếm bandwidth?",
+    "keywords": [
+      "application usage",
+      "sử dụng ứng dụng",
+      "bandwidth by app",
+      "băng thông theo ứng dụng",
+      "resource consumption",
+      "tiêu thụ tài nguyên",
+      "app analysis",
+      "phân tích ứng dụng",
+      "top 20",
+      "applications",
+      "ứng dụng",
+      "chiếm",
+      "consuming",
+      "băng thông",
+      "bandwidth",
+      "đang",
+      "currently",
+      "phân tích",
+      "analysis"
+    ],
+    "scenario": "SUY GIẢM HIỆU SUẤT - TỐC ĐỘ MẠNG CHẬM",
+    "phase": "Giai đoạn 2: Xác định ứng dụng chiếm băng thông",
+    "query": {
+      "query": {
+        "range": { "@timestamp": { "gte": "now-2h" } }
+      },
+      "aggs": {
+        "top_apps": {
+          "terms": {
+            "field": "network.application",
+            "size": 20,
+            "order": { "total_bytes": "desc" }
+          },
+          "aggs": {
+            "total_bytes": { "sum": { "field": "network.bytes" } },
+            "session_count": { "value_count": { "field": "@timestamp" } },
+            "unique_users": { "cardinality": { "field": "source.user.name" } },
+            "avg_session_duration": { "avg": { "field": "event.duration" } },
+            "protocols": { "terms": { "field": "network.protocol" } }
+          }
+        }
+      },
+      "size": 0
+    }
+  },
+  {
+    "question": "Network Scanning: Phát hiện port scan và network reconnaissance từ source IP?",
+    "keywords": [
+      "port scanning",
+      "quét cổng",
+      "network reconnaissance",
+      "trinh sát mạng",
+      "scanning activity",
+      "hoạt động quét",
+      "port probe",
+      "thăm dò cổng",
+      "network mapping",
+      "lập bản đồ mạng",
+      "vulnerability scan",
+      "quét lỗ hổng",
+      "aggressive scanning",
+      "quét tích cực"
+    ],
+    "scenario": "NETWORK SCANNING DETECTION",
+    "phase": "Giai đoạn 1: Phát hiện hoạt động quét mạng",
+    "securityFramework": "MITRE ATT&CK T1046 - Network Service Scanning",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-1h" } } }, { "term": { "fortinet.firewall.action": "deny" } }]
+        }
+      },
+      "aggs": {
+        "scanning_sources": {
+          "terms": { "field": "source.ip", "size": 100 },
+          "aggs": {
+            "unique_dest_ports": {
+              "cardinality": { "field": "destination.port" }
+            },
+            "unique_dest_ips": {
+              "cardinality": { "field": "destination.ip" }
+            },
+            "scan_attempts": {
+              "value_count": { "field": "@timestamp" }
+            },
+            "scanned_ports": {
+              "terms": { "field": "destination.port", "size": 50 }
+            },
+            "target_hosts": {
+              "terms": { "field": "destination.ip", "size": 30 }
+            },
+            "scan_timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "5m"
+              }
+            },
+            "protocols_used": {
+              "terms": { "field": "network.protocol", "size": 5 }
+            },
+            "source_country": {
+              "terms": { "field": "source.geo.country_name", "size": 10 }
+            }
+          }
+        },
+        "scanning_patterns": {
+          "filters": {
+            "filters": {
+              "port_sweep": {
+                "range": {
+                  "destination.port": { "gte": 1, "lte": 65535 }
+                }
+              },
+              "host_sweep": {
+                "bool": {
+                  "must": [{ "exists": { "field": "destination.ip" } }]
+                }
+              },
+              "common_ports": {
+                "terms": { "destination.port": [22, 23, 80, 443, 3389, 445, 135] }
+              }
+            }
+          }
+        },
+        "targeted_services": {
+          "terms": { "field": "destination.port", "size": 30 },
+          "aggs": {
+            "scanning_sources": {
+              "terms": { "field": "source.ip", "size": 20 }
+            },
+            "scan_frequency": {
+              "value_count": { "field": "@timestamp" }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "DDoS Detection: Phát hiện tấn công từ chối dịch vụ dựa trên volume và pattern?",
+    "keywords": [
+      "DDoS attack",
+      "tấn công DDoS",
+      "denial of service",
+      "từ chối dịch vụ",
+      "traffic flooding",
+      "làm ngập lưu lượng",
+      "volumetric attack",
+      "tấn công khối lượng",
+      "bandwidth exhaustion",
+      "cạn kiệt băng thông",
+      "connection flooding",
+      "làm ngập kết nối",
+      "amplification attack",
+      "tấn công khuếch đại"
+    ],
+    "scenario": "DDOS ATTACK DETECTION",
+    "phase": "Giai đoạn 2: Phát hiện tấn công DDoS",
+    "securityFramework": "MITRE ATT&CK T1498 - Network Denial of Service",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-10m" } } }]
+        }
+      },
+      "aggs": {
+        "traffic_volume_analysis": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "fixed_interval": "1m"
+          },
+          "aggs": {
+            "total_bytes": {
+              "sum": { "field": "network.bytes" }
+            },
+            "total_packets": {
+              "sum": { "field": "network.packets" }
+            },
+            "connection_count": {
+              "value_count": { "field": "@timestamp" }
+            },
+            "unique_sources": {
+              "cardinality": { "field": "source.ip" }
+            }
+          }
+        },
+        "attack_sources": {
+          "terms": { "field": "source.ip", "size": 200 },
+          "aggs": {
+            "request_count": {
+              "value_count": { "field": "@timestamp" }
+            },
+            "bytes_sent": {
+              "sum": { "field": "network.bytes" }
+            },
+            "target_ports": {
+              "terms": { "field": "destination.port", "size": 20 }
+            },
+            "protocols_used": {
+              "terms": { "field": "network.protocol", "size": 5 }
+            },
+            "request_rate": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "30s"
+              }
+            }
+          }
+        },
+        "targeted_services": {
+          "terms": { "field": "destination.ip", "size": 50 },
+          "aggs": {
+            "attack_volume": {
+              "sum": { "field": "network.bytes" }
+            },
+            "attacking_sources": {
+              "cardinality": { "field": "source.ip" }
+            },
+            "service_ports": {
+              "terms": { "field": "destination.port", "size": 15 }
+            }
+          }
+        },
+        "ddos_indicators": {
+          "filters": {
+            "filters": {
+              "high_volume": {
+                "range": { "network.bytes": { "gte": 1048576 } }
+              },
+              "high_frequency": {
+                "range": {
+                  "@timestamp": { "gte": "now-1m" }
+                }
+              },
+              "syn_flood": {
+                "bool": {
+                  "must": [{ "term": { "network.protocol": "tcp" } }, { "term": { "fortinet.firewall.action": "deny" } }]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Bandwidth Abuse: Phát hiện user hoặc application sử dụng băng thông quá mức?",
+    "keywords": [
+      "bandwidth abuse",
+      "lạm dụng băng thông",
+      "excessive usage",
+      "sử dụng quá mức",
+      "traffic shaping",
+      "định hình lưu lượng",
+      "QoS violation",
+      "vi phạm QoS",
+      "network congestion",
+      "tắc nghẽn mạng",
+      "heavy users",
+      "người dùng nặng",
+      "application abuse",
+      "lạm dụng ứng dụng"
+    ],
+    "scenario": "BANDWIDTH UTILIZATION MONITORING",
+    "phase": "Giai đoạn 3: Giám sát sử dụng băng thông",
+    "securityFramework": "Network Performance Management",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-2h" } } }, { "term": { "fortinet.firewall.action": "accept" } }]
+        }
+      },
+      "aggs": {
+        "bandwidth_users": {
+          "terms": { "field": "source.user.name", "size": 50 },
+          "aggs": {
+            "total_bandwidth": {
+              "sum": { "field": "network.bytes" }
+            },
+            "session_count": {
+              "value_count": { "field": "@timestamp" }
+            },
+            "usage_timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "10m"
+              },
+              "aggs": {
+                "period_usage": {
+                  "sum": { "field": "network.bytes" }
+                }
+              }
+            },
+            "top_destinations": {
+              "terms": { "field": "destination.ip", "size": 20 }
+            },
+            "protocol_breakdown": {
+              "terms": { "field": "network.protocol", "size": 10 }
+            },
+            "service_ports": {
+              "terms": { "field": "destination.port", "size": 15 }
+            }
+          }
+        },
+        "heavy_applications": {
+          "terms": { "field": "destination.port", "size": 30 },
+          "aggs": {
+            "app_bandwidth": {
+              "sum": { "field": "network.bytes" }
+            },
+            "app_users": {
+              "cardinality": { "field": "source.user.name" }
+            },
+            "avg_session_size": {
+              "avg": { "field": "network.bytes" }
+            }
+          }
+        },
+        "network_segments": {
+          "terms": { "field": "fortinet.firewall.src_int", "size": 20 },
+          "aggs": {
+            "segment_usage": {
+              "sum": { "field": "network.bytes" }
+            },
+            "segment_users": {
+              "cardinality": { "field": "source.ip" }
+            }
+          }
+        },
+        "usage_thresholds": {
+          "filters": {
+            "filters": {
+              "heavy_usage": {
+                "range": { "network.bytes": { "gte": 104857600 } }
+              },
+              "streaming_traffic": {
+                "terms": { "destination.port": [1935, 8080, 554] }
+              },
+              "p2p_traffic": {
+                "range": { "destination.port": { "gte": 6881, "lte": 6999 } }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Mô hình lưu lượng ICMP: Có kích thước payload bất thường hoặc tần suất lạ?",
+    "keywords": [
+      "icmp tunneling",
+      "đường hầm icmp",
+      "icmp traffic",
+      "lưu lượng icmp",
+      "payload bất thường",
+      "unusual payload",
+      "đánh cắp dữ liệu",
+      "data exfiltration",
+      "covert channels",
+      "kênh bí mật",
+      "network forensics",
+      "điều tra mạng",
+      "kích thước",
+      "payload size",
+      "tần suất",
+      "frequency",
+      "mô hình lưu lượng",
+      "traffic pattern"
+    ],
+    "scenario": "NETWORK COVERT CHANNELS DETECTION",
+    "phase": "Giai đoạn 1: Protocol Anomaly Detection",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-24h" } } }, { "term": { "network.protocol": "icmp" } }]
+        }
+      },
+      "aggs": {
+        "icmp_analysis": {
+          "terms": { "field": "source.ip", "size": 50 },
+          "aggs": {
+            "packet_sizes": {
+              "histogram": {
+                "field": "network.bytes",
+                "interval": 100
+              },
+              "aggs": {
+                "avg_bytes": { "avg": { "field": "network.bytes" } }
+              }
+            },
+            "frequency_pattern": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1m"
+              }
+            },
+            "avg_packet_size": { "avg": { "field": "network.bytes" } },
+            "unusual_payloads": {
+              "bucket_selector": {
+                "buckets_path": { "avg_size": "avg_packet_size" },
+                "script": "params.avg_size > 1000"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Performance Analysis: Rule nào gây bottleneck và ảnh hưởng hiệu suất firewall?",
+    "keywords": [
+      "performance bottleneck",
+      "bottleneck hiệu suất",
+      "firewall performance",
+      "hiệu suất firewall",
+      "rule optimization",
+      "tối ưu rule",
+      "throughput analysis",
+      "phân tích thông lượng",
+      "resource utilization",
+      "sử dụng tài nguyên",
+      "connection drops",
+      "mất kết nối",
+      "slow response",
+      "phản hồi chậm"
+    ],
+    "scenario": "NETWORK PERFORMANCE OPTIMIZATION",
+    "phase": "Giai đoạn 1: Phân tích tác động hiệu suất",
+    "operationalGoal": "Tối ưu hóa hiệu suất firewall và giảm thiểu bottleneck",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-4h" } } },
+            {
+              "bool": {
+                "should": [
+                  { "range": { "event.duration": { "gte": 1000 } } },
+                  { "range": { "fortinet.firewall.durationdelta": { "gte": 1000 } } },
+                  { "term": { "event.outcome": "failure" } },
+                  { "term": { "fortinet.firewall.action": "deny" } }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "performance_analysis": {
+          "terms": { "field": "rule.name", "size": 100 },
+          "aggs": {
+            "avg_processing_time": {
+              "avg": { "field": "event.duration" }
+            },
+            "max_processing_time": {
+              "max": { "field": "event.duration" }
+            },
+            "total_packets": {
+              "value_count": { "field": "@timestamp" }
+            },
+            "dropped_packets": {
+              "filter": { "term": { "fortinet.firewall.action": "deny" } }
+            },
+            "traffic_volume": {
+              "sum": { "field": "network.bytes" }
+            },
+            "hourly_pattern": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              },
+              "aggs": {
+                "hourly_avg_latency": {
+                  "avg": { "field": "event.duration" }
+                }
+              }
+            },
+            "source_destinations": {
+              "terms": {
+                "script": {
+                  "source": "doc['source.ip'].value + ' -> ' + doc['destination.ip'].value"
+                },
+                "size": 50
+              }
+            }
+          }
+        },
+        "connection_health": {
+          "filters": {
+            "filters": {
+              "successful_connections": { "term": { "fortinet.firewall.action": "accept" } },
+              "failed_connections": { "term": { "fortinet.firewall.action": "deny" } },
+              "timeout_connections": { "term": { "event.outcome": "timeout" } },
+              "high_latency": { "range": { "event.duration": { "gte": 5000 } } }
+            }
+          }
+        },
+        "protocol_performance": {
+          "terms": { "field": "network.protocol", "size": 20 },
+          "aggs": {
+            "avg_throughput": {
+              "avg": { "field": "network.bytes" }
+            },
+            "connection_success_rate": {
+              "filters": {
+                "filters": {
+                  "successful": { "term": { "fortinet.firewall.action": "accept" } },
+                  "failed": { "term": { "fortinet.firewall.action": "deny" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Capacity Planning: Dự báo nhu cầu băng thông và tài nguyên hệ thống trong 30 ngày tới?",
+    "keywords": [
+      "capacity planning",
+      "lập kế hoạch dung lượng",
+      "bandwidth forecasting",
+      "dự báo băng thông",
+      "resource planning",
+      "lập kế hoạch tài nguyên",
+      "growth prediction",
+      "dự đoán tăng trưởng",
+      "utilization trends",
+      "xu hướng sử dụng",
+      "peak usage analysis",
+      "phân tích sử dụng đỉnh",
+      "infrastructure scaling",
+      "mở rộng hạ tầng",
+      "future requirements",
+      "yêu cầu tương lai"
+    ],
+    "scenario": "INFRASTRUCTURE CAPACITY PLANNING",
+    "phase": "Giai đoạn 2: Dự báo và lập kế hoạch",
+    "operationalGoal": "Đảm bảo hạ tầng đáp ứng nhu cầu tương lai",
+    "query": {
+      "query": {
+        "range": { "@timestamp": { "gte": "now-30d" } }
+      },
+      "aggs": {
+        "bandwidth_trends": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "calendar_interval": "1d"
+          },
+          "aggs": {
+            "daily_total_bytes": {
+              "sum": { "field": "network.bytes" }
+            },
+            "daily_packet_count": {
+              "value_count": { "field": "@timestamp" }
+            },
+            "daily_unique_sources": {
+              "cardinality": { "field": "source.ip" }
+            },
+            "daily_unique_destinations": {
+              "cardinality": { "field": "destination.ip" }
+            },
+            "peak_hour_usage": {
+              "max_bucket": {
+                "buckets_path": "hourly_breakdown>total_bytes"
+              }
+            },
+            "hourly_breakdown": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              },
+              "aggs": {
+                "total_bytes": {
+                  "sum": { "field": "network.bytes" }
+                }
+              }
+            }
+          }
+        },
+        "growth_analysis": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "calendar_interval": "1w"
+          },
+          "aggs": {
+            "weekly_bytes": {
+              "sum": { "field": "network.bytes" }
+            },
+            "weekly_connections": {
+              "value_count": { "field": "@timestamp" }
+            },
+            "growth_rate": {
+              "derivative": {
+                "buckets_path": "weekly_bytes"
+              }
+            }
+          }
+        },
+        "resource_utilization": {
+          "terms": { "field": "destination.port", "size": 50 },
+          "aggs": {
+            "port_usage_trend": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "1d"
+              },
+              "aggs": {
+                "daily_connections": {
+                  "value_count": { "field": "@timestamp" }
+                }
+              }
+            },
+            "total_traffic": {
+              "sum": { "field": "network.bytes" }
+            }
+          }
+        },
+        "predictive_metrics": {
+          "avg_bucket": {
+            "buckets_path": "bandwidth_trends>daily_total_bytes"
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Threat Hunting: Phát hiện kết nối đến botnet trong 48h qua?",
+    "keywords": [
+      "botnet detection",
+      "phát hiện botnet",
+      "command control",
+      "điều khiển từ xa",
+      "malicious IP",
+      "IP độc hại",
+      "threat hunting",
+      "săn lùng mối đe dọa",
+      "IOC detection",
+      "phát hiện IOC",
+      "C2 communication",
+      "giao tiếp C2",
+      "malware communication",
+      "giao tiếp malware",
+      "botnet IP",
+      "IP botnet"
+    ],
+    "scenario": "BOTNET DETECTION AND ANALYSIS",
+    "phase": "Giai đoạn 1: Phát hiện kết nối botnet",
+    "securityFramework": "MITRE ATT&CK T1071 - Application Layer Protocol",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [{ "range": { "@timestamp": { "gte": "now-48h" } } }, { "exists": { "field": "fortinet.firewall.botnetip" } }]
+        }
+      },
+      "aggs": {
+        "botnet_analysis": {
+          "terms": { "field": "fortinet.firewall.botnetip", "size": 50 },
+          "aggs": {
+            "affected_sources": {
+              "terms": { "field": "source.ip", "size": 100 }
+            },
+            "botnet_domains": {
+              "terms": { "field": "fortinet.firewall.botnetdomain", "size": 30 }
+            },
+            "communication_timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              }
+            },
+            "total_connections": {
+              "value_count": { "field": "@timestamp" }
+            },
+            "data_transferred": {
+              "sum": { "field": "network.bytes" }
+            },
+            "protocols_used": {
+              "terms": { "field": "network.protocol", "size": 10 }
+            },
+            "destination_ports": {
+              "terms": { "field": "destination.port", "size": 20 }
+            }
+          }
+        },
+        "infected_hosts": {
+          "terms": { "field": "source.ip", "size": 100 },
+          "aggs": {
+            "botnet_contacts": {
+              "terms": { "field": "fortinet.firewall.botnetip", "size": 20 }
+            },
+            "infection_timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "1h"
+              }
+            },
+            "host_details": {
+              "terms": { "field": "host.name", "size": 50 }
+            },
+            "user_context": {
+              "terms": { "field": "source.user.name", "size": 30 }
+            }
+          }
+        }
+      },
+      "_source": [
+        "@timestamp",
+        "source.ip",
+        "fortinet.firewall.botnetip",
+        "fortinet.firewall.botnetdomain",
+        "network.bytes",
+        "destination.port",
+        "host.name",
+        "source.user.name"
+      ],
+      "size": 100
+    }
+  },
+  {
+    "question": "Living off the Land: Phát hiện sử dụng DNS để truyền dữ liệu bất thường?",
+    "keywords": [
+      "DNS tunneling",
+      "đường hầm DNS",
+      "data exfiltration",
+      "đánh cắp dữ liệu",
+      "covert channels",
+      "kênh bí mật",
+      "DNS abuse",
+      "lạm dụng DNS",
+      "abnormal DNS",
+      "DNS bất thường",
+      "living off the land",
+      "sống bằng đất",
+      "legitimate protocol abuse",
+      "lạm dụng giao thức hợp pháp"
+    ],
+    "scenario": "DNS TUNNELING DETECTION",
+    "phase": "Giai đoạn 2: Phát hiện lạm dụng DNS",
+    "securityFramework": "MITRE ATT&CK T1071.004 - DNS",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-2h" } } },
+            { "term": { "destination.port": 53 } },
+            { "term": { "network.protocol": "udp" } },
+            { "exists": { "field": "dns.question.name" } }
+          ]
+        }
+      },
+      "aggs": {
+        "dns_analysis": {
+          "terms": { "field": "source.ip", "size": 100 },
+          "aggs": {
+            "query_patterns": {
+              "terms": { "field": "dns.question.name", "size": 50 }
+            },
+            "query_types": {
+              "terms": { "field": "dns.question.type", "size": 10 }
+            },
+            "query_frequency": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1m"
+              }
+            },
+            "unique_domains": {
+              "cardinality": { "field": "dns.question.registered_domain" }
+            },
+            "total_queries": {
+              "value_count": { "field": "dns.question.name" }
+            },
+            "suspicious_tlds": {
+              "terms": { "field": "dns.question.top_level_domain", "size": 20 }
+            },
+            "long_queries": {
+              "filter": {
+                "script": {
+                  "script": {
+                    "source": "doc['dns.question.name'].size() > 0 && doc['dns.question.name'].value.length() > 50"
+                  }
+                }
+              }
+            },
+            "subdomain_analysis": {
+              "terms": { "field": "dns.question.subdomain", "size": 30 }
+            }
+          }
+        },
+        "anomaly_indicators": {
+          "filters": {
+            "filters": {
+              "high_frequency": {
+                "range": { "@timestamp": { "gte": "now-1m" } }
+              },
+              "unusual_record_types": {
+                "terms": { "dns.question.type": ["TXT", "NULL", "CNAME"] }
+              },
+              "non_standard_ports": {
+                "bool": {
+                  "must_not": [{ "term": { "destination.port": 53 } }]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Lateral Movement: Phát hiện kết nối SMB/RDP bất thường giữa các host?",
+    "keywords": [
+      "lateral movement",
+      "di chuyển ngang",
+      "SMB traffic",
+      "lưu lượng SMB",
+      "RDP connections",
+      "kết nối RDP",
+      "internal spreading",
+      "lan truyền nội bộ",
+      "administrative access",
+      "truy cập quản trị",
+      "credential abuse",
+      "lạm dụng credential",
+      "network reconnaissance",
+      "trinh sát mạng"
+    ],
+    "scenario": "LATERAL MOVEMENT DETECTION",
+    "phase": "Giai đoạn 3: Phát hiện di chuyển ngang",
+    "securityFramework": "MITRE ATT&CK T1021 - Remote Services",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-4h" } } },
+            { "term": { "network.direction": "internal" } },
+            { "term": { "fortinet.firewall.action": "accept" } },
+            {
+              "bool": {
+                "should": [
+                  { "term": { "destination.port": 445 } },
+                  { "term": { "destination.port": 3389 } },
+                  { "term": { "destination.port": 139 } },
+                  { "term": { "destination.port": 135 } }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "lateral_movement_analysis": {
+          "terms": { "field": "source.ip", "size": 100 },
+          "aggs": {
+            "target_hosts": {
+              "terms": { "field": "destination.ip", "size": 50 },
+              "aggs": {
+                "connection_ports": {
+                  "terms": { "field": "destination.port", "size": 10 }
+                },
+                "connection_timeline": {
+                  "date_histogram": {
+                    "field": "@timestamp",
+                    "fixed_interval": "10m"
+                  }
+                }
+              }
+            },
+            "protocols_used": {
+              "terms": { "field": "network.protocol", "size": 5 }
+            },
+            "user_context": {
+              "terms": { "field": "source.user.name", "size": 20 }
+            },
+            "total_connections": {
+              "value_count": { "field": "@timestamp" }
+            },
+            "data_volume": {
+              "sum": { "field": "network.bytes" }
+            },
+            "unique_targets": {
+              "cardinality": { "field": "destination.ip" }
+            }
+          }
+        },
+        "service_analysis": {
+          "terms": { "field": "destination.port", "size": 10 },
+          "aggs": {
+            "service_usage": {
+              "terms": {
+                "script": {
+                  "source": "doc['source.ip'].value + ' -> ' + doc['destination.ip'].value"
+                },
+                "size": 100
+              }
+            },
+            "hourly_pattern": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Phân tích vi phạm Zero Trust: Kết nối nào không thông qua xác thực trong 24h qua?",
+    "keywords": [
+      "zero trust violation",
+      "vi phạm zero trust",
+      "authentication bypass",
+      "bỏ qua xác thực",
+      "unauthenticated access",
+      "truy cập không xác thực",
+      "lateral movement",
+      "di chuyển ngang",
+      "trust boundary",
+      "ranh giới tin cậy",
+      "verify explicitly",
+      "xác minh rõ ràng",
+      "least privilege",
+      "quyền tối thiểu"
+    ],
+    "scenario": "ZERO TRUST ARCHITECTURE MONITORING",
+    "phase": "Giai đoạn 1: Phát hiện vi phạm chính sách Zero Trust",
+    "securityFramework": "NIST Zero Trust Architecture SP 800-207",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-24h" } } },
+            { "term": { "fortinet.firewall.action": "accept" } },
+            {
+              "bool": {
+                "must_not": [{ "exists": { "field": "source.user.name" } }]
+              }
+            },
+            {
+              "bool": {
+                "should": [{ "term": { "network.direction": "inbound" } }, { "term": { "network.direction": "internal" } }]
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "unauthenticated_connections": {
+          "terms": { "field": "source.ip", "size": 100 },
+          "aggs": {
+            "connection_types": {
+              "terms": { "field": "event.action", "size": 20 }
+            },
+            "accessed_resources": {
+              "terms": { "field": "destination.ip", "size": 50 }
+            },
+            "protocols_used": {
+              "terms": { "field": "network.protocol", "size": 10 }
+            },
+            "ports_accessed": {
+              "terms": { "field": "destination.port", "size": 30 }
+            },
+            "data_transferred": {
+              "sum": { "field": "network.bytes" }
+            },
+            "connection_timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "1h"
+              }
+            },
+            "source_countries": {
+              "terms": { "field": "source.geo.country_name", "size": 20 }
+            }
+          }
+        },
+        "network_segments": {
+          "terms": { "field": "fortinet.firewall.dintf", "size": 20 },
+          "aggs": {
+            "segment_traffic": {
+              "sum": { "field": "network.bytes" }
+            },
+            "unique_sources": {
+              "cardinality": { "field": "source.ip" }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Micro-segmentation: Lưu lượng East-West không được phép giữa các vùng mạng?",
+    "keywords": [
+      "micro-segmentation",
+      "phân đoạn vi mô",
+      "east-west traffic",
+      "lưu lượng east-west",
+      "lateral movement",
+      "di chuyển ngang",
+      "network zones",
+      "vùng mạng",
+      "segment violation",
+      "vi phạm phân đoạn",
+      "network isolation",
+      "cô lập mạng",
+      "inter-zone communication",
+      "giao tiếp liên vùng"
+    ],
+    "scenario": "MICRO-SEGMENTATION MONITORING",
+    "phase": "Giai đoạn 2: Giám sát giao tiếp liên vùng",
+    "securityFramework": "Zero Trust Network Segmentation",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-1h" } } },
+            { "term": { "network.direction": "internal" } },
+            { "term": { "fortinet.firewall.action": "accept" } },
+            {
+              "bool": {
+                "should": [
+                  {
+                    "bool": {
+                      "must": [{ "term": { "fortinet.firewall.srcintfrole": "lan" } }, { "term": { "fortinet.firewall.dstintfrole": "dmz" } }]
+                    }
+                  },
+                  {
+                    "bool": {
+                      "must": [{ "term": { "fortinet.firewall.srcintfrole": "dmz" } }, { "term": { "fortinet.firewall.dstintfrole": "lan" } }]
+                    }
+                  },
+                  {
+                    "bool": {
+                      "must": [{ "term": { "fortinet.firewall.src_int": "internal" } }, { "term": { "fortinet.firewall.dst_int": "dmz" } }]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "unauthorized_flows": {
+          "terms": {
+            "script": {
+              "source": "doc['source.ip'].value + ' -> ' + doc['destination.ip'].value"
+            },
+            "size": 100
+          },
+          "aggs": {
+            "flow_volume": {
+              "sum": { "field": "network.bytes" }
+            },
+            "protocol_breakdown": {
+              "terms": { "field": "network.protocol", "size": 10 }
+            },
+            "port_analysis": {
+              "terms": { "field": "destination.port", "size": 20 }
+            },
+            "timeline": {
+              "date_histogram": {
+                "field": "@timestamp",
+                "fixed_interval": "5m"
+              }
+            },
+            "source_interface": {
+              "terms": { "field": "fortinet.firewall.src_int", "size": 10 }
+            },
+            "dest_interface": {
+              "terms": { "field": "fortinet.firewall.dst_int", "size": 10 }
+            }
+          }
+        },
+        "interface_roles": {
+          "terms": { "field": "fortinet.firewall.srcintfrole", "size": 10 },
+          "aggs": {
+            "dest_roles": {
+              "terms": { "field": "fortinet.firewall.dstintfrole", "size": 10 }
+            }
+          }
+        }
+      }
+    }
   }
 ]
