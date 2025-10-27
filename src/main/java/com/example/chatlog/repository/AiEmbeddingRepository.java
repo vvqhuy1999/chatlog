@@ -28,6 +28,10 @@ public interface AiEmbeddingRepository extends JpaRepository<AiEmbedding, UUID> 
     @Query(nativeQuery = true, value = "SELECT * FROM ai_embedding a WHERE a.metadata->>'source_file' = ?1 AND a.is_deleted = 0")
     List<AiEmbedding> findBySourceFile(String sourceFile);
 
+    // Đếm số embeddings theo source file
+    @Query(nativeQuery = true, value = "SELECT COUNT(*) FROM ai_embedding a WHERE a.metadata->>'source_file' = ?1 AND a.is_deleted = 0")
+    long countBySourceFile(String sourceFile);
+
     // Vector similarity search - Native SQL vì HQL không support vector operators
     @Query(nativeQuery = true, value = "SELECT * FROM ai_embedding WHERE is_deleted = 0 ORDER BY embedding <=> CAST(:queryEmbedding AS vector) LIMIT :limit")
     List<AiEmbedding> findSimilarEmbeddings(@Param("queryEmbedding") String queryEmbedding, @Param("limit") int limit);

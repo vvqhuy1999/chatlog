@@ -34,4 +34,7 @@ public interface AiEmbeddingService {
 
     // Đếm tất cả embeddings chưa xóa
     long countAllNotDeleted();
+
+    // Đếm số embeddings theo source file
+    long countBySourceFile(String sourceFile);
 }

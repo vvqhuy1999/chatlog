@@ -128,25 +128,53 @@ public class AiComparisonService {
                 System.out.println("[AiComparisonService] ✅ Normalized query: " + userQueryForPrompt);
             }
 
-            String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPrompt(
-                userQueryForPrompt,
-                dateContext,
-                null,
-                null,
-                ""
-            );
+            // ✅ THỨ TỰ MỚI: Schema -> Dynamic Examples -> Syntax Rules -> User Query
+            // 1. Schema và thông tin field
+            String schemaSection = """
+                SCHEMA INFORMATION & FIELD CATALOG
+                %s
+                
+                ROLE NORMALIZATION RULES
+                %s
+                """.formatted(fullSchema, SchemaHint.getRoleNormalizationRules());
             
-            // Tạo system prompt đầy đủ từ PromptTemplate với toàn bộ SchemaHint để bổ sung ngữ cảnh
-            String fullSystemPrompt = com.example.chatlog.utils.PromptTemplate.getSystemPrompt(
-                dateContext,
-                SchemaHint.getRoleNormalizationRules(),
-                fullSchema,
-                "",  // categoryGuides removed
-                ""   // quickPatterns removed - all patterns now in fortigate_queries_full.json
-            );
+            // 2. Dynamic Examples (từ knowledge base)
+            String examplesSection = dynamicExamples;
             
-            // Ghép tất cả, đặt dynamic examples xuống cuối cùng để AI dễ đọc
-            String combinedPrompt = queryPrompt + "\n\n" + fullSystemPrompt + "\n\nSAMPLE LOG (for inference):\n" + SchemaHint.examplelog() + "\n\nDYNAMIC EXAMPLES FROM KNOWLEDGE BASE\n" + dynamicExamples;
+            // 3. QUAN TRỌNG: Syntax Rules đặt CUỐI CÙNG
+            String syntaxRulesSection = """
+                ---
+                ⭐ QUY TẮC SYNTAX TỐI QUAN TRỌNG (KIỂM TRA TRƯỚC KHI TRẢ VỀ) ⭐
+                
+                1. **CHỈ TRẢ VỀ JSON:** Không giải thích, không "```json", chỉ duy nhất đối tượng JSON.
+                
+                2. **SIZE:**
+                   • Query có "aggs": PHẢI bao gồm `"size": 0`
+                   • Query không có "aggs" (tìm kiếm): PHẢI bao gồm `"size": 50`
+                
+                3. **AGGS PHẢI Ở GỐC (ROOT):** `"aggs"` phải ngang hàng với `"query"`, KHÔNG BAO GIỜ nằm trong `"query"`
+                
+                4. **LỖI PHỔ BIẾN NHẤT (BẮT BUỘC SỬA):**
+                   • Các mệnh đề `must`, `should`, `filter`, `must_not` BẮT BUỘC PHẢI LÀ MẢNG (dùng dấu `[ ... ]`)
+                   • ✅ **ĐÚNG:** `"filter": [{"term": {...}}]`
+                   • ❌ **SAI:** `"filter": {"term": {...}}` (SAI CÚ PHÁP!)
+                   • ❌ **SAI:** `"bool": {"should": {...}}` → ✅ **ĐÚNG:** `"bool": {"should": [{...}]}`
+                
+                5. **QUAN TRỌNG:** `"aggs"` ở cùng cấp với `"query"`, không phải trong `"query"`
+                   • ✅ **ĐÚNG:** `{"query": {...}, "aggs": {...}, "size": 0}`
+                   • ❌ **SAI:** `{"query": {...}, "aggs": {...}}` (thiếu size)
+                   • ❌ **SAI:** `{"query": {"aggs": {...}}}` (aggs trong query - SAI!)
+                ---
+                
+                TIME CONTEXT (Vietnam +07:00):
+                %s
+                ---
+                
+                USER QUERY: %s
+                """.formatted(dateContext, userQueryForPrompt);
+            
+            // 4. Ghép theo thứ tự: Schema -> Examples -> Syntax Rules
+            String combinedPrompt = schemaSection + "\n" + examplesSection + "\n" + syntaxRulesSection;
             SystemMessage systemMessage = new SystemMessage(combinedPrompt);
             
             UserMessage userMessage = new UserMessage(chatRequest.message());
@@ -154,7 +182,7 @@ public class AiComparisonService {
             System.out.println("---------------------------------------------------------------------------------------");
             Prompt prompt = new Prompt(List.of(systemMessage, userMessage));
 
-            // System.out.println("Prompt very long: " + prompt);
+            System.out.println("Prompt very long: " + prompt);
 
 
             ChatOptions chatOptions = ChatOptions.builder()

@@ -82,7 +82,6 @@ public class VectorSearchService {
         SearchRequest searchRequest = SearchRequest.builder()
             .query(userQuery)
             .topK(8)  // Lấy 8 ví dụ tương tự nhất
-            .similarityThreshold(0.0)  // Accept all results
             .build();
         
         System.out.println("   Using SearchRequest with topK=" + searchRequest.getTopK());

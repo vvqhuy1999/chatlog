@@ -246,20 +246,6 @@ public class PromptTemplate {
      *
      * @return Chuỗi mô tả các tham số bắt buộc
      */
-    public static String getPromptParameters() {
-        return """
-                Required parameters for getSystemPrompt() in order:
-                1. dateContext - String from generateDateContext()
-                2. roleNormalizationRules - String from SchemaHint.getRoleNormalizationRules()
-                3. fieldCatalog - String from SchemaHint.getSchemaHint()
-                4. categoryGuides - DEPRECATED (use empty string "")
-                5. quickPatterns - DEPRECATED (use empty string "") - all patterns now in fortigate_queries_full.json
-                
-                Usage example:
-                String prompt = PromptTemplate.getSystemPrompt(
-                    dateContext, roleRules, fieldCatalog, "", "");
-                """;
-    }
 
     /**
      * Lấy prompt cho việc so sánh và tái tạo query khi không có kết quả

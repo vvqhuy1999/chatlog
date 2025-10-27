@@ -34,6 +34,7 @@ spring:
       chat:
         options:
           model: gpt-4o-mini
+          temperature: 0.0
 
     openrouter:
       api-key: ${OPENROUTER_API_KEY}
@@ -41,7 +42,7 @@ spring:
       referer: ${OPENROUTER_REFERER:https://localhost:8080}
       chat:
         options:
-          model: x-ai/grok-4-fast:free
+          model: x-ai/grok-4-fast
           temperature: 0.5
           top-p: 1.0
           max-tokens: 4000

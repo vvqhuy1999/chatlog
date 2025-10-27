@@ -105,4 +105,9 @@ public class AiEmbeddingServiceImpl implements AiEmbeddingService {
     public long countAllNotDeleted() {
         return aiEmbeddingRepository.findAllNotDeleted().size();
     }
+
+    @Override
+    public long countBySourceFile(String sourceFile) {
+        return aiEmbeddingRepository.countBySourceFile(sourceFile);
+    }
 }

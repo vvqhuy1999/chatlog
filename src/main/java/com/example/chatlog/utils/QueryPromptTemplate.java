@@ -17,7 +17,41 @@ public class QueryPromptTemplate {
                         
             CORE OBJECTIVE
             You are an expert Elasticsearch query generator for Fortinet logs. Your task is to generate ONE valid JSON query that matches the user's intent exactly.
-                    
+                               
+            TIME HANDLING (Priority #1)
+            Current Context: {dateContext}
+                        
+            Relative Time (Preferred):
+                        
+            "5 phút qua/trước" → {"gte": "now-5m"}
+                        
+            "1 giờ qua/trước" → {"gte": "now-1h"}
+                        
+            "24 giờ qua/trước" → {"gte": "now-24h"}
+                        
+            "1 tuần qua/trước" → {"gte": "now-7d"}
+                        
+            "1 tháng qua/trước" → {"gte": "now-30d"}
+                        
+            Specific Dates:
+                        
+            "hôm nay/today" → {"gte": "now/d"}
+                        
+            "hôm qua/yesterday" → {"gte": "now-1d/d"}
+                        
+            "ngày DD-MM" → {"gte": "YYYY-MM-DDT00:00:00.000+07:00", "lte": "YYYY-MM-DDT23:59:59.999+07:00"}
+                               
+            SCHEMA INFORMATION
+            {schemaInfo}
+            
+            ROLE NORMALIZATION RULES
+            {roleNormalizationRules}
+            
+            USER QUERY: {userQuery}
+            
+            DYNAMIC EXAMPLES FROM KNOWLEDGE BASE
+            {dynamic_examples}
+            
             OUTPUT RULES
                         
             Return ONLY the JSON query object (valid JSON)
@@ -69,40 +103,7 @@ public class QueryPromptTemplate {
             NESTED BOOL IN FILTERS (CRITICAL):
             ❌ WRONG: {"bool": {"should": {...}}} - should is an object, not array
             ✅ CORRECT: {"bool": {"should": [{...}]}} - should is an array with objects
-                        
-            TIME HANDLING (Priority #1)
-            Current Context: {dateContext}
-                        
-            Relative Time (Preferred):
-                        
-            "5 phút qua/trước" → {"gte": "now-5m"}
-                        
-            "1 giờ qua/trước" → {"gte": "now-1h"}
-                        
-            "24 giờ qua/trước" → {"gte": "now-24h"}
-                        
-            "1 tuần qua/trước" → {"gte": "now-7d"}
-                        
-            "1 tháng qua/trước" → {"gte": "now-30d"}
-                        
-            Specific Dates:
-                        
-            "hôm nay/today" → {"gte": "now/d"}
-                        
-            "hôm qua/yesterday" → {"gte": "now-1d/d"}
-                        
-            "ngày DD-MM" → {"gte": "YYYY-MM-DDT00:00:00.000+07:00", "lte": "YYYY-MM-DDT23:59:59.999+07:00"}
             
-            SCHEMA INFORMATION
-            {schemaInfo}
-            
-            ROLE NORMALIZATION RULES
-            {roleNormalizationRules}
-            
-            USER QUERY: {userQuery}
-            
-            DYNAMIC EXAMPLES FROM KNOWLEDGE BASE
-            {dynamic_examples}
             """;
     
     /**

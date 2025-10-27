@@ -36,10 +36,6 @@ public class KnowledgeBaseIndexingService {
     @Transactional("secondaryTransactionManager")  // BỌC TOÀN BỘ PHƯƠNG THỨC TRONG TRANSACTION PHỤ
     public void indexKnowledgeBase() {
         System.out.println("🚀 Bắt đầu quá trình vector hóa kho tri thức và lưu vào Database...");
-        
-        // Đếm số embeddings hiện có
-        long existingCount = aiEmbeddingService.countAllNotDeleted();
-        System.out.println("📊 Hiện có " + existingCount + " embeddings trong database");
 
         String[] knowledgeBaseFiles = {
             "fortigate_queries_full.json"
@@ -54,12 +50,38 @@ public class KnowledgeBaseIndexingService {
                 InputStream inputStream = resource.getInputStream();
                 List<DataExample> examples = objectMapper.readValue(inputStream, new TypeReference<List<DataExample>>() {});
 
+                // Đếm số entries trong file JSON
+                int fileCount = examples.size();
+                
+                // Đếm số embeddings hiện có trong database cho file này
+                long dbCount = aiEmbeddingService.countBySourceFile(fileName);
+                
+                System.out.println("📁 File: " + fileName);
+                System.out.println("   📊 Số entries trong file: " + fileCount);
+                System.out.println("   💾 Số embeddings trong DB: " + dbCount);
+                
+                // So sánh và quyết định có cần xử lý không
+                if (fileCount == dbCount) {
+                    System.out.println("   ✅ Dữ liệu đã đồng bộ, bỏ qua file này");
+                    continue;
+                } else if (fileCount < dbCount) {
+                    System.out.println("   ⚠️ Cảnh báo: DB có nhiều records hơn file (" + dbCount + " > " + fileCount + ")");
+                    System.out.println("   💡 Có thể file đã bị xóa bớt entries. Tiếp tục xử lý...");
+                } else {
+                    int newEntriesCount = fileCount - (int)dbCount;
+                    System.out.println("   🆕 Phát hiện " + newEntriesCount + " entries mới cần thêm vào DB");
+                }
+
+                // Chỉ xử lý các entries chưa có trong database
+                int processedCount = 0;
                 for (DataExample example : examples) {
                     if (example.getQuestion() != null && example.getQuery() != null) {
-                        // Kiểm tra xem embedding đã tồn tại chưa
+                        // Kiểm tra xem embedding đã tồn tại chưa (chỉ khi cần thiết)
                         if (aiEmbeddingService.existsByContent(example.getQuestion())) {
                             continue; // Bỏ qua nếu đã tồn tại
                         }
+                        
+                        processedCount++;
                         
                         // 🔧 Chuyển JsonNode thành Object rồi serialize thành JSON string
                         Object queryDslObj = objectMapper.treeToValue(example.getQuery(), Object.class);
@@ -109,8 +131,12 @@ public class KnowledgeBaseIndexingService {
                         documents.add(doc);
                     }
                 }
+                
+                System.out.println("   ✅ Đã xử lý " + processedCount + " entries mới từ file " + fileName);
+                
             } catch (Exception e) {
                 System.err.println("❌ Lỗi khi đọc file " + fileName + ": " + e.getMessage());
+                e.printStackTrace();
             }
         }
 
@@ -120,8 +146,10 @@ public class KnowledgeBaseIndexingService {
         }
         
         long finalCount = aiEmbeddingService.countAllNotDeleted();
+        System.out.println("\n📊 === KẾT QUẢ TỔNG HỢP ===");
         System.out.println("✅ Đã thêm " + totalSaved + " embeddings mới vào Database");
-        System.out.println("📊 Tổng số embeddings hiện tại: " + finalCount);
+        System.out.println("📊 Tổng số embeddings hiện tại trong DB: " + finalCount);
+        System.out.println("🎉 Hoàn thành quá trình đồng bộ!");
     }
 
     public List<DataExample> getExampleLibrary() {
