@@ -125,7 +125,7 @@ public class VectorSearchService {
         System.out.println("\n📊 STEP 3: Similarity Comparison Details");
         System.out.println("-".repeat(100));
         
-        for (int i = 0; i < Math.min(3, similarDocuments.size()); i++) {
+        for (int i = 0; i < Math.min(8, similarDocuments.size()); i++) {
             Document doc = similarDocuments.get(i);
             String question = (String) doc.getMetadata().get("question");
             

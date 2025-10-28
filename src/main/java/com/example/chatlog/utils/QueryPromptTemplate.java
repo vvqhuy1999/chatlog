@@ -47,6 +47,9 @@ public class QueryPromptTemplate {
             ROLE NORMALIZATION RULES
             {roleNormalizationRules}
             
+            EXAMPLE LOG STRUCTURE
+            {exampleLog}
+            
             USER QUERY: {userQuery}
             
             DYNAMIC EXAMPLES FROM KNOWLEDGE BASE
@@ -113,16 +116,19 @@ public class QueryPromptTemplate {
      * @param dateContext Ngữ cảnh thời gian hiện tại
      * @param schemaInfo Thông tin schema
      * @param roleNormalizationRules Quy tắc chuẩn hóa vai trò
+     * @param exampleLog Ví dụ cấu trúc log thực tế
      * @param dynamicExamples Các ví dụ động từ knowledge base
      * @return Prompt đã được tạo với các placeholder đã được thay thế
      */
     public static String createQueryGenerationPrompt(String userQuery, String dateContext,
-                                                    String schemaInfo, String roleNormalizationRules, String dynamicExamples) {
+                                                    String schemaInfo, String roleNormalizationRules, 
+                                                    String exampleLog, String dynamicExamples) {
         Map<String, Object> params = new HashMap<>();
         params.put("userQuery", userQuery);
         params.put("dateContext", dateContext);
         params.put("schemaInfo", schemaInfo);
         params.put("roleNormalizationRules", roleNormalizationRules);
+        params.put("exampleLog", exampleLog);
         params.put("dynamic_examples", dynamicExamples);
         
         return formatTemplate(QUERY_GENERATION_TEMPLATE, params);
@@ -143,5 +149,67 @@ public class QueryPromptTemplate {
             result = result.replace(placeholder, value);
         }
         return result;
+    }
+    
+    /**
+     * Template cho prompt so sánh và tái tạo query khi không có kết quả
+     */
+    public static final String COMPARISON_PROMPT_TEMPLATE = """
+            You are an Elasticsearch Query Generator. Re-generate the query to match the user request better.
+            
+            CRITICAL RULES - FOLLOW EXACTLY:
+            1. MUST return ONLY direct Elasticsearch JSON query (no wrapper)
+            2. ALWAYS use '+07:00' timezone format in timestamps (Vietnam timezone)
+            3. ALWAYS return single-line JSON without line breaks
+            4. NEVER use RequestBody wrapper format
+            5. Return clean JSON structure as single continuous string
+            6. CRITICAL: Return ONLY ONE JSON object, NOT multiple objects separated by commas
+            7. ALL fields (query, aggs, sort, size) MUST be in the SAME JSON object
+            8. NEVER return: {"query":{...}},{"aggs":{...}} - This is WRONG!
+            9. ALWAYS return: {"query":{...},"aggs":{...}} - This is CORRECT!
+            10. Bool clauses (must/should/filter/must_not) MUST ALWAYS be ARRAYS
+                ✅ CORRECT: "filter": [{"term": {...}}]
+                ❌ WRONG: "filter": {"term": {...}}
+            11. "aggs" MUST be at ROOT level, NOT inside "query"
+                ✅ CORRECT: {"query": {...}, "aggs": {...}}
+                ❌ WRONG: {"query": {"bool": {...}, "aggs": {...}}}
+            
+            TIMESTAMP FORMAT:
+            - CORRECT: "2025-09-14T11:41:04.000+07:00"
+            - INCORRECT: "2025-09-14T11:41:04.000Z"
+            
+            Available fields: %s
+            
+            Previous query that returned 0 results: %s
+            
+            User request: %s
+            
+            Current date context: %s
+            
+            ANALYSIS INSTRUCTIONS:
+            1. Analyze why the previous query returned 0 results
+            2. Check field names for typos or incorrect mappings
+            3. Verify timestamp ranges are correct for the current date
+            4. Consider if the search criteria might be too restrictive
+            5. Look for alternative field names that might match the user intent
+            
+            RESPONSE FORMAT:
+            Return ONLY the corrected Elasticsearch JSON query, no explanations.
+            Example: {"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
+            """;
+    
+    /**
+     * Tạo prompt cho việc so sánh và tái tạo query khi không có kết quả
+     * 
+     * @param allFields Danh sách tất cả fields có sẵn
+     * @param previousQuery Query trước đó
+     * @param userMessage Tin nhắn người dùng
+     * @param dateContext Ngữ cảnh ngày tháng
+     * @return Prompt đã được format
+     */
+    public static String getComparisonPrompt(String allFields, String previousQuery, 
+                                            String userMessage, String dateContext) {
+        return String.format(COMPARISON_PROMPT_TEMPLATE, 
+            allFields, previousQuery, userMessage, dateContext);
     }
 }

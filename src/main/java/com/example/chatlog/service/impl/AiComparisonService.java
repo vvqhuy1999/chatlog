@@ -6,6 +6,7 @@ import com.example.chatlog.dto.RequestBody;
 import com.example.chatlog.enums.ModelProvider;
 import com.example.chatlog.service.LogApiService;
 import com.example.chatlog.utils.SchemaHint;
+import com.example.chatlog.utils.QueryPromptTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -128,53 +129,15 @@ public class AiComparisonService {
                 System.out.println("[AiComparisonService] ✅ Normalized query: " + userQueryForPrompt);
             }
 
-            // ✅ THỨ TỰ MỚI: Schema -> Dynamic Examples -> Syntax Rules -> User Query
-            // 1. Schema và thông tin field
-            String schemaSection = """
-                SCHEMA INFORMATION & FIELD CATALOG
-                %s
-                
-                ROLE NORMALIZATION RULES
-                %s
-                """.formatted(fullSchema, SchemaHint.getRoleNormalizationRules());
-            
-            // 2. Dynamic Examples (từ knowledge base)
-            String examplesSection = dynamicExamples;
-            
-            // 3. QUAN TRỌNG: Syntax Rules đặt CUỐI CÙNG
-            String syntaxRulesSection = """
-                ---
-                ⭐ QUY TẮC SYNTAX TỐI QUAN TRỌNG (KIỂM TRA TRƯỚC KHI TRẢ VỀ) ⭐
-                
-                1. **CHỈ TRẢ VỀ JSON:** Không giải thích, không "```json", chỉ duy nhất đối tượng JSON.
-                
-                2. **SIZE:**
-                   • Query có "aggs": PHẢI bao gồm `"size": 0`
-                   • Query không có "aggs" (tìm kiếm): PHẢI bao gồm `"size": 50`
-                
-                3. **AGGS PHẢI Ở GỐC (ROOT):** `"aggs"` phải ngang hàng với `"query"`, KHÔNG BAO GIỜ nằm trong `"query"`
-                
-                4. **LỖI PHỔ BIẾN NHẤT (BẮT BUỘC SỬA):**
-                   • Các mệnh đề `must`, `should`, `filter`, `must_not` BẮT BUỘC PHẢI LÀ MẢNG (dùng dấu `[ ... ]`)
-                   • ✅ **ĐÚNG:** `"filter": [{"term": {...}}]`
-                   • ❌ **SAI:** `"filter": {"term": {...}}` (SAI CÚ PHÁP!)
-                   • ❌ **SAI:** `"bool": {"should": {...}}` → ✅ **ĐÚNG:** `"bool": {"should": [{...}]}`
-                
-                5. **QUAN TRỌNG:** `"aggs"` ở cùng cấp với `"query"`, không phải trong `"query"`
-                   • ✅ **ĐÚNG:** `{"query": {...}, "aggs": {...}, "size": 0}`
-                   • ❌ **SAI:** `{"query": {...}, "aggs": {...}}` (thiếu size)
-                   • ❌ **SAI:** `{"query": {"aggs": {...}}}` (aggs trong query - SAI!)
-                ---
-                
-                TIME CONTEXT (Vietnam +07:00):
-                %s
-                ---
-                
-                USER QUERY: %s
-                """.formatted(dateContext, userQueryForPrompt);
-            
-            // 4. Ghép theo thứ tự: Schema -> Examples -> Syntax Rules
-            String combinedPrompt = schemaSection + "\n" + examplesSection + "\n" + syntaxRulesSection;
+            // ✅ Sử dụng QueryPromptTemplate để tạo prompt chuẩn
+            String combinedPrompt = QueryPromptTemplate.createQueryGenerationPrompt(
+                userQueryForPrompt,
+                dateContext,
+                fullSchema,
+                SchemaHint.getRoleNormalizationRules(),
+                SchemaHint.examplelog(),
+                dynamicExamples
+            );
             SystemMessage systemMessage = new SystemMessage(combinedPrompt);
             
             UserMessage userMessage = new UserMessage(chatRequest.message());

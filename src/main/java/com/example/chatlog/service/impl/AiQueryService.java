@@ -180,7 +180,7 @@ public class AiQueryService {
 
                      // Cải thiện prompt với error details cụ thể
                      String systemPrompt =
-                         com.example.chatlog.utils.PromptTemplate.getComparisonPrompt(
+                         com.example.chatlog.utils.QueryPromptTemplate.getComparisonPrompt(
                              allFields, prevQuery, userMess, generateDateContext(LocalDateTime.now())
                          )
                          + "\n\nROLE: You are an expert Elasticsearch DSL fixer.\n"
