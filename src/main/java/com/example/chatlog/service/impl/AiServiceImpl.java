@@ -49,7 +49,7 @@ public class AiServiceImpl implements AiService {
 
   /**
    * Xử lý yêu cầu của người dùng trong chế độ so sánh, sử dụng cả OpenAI và OpenRouter
-   * Có tích hợp performance monitoring và optimization
+   * 🚀 SỬ DỤNG PARALLEL PROCESSING - OpenAI và OpenRouter chạy đồng thời
    * @param sessionId ID phiên chat để duy trì ngữ cảnh
    * @param chatRequest Yêu cầu từ người dùng
    * @return Kết quả so sánh giữa hai provider với metrics chi tiết
@@ -60,19 +60,20 @@ public class AiServiceImpl implements AiService {
     boolean success = false;
     
     try {
-      System.out.println("[AiServiceImpl] 🔄 Bắt đầu chế độ so sánh với optimization...");
+      System.out.println("[AiServiceImpl] 🚀 Bắt đầu chế độ so sánh với PARALLEL PROCESSING...");
       
-      // Gọi comparison service với đầy đủ tính năng mới
+      // ✅ SỬ DỤNG PARALLEL VERSION - OpenAI và OpenRouter chạy đồng thời
       Map<String, Object> result = aiComparisonService.handleRequestWithComparison(sessionId, chatRequest);
       
       // Thêm performance metadata vào kết quả
       long totalResponseTime = System.currentTimeMillis() - startTime;
       result.put("total_processing_time_ms", totalResponseTime);
       result.put("optimization_applied", true);
+      result.put("parallel_processing", true);
       
       success = true;
       
-      System.out.println("[AiServiceImpl] ✅ Comparison mode completed successfully in " + totalResponseTime + "ms");
+      System.out.println("[AiServiceImpl] ✅ Comparison mode (PARALLEL) completed successfully in " + totalResponseTime + "ms");
       return result;
       
     } catch (Exception e) {
