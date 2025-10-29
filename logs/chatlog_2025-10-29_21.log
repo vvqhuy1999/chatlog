@@ -1,0 +1,43 @@
+[2025-10-29 21:43:03.579] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=215, message='trong tuần rồi có bao nhiêu lượt đăng nhập admin', thời gian=10871ms, tiết kiệm=6713ms
+
+[2025-10-29 21:43:45.972] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=215, message='trong hôm qua có ai thay đổi cấu hình hệ thống không', thời gian=16607ms, tiết kiệm=10406ms
+
+[2025-10-29 21:44:28.120] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=215, message='trong hôm qua admin có đăng nhập không', thời gian=10246ms, tiết kiệm=8090ms
+
+[2025-10-29 21:45:03.864] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=215, message='ngày 21/10 admin có đăng nhập ko?', thời gian=17806ms, tiết kiệm=13601ms
+
+[2025-10-29 21:45:53.889] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=215, message='thống kê những truy cập http https trong 15 phút vừa qua', thời gian=13062ms, tiết kiệm=7850ms
+
+[2025-10-29 21:47:01.464] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=215, message='thống kê những truy cập http https trong 5 tiếng vừa qua', thời gian=25135ms, tiết kiệm=9710ms
+
+[2025-10-29 21:47:40.627] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=215, message='có kết nối internet nào kém an toàn không', thời gian=28628ms, tiết kiệm=22527ms
+
+[2025-10-29 21:48:45.176] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=215, message='{
+  "query": {
+    "bool": {
+      "filter": [
+        {
+          "terms": {
+            "network.protocol": ["http", "https"]
+          }
+        },
+        {
+          "range": {
+            "@timestamp": {
+              "gte": "now-24h"
+            }
+          }
+        },
+        {
+          "term": {
+            "fortinet.firewall.action": "client-rst"
+          }
+        }
+      ]
+    }
+  },
+  "size": 50
+}', thời gian=22354ms, tiết kiệm=9717ms
+
+[2025-10-29 21:51:33.050] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=215, message='có security alert nào không', thời gian=8945ms, tiết kiệm=6591ms
+

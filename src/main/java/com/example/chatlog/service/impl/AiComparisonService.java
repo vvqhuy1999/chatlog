@@ -3,6 +3,7 @@ package com.example.chatlog.service.impl;
 import com.example.chatlog.dto.ChatRequest;
 import com.example.chatlog.dto.RequestBody;
 import com.example.chatlog.enums.ModelProvider;
+import com.example.chatlog.utils.LogUtils;
 import com.example.chatlog.utils.SchemaHint;
 import com.example.chatlog.utils.QueryPromptTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -190,11 +191,23 @@ public class AiComparisonService {
             System.out.println("[AiComparisonService] ⏱️ Tổng thời gian: " + totalProcessingTime + "ms");
             System.out.println("[AiComparisonService] 💾 Tiết kiệm: ~" + 
                 calculateTimeSaved(openaiResult, openrouterResult, totalProcessingTime) + "ms so với sequential");
+                
+            // Ghi log thành công ra file
+            LogUtils.logInfo("AiComparisonService", String.format(
+                "Xử lý thành công yêu cầu với sessionId=%d, message='%s', thời gian=%dms, tiết kiệm=%dms",
+                sessionId,
+                chatRequest.message(),
+                totalProcessingTime,
+                calculateTimeSaved(openaiResult, openrouterResult, totalProcessingTime)
+            ));
             
         } catch (Exception e) {
             long errorProcessingTime = System.currentTimeMillis() - overallStartTime;
-            System.out.println("[AiComparisonService] ❌ Lỗi: " + e.getMessage());
-            e.printStackTrace();
+            String errorMessage = "[AiComparisonService] ❌ Lỗi: " + e.getMessage();
+            System.out.println(errorMessage);
+            
+            // Ghi log lỗi ra file
+            LogUtils.logError("AiComparisonService", "Lỗi xử lý yêu cầu với sessionId=" + sessionId + ", message=" + chatRequest.message(), e);
             
             result.put("success", false);
             result.put("error", e.getMessage());
@@ -292,7 +305,12 @@ public class AiComparisonService {
             System.out.println("[OpenAI Thread] ✅ Hoàn thành trong " + totalTime + "ms");
             
         } catch (Exception e) {
-            System.out.println("[OpenAI Thread] ❌ Lỗi: " + e.getMessage());
+            String errorMessage = "[OpenAI Thread] ❌ Lỗi: " + e.getMessage();
+            System.out.println(errorMessage);
+            
+            // Ghi log lỗi ra file
+            LogUtils.logError("AiComparisonService.OpenAI", "Lỗi xử lý OpenAI với sessionId=" + sessionId, e);
+            
             result.put("error", e.getMessage());
             result.put("total_time_ms", System.currentTimeMillis() - startTime);
         }
@@ -387,7 +405,12 @@ public class AiComparisonService {
             System.out.println("[OpenRouter Thread] ✅ Hoàn thành trong " + totalTime + "ms");
             
         } catch (Exception e) {
-            System.out.println("[OpenRouter Thread] ❌ Lỗi: " + e.getMessage());
+            String errorMessage = "[OpenRouter Thread] ❌ Lỗi: " + e.getMessage();
+            System.out.println(errorMessage);
+            
+            // Ghi log lỗi ra file
+            LogUtils.logError("AiComparisonService.OpenRouter", "Lỗi xử lý OpenRouter với sessionId=" + sessionId, e);
+            
             result.put("error", e.getMessage());
             result.put("total_time_ms", System.currentTimeMillis() - startTime);
         }
