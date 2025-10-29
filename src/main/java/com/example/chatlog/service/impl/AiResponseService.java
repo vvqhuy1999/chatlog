@@ -273,7 +273,7 @@ public class AiResponseService {
 //        System.out.println("[AiResponseService] 📝 User question: " + chatRequest.message());
 //        System.out.println("[AiResponseService] 📊 Content length: " + content.length() + " characters");
 //        System.out.println("[AiResponseService] 🔍 Content preview: " +
-//            (content.length() > 500 ? content.substring(0, 500) + "..." : content));
+//            (content.length() > 500 ? content.substring(0, 1000) + "..." : content));
 //        System.out.println("[AiResponseService] 🔎 Query: " + query);
 
         // ✅ Validate inputs before sending to AI

@@ -1,5 +1,5 @@
 # Activity Diagram - Chatlog System
-## Luồng xử lý câu hỏi người dùng với chế độ so sánh (Comparison Mode)
+## Luồng xử lý câu hỏi người dùng với chế độ so sánh (Comparison Mode) - PARALLEL PROCESSING
 
 ```mermaid
 flowchart TD
@@ -7,35 +7,44 @@ flowchart TD
     
     Controller --> SaveUserMsg[💾 Lưu tin nhắn USER<br/>vào Database<br/>ChatMessages table]
     
-    SaveUserMsg --> AiService[🤖 AiServiceImpl<br/>handleRequestWithComparison]
+    SaveUserMsg --> AiService[🤖 AiServiceImpl<br/>handleRequestWithComparison<br/>Log: Bắt đầu xử lý]
     
-    AiService --> ComparisonService[⚡ AiComparisonService<br/>Bắt đầu chế độ so sánh]
+    AiService --> ComparisonService[⚡ AiComparisonService<br/>Log: BẮT ĐẦU CHẾ ĐỘ SO SÁNH<br/>VỚI PARALLEL PROCESSING]
     
-    ComparisonService --> GetSchema[📋 Lấy Schema Information<br/>SchemaHint.getSchemaHint]
+    ComparisonService --> PrepareContext[📋 BƯỚC 1: Chuẩn bị Shared Context<br/>━━━━━━━━━━━━━━━━<br/>• SchemaHint.getSchemaHint<br/>• SchemaHint.getRoleNormalizationRules<br/>• SchemaHint.examplelog<br/>• Admin/Administrator normalization]
     
-    GetSchema --> GetRoleRules[📋 Lấy Role Normalization Rules<br/>SchemaHint.getRoleNormalizationRules]
+    PrepareContext --> VectorSearch[🔍 VectorSearchService<br/>findRelevantExamples<br/>━━━━━━━━━━━━━━━━<br/>Log: VECTOR SEARCH - EMBEDDING]
     
-    GetRoleRules --> GetExampleLog[📋 Lấy Example Log<br/>SchemaHint.examplelog]
+    VectorSearch --> CreateEmbedding[🧮 STEP 1: Create Query Embedding<br/>embeddingModel.embed<br/>Log: Dimensions, First/Last 10 values, Magnitude]
     
-    GetExampleLog --> VectorSearch[🔍 VectorSearchService<br/>findRelevantExamples]
+    CreateEmbedding --> SearchDB[(🗄️ STEP 2: PostgreSQL Vector DB<br/>Similarity Search topK=8<br/>findSimilarEmbeddings<br/>Log: Found X similar embeddings)]
     
-    VectorSearch --> CreateEmbedding[🧮 Tạo Query Embedding<br/>embeddingModel.embed]
+    SearchDB --> DisplaySimilarity[📊 STEP 3: Similarity Comparison Details<br/>Log: RANK 1-8 với cosine similarity]
     
-    CreateEmbedding --> SearchDB[(🗄️ PostgreSQL Vector DB<br/>Similarity Search<br/>topK=8)]
-    
-    SearchDB --> DynamicExamples[📝 Dynamic Examples<br/>từ Knowledge Base]
+    DisplaySimilarity --> DynamicExamples[📝 Dynamic Examples<br/>từ Knowledge Base<br/>Log: Total X examples found]
     
     DynamicExamples --> BuildPrompt[📄 QueryPromptTemplate<br/>createQueryGenerationPrompt<br/>━━━━━━━━━━━━━━━━<br/>Tham số:<br/>• userQuery<br/>• dateContext<br/>• schemaInfo<br/>• roleNormalizationRules<br/>• exampleLog<br/>• dynamicExamples]
     
-    BuildPrompt --> ParallelAI{🔀 Xử lý song song}
+    BuildPrompt --> ParallelStart[🚀 BƯỚC 2: PARALLEL EXECUTION<br/>Log: Bắt đầu xử lý SONG SONG<br/>CompletableFuture.supplyAsync]
+    
+    ParallelStart --> ParallelAI{🔀 Hai Thread chạy đồng thời}
     
     %% OpenAI Branch
-    ParallelAI --> OpenAI_Query[🔵 OPENAI<br/>Tạo Elasticsearch Query<br/>temperature=0.0]
-    OpenAI_Query --> OpenAI_Execute[🔵 Execute Query<br/>LogApiService.search]
+    ParallelAI --> OpenAI_Start[🔵 OpenAI Thread START<br/>Log: Bắt đầu xử lý...]
+    
+    OpenAI_Start --> OpenAI_Query[🔵 Generate Query<br/>ChatClient.prompt.call<br/>temperature=0.0<br/>memory: sessionId]
+    
+    OpenAI_Query --> OpenAI_LogQuery[🔵 LOG DSL QUERY<br/>Log: DSL Query được OpenAI sinh ra<br/>Log: cleanResponse with borders]
+    
+    OpenAI_LogQuery --> OpenAI_Execute[🔵 Execute on Elasticsearch<br/>Log: Đang thực thi query...<br/>aiQueryService.getLogData]
+    
     OpenAI_Execute --> OpenAI_CheckError{🔵 Kiểm tra lỗi<br/>400 Bad Request?}
     
-    OpenAI_CheckError -->|✅ Success| OpenAI_Data[🔵 Elasticsearch Response<br/>Raw Data]
-    OpenAI_Data --> OpenAI_Response[🔵 AiResponseService<br/>Tạo phản hồi từ data]
+    OpenAI_CheckError -->|✅ Success| OpenAI_LogResponse[🔵 LOG ES RESPONSE<br/>Log: Response từ Elasticsearch<br/>Log: Final Query OpenAI<br/>Log: Data preview 500 chars]
+    
+    OpenAI_LogResponse --> OpenAI_Data[🔵 Elasticsearch Response<br/>Raw Data + finalQueryOpenAI]
+    
+    OpenAI_Data --> OpenAI_Response[🔵 AiResponseService<br/>getAiResponseForComparison<br/>conversationId: sessionId_openai]
     
     OpenAI_CheckError -->|❌ Syntax Error| OpenAI_ParseError[🔧 Parse Error Details<br/>extractElasticsearchError]
     OpenAI_ParseError --> OpenAI_GetFields[📋 Lấy All Fields<br/>getAllField]
@@ -51,13 +60,22 @@ flowchart TD
     OpenAI_ValidateNew -->|❌ Invalid| OpenAI_FinalError
     OpenAI_FinalError --> OpenAI_Response
     
-    %% OpenRouter Branch (tương tự)
-    ParallelAI --> OpenRouter_Query[🟠 OPENROUTER<br/>Tạo Elasticsearch Query<br/>temperature=0.5]
-    OpenRouter_Query --> OpenRouter_Execute[🟠 Execute Query<br/>LogApiService.search]
+    %% OpenRouter Branch (parallel with OpenAI)
+    ParallelAI --> OpenRouter_Start[🟠 OpenRouter Thread START<br/>Log: Bắt đầu xử lý...]
+    
+    OpenRouter_Start --> OpenRouter_Query[🟠 Generate Query<br/>ChatClient.prompt.call<br/>temperature=0.5<br/>memory: sessionId]
+    
+    OpenRouter_Query --> OpenRouter_LogQuery[🟠 LOG DSL QUERY<br/>Log: DSL Query Openrouter được sinh ra<br/>Log: cleanResponse with borders]
+    
+    OpenRouter_LogQuery --> OpenRouter_Execute[🟠 Execute on Elasticsearch<br/>Log: Đang thực thi query...<br/>aiQueryService.getLogData]
+    
     OpenRouter_Execute --> OpenRouter_CheckError{🟠 Kiểm tra lỗi<br/>400 Bad Request?}
     
-    OpenRouter_CheckError -->|✅ Success| OpenRouter_Data[🟠 Elasticsearch Response<br/>Raw Data]
-    OpenRouter_Data --> OpenRouter_Response[🟠 AiResponseService<br/>Tạo phản hồi từ data]
+    OpenRouter_CheckError -->|✅ Success| OpenRouter_LogResponse[🟠 LOG ES RESPONSE<br/>Log: Response từ Elasticsearch<br/>Log: Final Query OpenRouter<br/>Log: Data preview 500 chars]
+    
+    OpenRouter_LogResponse --> OpenRouter_Data[🟠 Elasticsearch Response<br/>Raw Data + finalQueryOpenRouter]
+    
+    OpenRouter_Data --> OpenRouter_Response[🟠 AiResponseService<br/>getAiResponseForComparison<br/>conversationId: sessionId_openrouter]
     
     OpenRouter_CheckError -->|❌ Syntax Error| OpenRouter_ParseError[🔧 Parse Error Details<br/>extractElasticsearchError]
     OpenRouter_ParseError --> OpenRouter_GetFields[📋 Lấy All Fields<br/>getAllField]
@@ -79,16 +97,22 @@ flowchart TD
     OpenAI_Retry --> ES_Connection
     OpenRouter_Retry --> ES_Connection
     
-    %% Merge results
-    OpenAI_Response --> MergeResults[🔀 Gộp kết quả<br/>Comparison Result]
-    OpenRouter_Response --> MergeResults
+    %% Merge results after BOTH complete
+    OpenAI_Response --> WaitCompletion[⏳ CompletableFuture.allOf<br/>Log: Đang đợi cả OpenAI<br/>và OpenRouter hoàn thành...]
+    OpenRouter_Response --> WaitCompletion
     
-    MergeResults --> ComparisonData{📊 Comparison Result<br/>━━━━━━━━━━━━━━━━<br/>• query_generation_comparison<br/>• elasticsearch_comparison<br/>• response_generation_comparison<br/>• timing_metrics<br/>• optimization_stats}
+    WaitCompletion --> BothComplete[✅ CẢ HAI đã hoàn thành!<br/>openaiFuture.get<br/>openrouterFuture.get]
     
-    ComparisonData --> SaveOpenAI[💾 Lưu OpenAI Response<br/>vào ChatMessages]
+    BothComplete --> MergeResults[🔀 BƯỚC 3: Merge Results<br/>Gộp kết quả từ 2 threads]
+    
+    MergeResults --> ComparisonData{📊 Comparison Result<br/>━━━━━━━━━━━━━━━━<br/>• query_generation_comparison<br/>  - openai.query<br/>  - openrouter.query<br/>• elasticsearch_comparison<br/>  - openai: data + finalQueryOpenAI<br/>  - openrouter: data + finalQueryOpenRouter<br/>• response_generation_comparison<br/>  - openai + openrouter responses<br/>• timing_metrics<br/>  - total_processing_ms<br/>  - openai_total_ms<br/>  - openrouter_total_ms<br/>  - parallel_execution: 1<br/>• optimization_stats<br/>  - parallel_processing: true<br/>  - threads_used: 2<br/>  - time_saved_vs_sequential_ms}
+    
+    ComparisonData --> LogSuccess[🎉 Log Success<br/>Log: So sánh PARALLEL hoàn thành!<br/>Log: Tổng thời gian: Xms<br/>Log: Tiết kiệm: ~Xms vs sequential]
+    
+    LogSuccess --> SaveOpenAI[💾 Lưu OpenAI Response<br/>vào ChatMessages]
     SaveOpenAI --> SaveOpenRouter[💾 Lưu OpenRouter Response<br/>vào ChatMessages]
     
-    SaveOpenRouter --> ReturnResponse[✅ Trả về Response<br/>HTTP 200 OK<br/>━━━━━━━━━━━━━━━━<br/>Bao gồm:<br/>• Cả 2 responses<br/>• Queries đã generate<br/>• Elasticsearch data<br/>• Performance metrics<br/>• Message IDs đã lưu]
+    SaveOpenRouter --> ReturnResponse[✅ Trả về Response<br/>HTTP 200 OK<br/>━━━━━━━━━━━━━━━━<br/>Bao gồm:<br/>• Cả 2 responses<br/>• finalQueryOpenAI + finalQueryOpenRouter<br/>• Elasticsearch data<br/>• Performance metrics<br/>• Time saved metrics<br/>• Message IDs đã lưu]
     
     ReturnResponse --> End([📱 Frontend hiển thị<br/>kết quả so sánh])
     
@@ -136,31 +160,84 @@ flowchart TD
 - Entry point cho chế độ so sánh
 - Đo performance metrics
 - Delegate sang AiComparisonService
+- **Log**: "Bắt đầu xử lý"
 
-#### **AiComparisonService**
-- **Bước 1**: Chuẩn bị prompt với:
-  - Schema information
+#### **AiComparisonService** (PARALLEL PROCESSING)
+- **BƯỚC 1**: Chuẩn bị Shared Context:
+  - Schema information (SchemaHint.getSchemaHint)
   - Role normalization rules
   - Example log structure
   - Dynamic examples từ vector search
+  - Admin/Administrator normalization
+  - **Log**: "BẮT ĐẦU CHẾ ĐỘ SO SÁNH VỚI PARALLEL PROCESSING"
   
-- **Bước 2**: Xử lý song song OpenAI và OpenRouter:
-  - Tạo Elasticsearch query
-  - Thực thi query
-  - Nhận data từ Elasticsearch
-  - Tạo response từ data
+- **BƯỚC 2**: PARALLEL EXECUTION với CompletableFuture:
+  - **Thread 1 - OpenAI**:
+    - Generate query (temperature=0.0)
+    - **Log**: "DSL Query được OpenAI sinh ra" + query
+    - Execute query
+    - **Log**: "Đang thực thi query..."
+    - **Log**: "Response từ Elasticsearch" + finalQueryOpenAI + data preview
+    - Generate response (conversationId: sessionId_openai)
+    - **Log**: "Hoàn thành trong Xms"
+    
+  - **Thread 2 - OpenRouter**:
+    - Generate query (temperature=0.5)
+    - **Log**: "DSL Query Openrouter được sinh ra" + query
+    - Execute query
+    - **Log**: "Đang thực thi query..."
+    - **Log**: "Response từ Elasticsearch" + finalQueryOpenRouter + data preview
+    - Generate response (conversationId: sessionId_openrouter)
+    - **Log**: "Hoàn thành trong Xms"
   
-- **Bước 3**: Merge kết quả và trả về
+  - CompletableFuture.allOf() - đợi cả hai hoàn thành
+  - **Log**: "Đang đợi cả OpenAI và OpenRouter hoàn thành..."
+  - **Log**: "CẢ HAI đã hoàn thành!"
+  
+- **BƯỚC 3**: Merge kết quả:
+  - Gộp query_generation_comparison
+  - Gộp elasticsearch_comparison (với finalQueryOpenAI & finalQueryOpenRouter)
+  - Gộp response_generation_comparison
+  - Tính timing_metrics & optimization_stats
+  - **Log**: "So sánh PARALLEL hoàn thành!"
+  - **Log**: "Tổng thời gian: Xms"
+  - **Log**: "Tiết kiệm: ~Xms so với sequential"
 
 #### **VectorSearchService**
-- Tạo embedding cho câu hỏi người dùng
-- Tìm kiếm semantic similarity trong PostgreSQL Vector DB
-- Trả về top 8 examples tương tự nhất
+- **STEP 1**: Tạo Query Embedding
+  - embeddingModel.embed(userQuery)
+  - **Log**: "VECTOR SEARCH - EMBEDDING & COMPARISON"
+  - **Log**: Dimensions, First/Last 10 values, Magnitude
+  
+- **STEP 2**: Similarity Search từ PostgreSQL
+  - findSimilarEmbeddings(queryEmbedding, topK=8)
+  - **Log**: "Found X similar embeddings (topK=8)"
+  
+- **STEP 3**: Similarity Comparison Details
+  - **Log**: "[RANK #1-8]" với cosine similarity scores
+  - **Log**: "Total: X examples found"
+  
+- Trả về formatted examples cho LLM
+
+#### **AiQueryService**
+- Parse query từ AI
+- Thực thi query trên Elasticsearch
+- Xử lý retry nếu có lỗi syntax
+- Trả về [data, finalQuery]
+
+#### **AiResponseService**
+- Generate AI response từ Elasticsearch data
+- Sử dụng isolated conversation IDs:
+  - `sessionId_openai` cho OpenAI thread
+  - `sessionId_openrouter` cho OpenRouter thread
+- Format JSON query với pretty print
+- Tránh memory contamination giữa các models
 
 #### **LogApiServiceImpl**
-- Gửi query đến Elasticsearch
+- Gửi query đến Elasticsearch cluster
 - Nhận kết quả raw data
 - Handle authentication và SSL
+- Xử lý errors (400 Bad Request, timeout, etc.)
 
 ### 3. **Database Components**
 
@@ -316,22 +393,40 @@ sequenceDiagram
 
 ## Timing Metrics
 
-### Normal Flow (No Errors)
+### Normal Flow (No Errors) - PARALLEL PROCESSING
 ```json
 {
-  "context_building_ms": 0,
-  "openai_search_ms": 1200,
-  "openrouter_search_ms": 1150,
+  "total_processing_ms": 2900,
   "openai_total_ms": 2800,
   "openrouter_total_ms": 2750,
-  "total_processing_ms": 3500
+  "openai_search_ms": 1200,
+  "openrouter_search_ms": 1150,
+  "parallel_execution": 1,
+  "time_saved_vs_sequential_ms": 2650
 }
 ```
 
-### With Query Retry (When Syntax Error)
+**Giải thích:**
+- **Parallel execution**: Cả hai models chạy đồng thời
+- **total_processing_ms** (2900ms) ≈ max(openai_total_ms, openrouter_total_ms)
+- **Sequential sẽ mất**: openai_total_ms + openrouter_total_ms = 5550ms
+- **Time saved**: 5550 - 2900 = ~2650ms (tiết kiệm ~48%)
+
+### Sequential Flow (Old Approach - NOT USED)
 ```json
 {
-  "context_building_ms": 0,
+  "total_processing_ms": 5550,
+  "openai_total_ms": 2800,
+  "openrouter_total_ms": 2750,
+  "parallel_execution": 0
+}
+```
+
+### With Query Retry (When Syntax Error) - PARALLEL
+```json
+{
+  "total_processing_ms": 6200,
+  "openai_total_ms": 5660,
   "openai_search_ms": 1200,
   "openai_retry": {
     "parse_error_ms": 50,
@@ -341,19 +436,25 @@ sequenceDiagram
     "retry_search_ms": 1100,
     "total_retry_ms": 2860
   },
-  "openrouter_search_ms": 1150,
-  "openai_total_ms": 5660,
   "openrouter_total_ms": 2750,
-  "total_processing_ms": 6200
+  "openrouter_search_ms": 1150,
+  "parallel_execution": 1,
+  "time_saved_vs_sequential_ms": 2210
 }
 ```
 
 **Giải thích:**
-- `parse_error_ms`: Thời gian parse error details từ Elasticsearch
-- `get_fields_ms`: Thời gian lấy field mapping từ Elasticsearch
-- `fix_query_generation_ms`: Thời gian AI generate query mới
-- `validation_ms`: Thời gian validate query mới
-- `retry_search_ms`: Thời gian thực thi query đã fix
+- OpenAI gặp lỗi và retry, mất tổng 5660ms
+- OpenRouter không lỗi, hoàn thành trong 2750ms
+- Nhờ parallel, tổng chỉ mất 6200ms thay vì 8410ms (sequential)
+- Time saved: 8410 - 6200 = ~2210ms
+
+**Retry Breakdown:**
+- `parse_error_ms`: Parse error details từ Elasticsearch
+- `get_fields_ms`: Lấy field mapping từ Elasticsearch
+- `fix_query_generation_ms`: AI generate query mới với temperature=0.3
+- `validation_ms`: Validate query mới (JSON, different, syntax)
+- `retry_search_ms`: Thực thi query đã fix
 - `total_retry_ms`: Tổng thời gian retry (cộng dồn tất cả)
 
 ## Response Structure
@@ -377,37 +478,56 @@ sequenceDiagram
     "openai": {
       "data": "[...raw logs...]",
       "success": true,
-      "query": "{...final query...}"
+      "query": "{...finalQueryOpenAI...}"
     },
     "openrouter": {
       "data": "[...raw logs...]",
       "success": true,
-      "query": "{...final query...}"
+      "query": "{...finalQueryOpenRouter...}"
     }
   },
   "response_generation_comparison": {
     "openai": {
-      "elasticsearch_query": "{...}",
+      "elasticsearch_query": "{...finalQueryOpenAI...}",
       "response": "OpenAI formatted response...",
       "model": "gpt-4o-mini",
       "elasticsearch_data": "[...]",
       "response_time_ms": 1300
     },
     "openrouter": {
-      "elasticsearch_query": "{...}",
+      "elasticsearch_query": "{...finalQueryOpenRouter...}",
       "response": "OpenRouter formatted response...",
-      "model": "x-ai/grok-4-fast",
+      "model": "x-ai/grok-beta",
       "elasticsearch_data": "[...]",
       "response_time_ms": 1300
     }
   },
-  "timing_metrics": {...},
-  "optimization_stats": {...},
+  "timing_metrics": {
+    "total_processing_ms": 2900,
+    "openai_total_ms": 2800,
+    "openrouter_total_ms": 2750,
+    "openai_search_ms": 1200,
+    "openrouter_search_ms": 1150,
+    "parallel_execution": 1
+  },
+  "optimization_stats": {
+    "parallel_processing": true,
+    "threads_used": 2,
+    "time_saved_vs_sequential_ms": 2650
+  },
+  "timestamp": "2025-10-28T14:30:45",
+  "user_question": "Tìm các sự kiện đăng nhập thất bại trong 24h qua",
   "saved_user_message_id": 123,
   "saved_openai_message_id": 124,
   "saved_openrouter_message_id": 125
 }
 ```
+
+**Lưu ý các trường quan trọng:**
+- `finalQueryOpenAI` và `finalQueryOpenRouter`: Queries đã được validate và thực thi thành công
+- `parallel_execution: 1`: Xác nhận đã chạy parallel mode
+- `time_saved_vs_sequential_ms`: Thời gian tiết kiệm được nhờ parallel processing
+- Isolated conversation IDs đã được sử dụng để tránh memory contamination
 
 ## Các Trường Hợp Xử Lý (Use Cases)
 
@@ -509,4 +629,142 @@ Lỗi query mới: Invalid JSON structure
 5. **Other syntax errors** (5% of retries)
    - Various JSON syntax issues
    - Fix success rate: 70%
+
+## Console Logs Output Example
+
+Khi chạy comparison mode, console sẽ hiển thị chi tiết theo thứ tự:
+
+### 1. Vector Search Phase
+```
+================================================================================
+🔍 VECTOR SEARCH - EMBEDDING & COMPARISON (Database)
+================================================================================
+
+📝 QUERY: "Tìm các sự kiện đăng nhập thất bại trong 24h qua"
+
+🔄 STEP 1: Creating Query Embedding
+   Calling: embeddingModel.embed(userQuery)
+   ✅ Query Embedding Created:
+      Dimensions: 1536
+      First 10 values: [0.0234, -0.0156, 0.0891, ...]
+      Last 10 values: [..., -0.0234, 0.0445, 0.0123]
+      Magnitude: 0.985234
+
+🔍 STEP 2: Similarity Search from Database
+   Using SearchRequest with topK=8
+   → Searching for 8 most similar embeddings using vector similarity
+   ✅ Found: 8 similar embeddings (topK=8)
+
+📊 STEP 3: Similarity Comparison Details
+--------------------------------------------------------------------------------
+
+[RANK #1] Tìm các login failed trong 1 giờ qua
+   Document Object: Document{content='...', metadata={question=...}}...
+   
+   🧮 Cosine Similarity Calculation:
+      Query Embedding: [0.0234, -0.0156, 0.0891, 0.0445, 0.0123]
+
+[RANK #2] Đăng nhập thất bại hôm nay
+   ...
+
+--------------------------------------------------------------------------------
+
+✅ Total: 8 examples found
+================================================================================
+```
+
+### 2. Parallel Processing Phase
+```
+[AiComparisonService] ===== BẮT ĐẦU CHẾ ĐỘ SO SÁNH VỚI PARALLEL PROCESSING =====
+[AiComparisonService] Bắt đầu xử lý song song cho phiên: 39
+[AiComparisonService] Tin nhắn người dùng: Tìm các sự kiện đăng nhập thất bại trong 24h qua
+[AiComparisonService] 🚀 Bắt đầu xử lý SONG SONG OpenAI và OpenRouter...
+```
+
+### 3. OpenAI Thread (chạy song song)
+```
+[OpenAI Thread] 🔵 Bắt đầu xử lý...
+
+[OpenAI Thread] 📝 DSL Query được OpenAI sinh ra:
+================================================================================
+{
+  "query": {
+    "bool": {
+      "must": [
+        {"match": {"event.action": "login"}},
+        {"match": {"event.outcome": "failure"}}
+      ],
+      "filter": [
+        {"range": {"@timestamp": {"gte": "now-24h"}}}
+      ]
+    }
+  },
+  "size": 200
+}
+================================================================================
+
+[OpenAI Thread] 🔍 Đang thực thi query trên Elasticsearch...
+
+[OpenAI Thread] 📊 Response từ Elasticsearch:
+================================================================================
+Final Query OpenAI: {"query":{"bool":{"must":[...],"filter":[...]}}}
+--------------------------------------------------------------------------------
+Data: [{"@timestamp":"2025-10-28T14:30:00","event":{"action":"login","outcome":"failure"},"user":{"name":"admin"},...}]
+================================================================================
+
+[OpenAI Thread] ✅ Hoàn thành trong 2800ms
+```
+
+### 4. OpenRouter Thread (chạy song song)
+```
+[OpenRouter Thread] 🟠 Bắt đầu xử lý...
+
+[OpenRouter Thread] 📝 DSL Query Openrouter được sinh ra:
+================================================================================
+{
+  "query": {
+    "bool": {
+      "must": [
+        {"term": {"event.action": "login"}},
+        {"term": {"event.outcome": "failure"}}
+      ],
+      "filter": [
+        {"range": {"@timestamp": {"gte": "now-24h"}}}
+      ]
+    }
+  },
+  "size": 200
+}
+================================================================================
+
+[OpenRouter Thread] 🔍 Đang thực thi query trên Elasticsearch...
+
+[OpenRouter Thread] 📊 Response từ Elasticsearch:
+================================================================================
+Final Query OpenRouter: {"query":{"bool":{"must":[...],"filter":[...]}}}
+--------------------------------------------------------------------------------
+Data: [{"@timestamp":"2025-10-28T14:30:00","event":{"action":"login","outcome":"failure"},"user":{"name":"admin"},...}]
+================================================================================
+
+[OpenRouter Thread] ✅ Hoàn thành trong 2750ms
+```
+
+### 5. Merge Phase
+```
+[AiComparisonService] ⏳ Đang đợi cả OpenAI và OpenRouter hoàn thành...
+[AiComparisonService] ✅ CẢ HAI đã hoàn thành!
+[AiComparisonService] 🎉 So sánh PARALLEL hoàn thành!
+[AiComparisonService] ⏱️ Tổng thời gian: 2900ms
+[AiComparisonService] 💾 Tiết kiệm: ~2650ms so với sequential
+```
+
+### Giải thích Logs:
+- **`================`**: Divider để phân tách các phần rõ ràng
+- **`🔵 OpenAI Thread`**: Logs từ thread xử lý OpenAI
+- **`🟠 OpenRouter Thread`**: Logs từ thread xử lý OpenRouter
+- **DSL Query**: Query Elasticsearch được AI sinh ra (raw JSON)
+- **Final Query**: Query cuối cùng sau khi validate và thực thi
+- **Data preview**: 500 ký tự đầu tiên của response
+- **Timing**: Thời gian từng bước và tổng thời gian
+- **Time saved**: Thời gian tiết kiệm nhờ parallel processing
 

@@ -120,6 +120,8 @@ public class AiComparisonService {
                     new UserMessage(chatRequest.message())
                 )
             );
+
+            System.out.println("prompt: " + prompt);
             
             // --- BƯỚC 2: PARALLEL EXECUTION - OpenAI và OpenRouter đồng thời ---
             System.out.println("[AiComparisonService] 🚀 Bắt đầu xử lý SONG SONG OpenAI và OpenRouter...");
@@ -148,18 +150,22 @@ public class AiComparisonService {
             long totalProcessingTime = System.currentTimeMillis() - overallStartTime;
             
             result.put("success", true);
-            result.put("query_generation_comparison", Map.of(
-                "openai", openaiResult.get("generation"),
-                "openrouter", openrouterResult.get("generation")
-            ));
-            result.put("elasticsearch_comparison", Map.of(
-                "openai", openaiResult.get("elasticsearch"),
-                "openrouter", openrouterResult.get("elasticsearch")
-            ));
-            result.put("response_generation_comparison", Map.of(
-                "openai", openaiResult.get("response"),
-                "openrouter", openrouterResult.get("response")
-            ));
+            
+            // Sử dụng HashMap thay vì Map.of() để tránh NullPointerException với giá trị null
+            Map<String, Object> queryGeneration = new HashMap<>();
+            queryGeneration.put("openai", openaiResult.get("generation"));
+            queryGeneration.put("openrouter", openrouterResult.get("generation"));
+            result.put("query_generation_comparison", queryGeneration);
+            
+            Map<String, Object> elasticsearchComparison = new HashMap<>();
+            elasticsearchComparison.put("openai", openaiResult.get("elasticsearch"));
+            elasticsearchComparison.put("openrouter", openrouterResult.get("elasticsearch"));
+            result.put("elasticsearch_comparison", elasticsearchComparison);
+            
+            Map<String, Object> responseComparison = new HashMap<>();
+            responseComparison.put("openai", openaiResult.get("response"));
+            responseComparison.put("openrouter", openrouterResult.get("response"));
+            result.put("response_generation_comparison", responseComparison);
             
             // Timing metrics
             timingMetrics.put("total_processing_ms", totalProcessingTime);
@@ -174,11 +180,11 @@ public class AiComparisonService {
             result.put("user_question", chatRequest.message());
             
             // Optimization stats
-            result.put("optimization_stats", Map.of(
-                "parallel_processing", true,
-                "threads_used", 2,
-                "time_saved_vs_sequential_ms", calculateTimeSaved(openaiResult, openrouterResult, totalProcessingTime)
-            ));
+            Map<String, Object> optimizationStats = new HashMap<>();
+            optimizationStats.put("parallel_processing", true);
+            optimizationStats.put("threads_used", 2);
+            optimizationStats.put("time_saved_vs_sequential_ms", calculateTimeSaved(openaiResult, openrouterResult, totalProcessingTime));
+            result.put("optimization_stats", optimizationStats);
             
             System.out.println("[AiComparisonService] 🎉 So sánh PARALLEL hoàn thành!");
             System.out.println("[AiComparisonService] ⏱️ Tổng thời gian: " + totalProcessingTime + "ms");
@@ -253,7 +259,8 @@ public class AiComparisonService {
             System.out.println("=".repeat(80));
             System.out.println("Final Query OpenAI: " + finalQueryOpenAI);
             System.out.println("-".repeat(80));
-            System.out.println("Data: " + (content.length() > 500 ? content.substring(0, 500) + "..." : content));
+            System.out.println("Data: " + (content.length() > 500 ? content.substring(0, Math.min(content.length(), 1000)) + "..." : 
+                                          (content.length() > 300 ? content : content.substring(0, Math.min(content.length(), 300)) + "...")));
             System.out.println("=".repeat(80));
             
             result.put("elasticsearch", Map.of(
@@ -265,14 +272,15 @@ public class AiComparisonService {
             
             // Generate response
             long responseStartTime = System.currentTimeMillis();
-            String aiResponse = aiResponseService.getAiResponseForComparison(
+            String openaiResponse = aiResponseService.getAiResponseForComparison(
                 sessionId + "_openai", chatRequest, content, finalQueryOpenAI
             );
+//            System.out.println("openaiResponse: " + openaiResponse);
             long responseEndTime = System.currentTimeMillis();
             
             result.put("response", Map.of(
                 "elasticsearch_query", finalQueryOpenAI,
-                "response", aiResponse,
+                "response", openaiResponse,
                 "model", ModelProvider.OPENAI.getModelName(),
                 "elasticsearch_data", content,
                 "response_time_ms", responseEndTime - responseStartTime
@@ -346,7 +354,8 @@ public class AiComparisonService {
             System.out.println("=".repeat(80));
             System.out.println("Final Query OpenRouter: " + finalQueryOpenRouter);
             System.out.println("-".repeat(80));
-            System.out.println("Data: " + (content.length() > 500 ? content.substring(0, 500) + "..." : content));
+            System.out.println("Data: " + (content.length() > 500 ? content.substring(0, Math.min(content.length(), 1000)) + "..." : 
+                                          (content.length() > 300 ? content : content.substring(0, Math.min(content.length(), 300)) + "...")));
             System.out.println("=".repeat(80));
             
             result.put("elasticsearch", Map.of(
@@ -358,14 +367,15 @@ public class AiComparisonService {
             
             // Generate response
             long responseStartTime = System.currentTimeMillis();
-            String aiResponse = aiResponseService.getAiResponseForComparison(
+            String openrouterResponse = aiResponseService.getAiResponseForComparison(
                 sessionId + "_openrouter", chatRequest, content, finalQueryOpenRouter
             );
+//          System.out.println("openrouterResponse: " + openrouterResponse);
             long responseEndTime = System.currentTimeMillis();
             
             result.put("response", Map.of(
                 "elasticsearch_query", finalQueryOpenRouter,
-                "response", aiResponse,
+                "response", openrouterResponse,
                 "model", ModelProvider.OPENROUTER.getModelName(),
                 "elasticsearch_data", content,
                 "response_time_ms", responseEndTime - responseStartTime
