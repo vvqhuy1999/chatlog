@@ -6922,7 +6922,15 @@
     "query": {
       "query": {
         "bool": {
-          "filter": [{ "range": { "@timestamp": { "gte": "now-10m" } } }]
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-10m"
+                }
+              }
+            }
+          ]
         }
       },
       "aggs": {
@@ -6933,76 +6941,197 @@
           },
           "aggs": {
             "total_bytes": {
-              "sum": { "field": "network.bytes" }
+              "sum": {
+                "field": "network.bytes"
+              }
             },
             "total_packets": {
-              "sum": { "field": "network.packets" }
+              "sum": {
+                "field": "network.packets"
+              }
             },
             "connection_count": {
-              "value_count": { "field": "@timestamp" }
+              "value_count": {
+                "field": "@timestamp"
+              }
             },
             "unique_sources": {
-              "cardinality": { "field": "source.ip" }
+              "cardinality": {
+                "field": "source.ip"
+              }
+            },
+            "anomaly_detector": {
+              "bucket_selector": {
+                "buckets_path": {
+                  "connections": "connection_count",
+                  "bytes": "total_bytes",
+                  "sources": "unique_sources"
+                },
+                "script": "params.connections > 1000 || params.bytes > 10485760 || params.sources > 100"
+              }
             }
           }
         },
-        "attack_sources": {
-          "terms": { "field": "source.ip", "size": 200 },
+        "potential_attackers": {
+          "terms": {
+            "field": "source.ip",
+            "size": 100,
+            "order": {
+              "request_count": "desc"
+            }
+          },
           "aggs": {
             "request_count": {
-              "value_count": { "field": "@timestamp" }
+              "value_count": {
+                "field": "@timestamp"
+              }
             },
             "bytes_sent": {
-              "sum": { "field": "network.bytes" }
+              "sum": {
+                "field": "network.bytes"
+              }
             },
             "target_ports": {
-              "terms": { "field": "destination.port", "size": 20 }
+              "terms": {
+                "field": "destination.port",
+                "size": 10
+              }
             },
             "protocols_used": {
-              "terms": { "field": "network.protocol", "size": 5 }
+              "terms": {
+                "field": "network.protocol",
+                "size": 5
+              }
             },
-            "request_rate": {
-              "date_histogram": {
-                "field": "@timestamp",
-                "fixed_interval": "30s"
+            "attack_filter": {
+              "bucket_selector": {
+                "buckets_path": {
+                  "count": "request_count"
+                },
+                "script": "params.count > 100"
               }
             }
           }
         },
         "targeted_services": {
-          "terms": { "field": "destination.ip", "size": 50 },
+          "terms": {
+            "field": "destination.ip",
+            "size": 20,
+            "order": {
+              "attack_volume": "desc"
+            }
+          },
           "aggs": {
             "attack_volume": {
-              "sum": { "field": "network.bytes" }
+              "sum": {
+                "field": "network.bytes"
+              }
             },
             "attacking_sources": {
-              "cardinality": { "field": "source.ip" }
+              "cardinality": {
+                "field": "source.ip"
+              }
+            },
+            "connection_count": {
+              "value_count": {
+                "field": "@timestamp"
+              }
             },
             "service_ports": {
-              "terms": { "field": "destination.port", "size": 15 }
+              "terms": {
+                "field": "destination.port",
+                "size": 10
+              }
+            },
+            "ddos_indicator": {
+              "bucket_selector": {
+                "buckets_path": {
+                  "sources": "attacking_sources",
+                  "volume": "attack_volume"
+                },
+                "script": "params.sources > 50 || params.volume > 52428800"
+              }
             }
           }
         },
-        "ddos_indicators": {
-          "filters": {
-            "filters": {
-              "high_volume": {
-                "range": { "network.bytes": { "gte": 1048576 } }
-              },
-              "high_frequency": {
-                "range": {
-                  "@timestamp": { "gte": "now-1m" }
-                }
-              },
-              "syn_flood": {
-                "bool": {
-                  "must": [{ "term": { "network.protocol": "tcp" } }, { "term": { "fortinet.firewall.action": "deny" } }]
+        "attack_patterns": {
+          "terms": {
+            "field": "network.protocol",
+            "size": 10
+          },
+          "aggs": {
+            "traffic_volume": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "packet_count": {
+              "sum": {
+                "field": "network.packets"
+              }
+            },
+            "denied_connections": {
+              "filter": {
+                "term": {
+                  "fortinet.firewall.action": "deny"
                 }
               }
             }
           }
+        },
+        "syn_flood_detection": {
+          "filter": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "network.protocol": "tcp"
+                  }
+                },
+                {
+                  "term": {
+                    "fortinet.firewall.action": "deny"
+                  }
+                }
+              ]
+            }
+          },
+          "aggs": {
+            "syn_sources": {
+              "cardinality": {
+                "field": "source.ip"
+              }
+            },
+            "syn_count": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            }
+          }
+        },
+        "port_scan_detection": {
+          "terms": {
+            "field": "source.ip",
+            "size": 50
+          },
+          "aggs": {
+            "unique_ports": {
+              "cardinality": {
+                "field": "destination.port"
+              }
+            },
+            "scanner_filter": {
+              "bucket_selector": {
+                "buckets_path": {
+                  "ports": "unique_ports"
+                },
+                "script": "params.ports > 20"
+              }
+            }
+          }
         }
-      }
+      },
+      "size": 0
     }
   },
   {

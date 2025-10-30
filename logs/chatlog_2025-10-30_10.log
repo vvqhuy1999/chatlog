@@ -1,0 +1,22 @@
+[2025-10-30 10:13:49.389] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=216, message='thống kê lượt đăng nhập trong tuần này', thời gian=13511ms, tiết kiệm=6259ms
+
+[2025-10-30 10:19:08.306] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=216, message='thống kê log hôm nay', thời gian=11615ms, tiết kiệm=6264ms
+
+[2025-10-30 10:21:14.289] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=216, message='lấy 50 log mới nhất và phân tích chi tiết log', thời gian=102535ms, tiết kiệm=88077ms
+
+[2025-10-30 10:21:55.735] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=216, message='hôm nay có bao nhiêu user đã login vào hệ thống', thời gian=10385ms, tiết kiệm=5705ms
+
+[2025-10-30 10:24:15.959] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=216, message='lấy 10 user trong hệ thống hôm nay', thời gian=11610ms, tiết kiệm=8936ms
+
+[2025-10-30 10:25:29.279] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=216, message='ToiLV đã truy cập những trang web nào trong hôm nay', thời gian=11511ms, tiết kiệm=6088ms
+
+[2025-10-30 10:28:27.603] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=216, message='ToiLV đã truy cập những tổ chức đích nào', thời gian=20490ms, tiết kiệm=12018ms
+
+[2025-10-30 10:34:20.398] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=216, message='user truy cập những trang web nào trong hôm nay', thời gian=14387ms, tiết kiệm=8496ms
+
+[2025-10-30 10:39:13.803] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=216, message='User truy cập web nhiều nhất với đầy đủ thông tin', thời gian=95765ms, tiết kiệm=27195ms
+
+[2025-10-30 10:39:44.109] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=216, message='Traffic ICMP chiếm bao nhiêu phần trăm tổng traffic?', thời gian=17039ms, tiết kiệm=10272ms
+
+[2025-10-30 10:41:42.578] [INFO] [AiComparisonService] Xử lý thành công yêu cầu với sessionId=216, message='Trong 7 ngày qua có thay đổi nào về rule firewall không?', thời gian=24966ms, tiết kiệm=9287ms
+

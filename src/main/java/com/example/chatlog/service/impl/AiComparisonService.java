@@ -88,6 +88,8 @@ public class AiComparisonService {
         
         Map<String, Long> timingMetrics = new HashMap<>();
         long overallStartTime = System.currentTimeMillis();
+        Map<String, Object> openaiResult = null;
+        Map<String, Object> openrouterResult = null;
         
         try {
             System.out.println("[AiComparisonService] ===== BẮT ĐẦU CHẾ ĐỘ SO SÁNH VỚI PARALLEL PROCESSING =====");
@@ -122,7 +124,7 @@ public class AiComparisonService {
                 )
             );
 
-            System.out.println("prompt: " + prompt);
+//            System.out.println("prompt: " + prompt);
             
             // --- BƯỚC 2: PARALLEL EXECUTION - OpenAI và OpenRouter đồng thời ---
             System.out.println("[AiComparisonService] 🚀 Bắt đầu xử lý SONG SONG OpenAI và OpenRouter...");
@@ -142,8 +144,8 @@ public class AiComparisonService {
             CompletableFuture.allOf(openaiFuture, openrouterFuture).join();
             
             // Lấy kết quả
-            Map<String, Object> openaiResult = openaiFuture.get();
-            Map<String, Object> openrouterResult = openrouterFuture.get();
+            openaiResult = openaiFuture.get();
+            openrouterResult = openrouterFuture.get();
             
             System.out.println("[AiComparisonService] ✅ CẢ HAI đã hoàn thành!");
             
@@ -192,22 +194,106 @@ public class AiComparisonService {
             System.out.println("[AiComparisonService] 💾 Tiết kiệm: ~" + 
                 calculateTimeSaved(openaiResult, openrouterResult, totalProcessingTime) + "ms so với sequential");
                 
-            // Ghi log thành công ra file
-            LogUtils.logInfo("AiComparisonService", String.format(
-                "Xử lý thành công yêu cầu với sessionId=%d, message='%s', thời gian=%dms, tiết kiệm=%dms",
-                sessionId,
-                chatRequest.message(),
-                totalProcessingTime,
-                calculateTimeSaved(openaiResult, openrouterResult, totalProcessingTime)
-            ));
+            // Ghi log chi tiết thành công ra file
+            Map<String, Object> successContext = new HashMap<>();
+            successContext.put("sessionId", sessionId);
+            successContext.put("userMessage", chatRequest.message());
+            successContext.put("totalProcessingTimeMs", totalProcessingTime);
+            successContext.put("timeSavedMs", calculateTimeSaved(openaiResult, openrouterResult, totalProcessingTime));
+
+            // AI Summary
+            Map<String, Object> aiSummary = new HashMap<>();
+            if (openaiResult != null) {
+                aiSummary.put("openai_totalMs", openaiResult.get("total_time_ms"));
+                aiSummary.put("openai_searchMs", openaiResult.get("search_time_ms"));
+                aiSummary.put("openai_esSuccess", ((Map<String, Object>) openaiResult.get("elasticsearch")).get("success"));
+            }
+            if (openrouterResult != null) {
+                aiSummary.put("openrouter_totalMs", openrouterResult.get("total_time_ms"));
+                aiSummary.put("openrouter_searchMs", openrouterResult.get("search_time_ms"));
+                aiSummary.put("openrouter_esSuccess", ((Map<String, Object>) openrouterResult.get("elasticsearch")).get("success"));
+            }
+            successContext.put("aiSummary", aiSummary);
+
+            // ES Preview (kết hợp data từ cả hai, truncate nếu dài)
+            StringBuilder esPreviewBuilder = new StringBuilder();
+
+            // Xử lý OpenAI ES - luôn hiển thị label
+            String openaiPreview = "(No OpenAI result)";
+            if (openaiResult != null) {
+                String openaiData = (String) ((Map<String, Object>) openaiResult.get("elasticsearch")).get("data");
+                if (openaiData != null && openaiData.trim().length() > 0) {
+                    openaiPreview = openaiData.length() > 500 ? openaiData.substring(0, 500) + "..." : openaiData;
+                } else {
+                    openaiPreview = "(Empty response)";
+                }
+            }
+            esPreviewBuilder.append("OpenAI ES: ").append(openaiPreview);
+
+            // Luôn thêm separator để phân biệt rõ ràng
+            esPreviewBuilder.append(" | ");
+
+            // Xử lý OpenRouter ES - luôn hiển thị label
+            String openrouterPreview = "(No OpenRouter result)";
+            if (openrouterResult != null) {
+                String openrouterData = (String) ((Map<String, Object>) openrouterResult.get("elasticsearch")).get("data");
+                if (openrouterData != null && openrouterData.trim().length() > 0) {
+                    openrouterPreview = openrouterData.length() > 500 ? openrouterData.substring(0, 500) + "..." : openrouterData;
+                } else {
+                    openrouterPreview = "(Empty response)";
+                }
+            }
+            esPreviewBuilder.append("OpenRouter ES: ").append(openrouterPreview);
+
+            String esPreview = esPreviewBuilder.toString();
+            if (esPreview.length() > 1000) {
+                esPreview = esPreview.substring(0, 1000) + "...";
+            }
+            successContext.put("esPreview", esPreview);
+
+            LogUtils.logDetailedSuccess(
+                "AiComparisonService", 
+                String.format("Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm %dms)", calculateTimeSaved(openaiResult, openrouterResult, totalProcessingTime)), 
+                successContext
+            );
             
         } catch (Exception e) {
             long errorProcessingTime = System.currentTimeMillis() - overallStartTime;
             String errorMessage = "[AiComparisonService] ❌ Lỗi: " + e.getMessage();
             System.out.println(errorMessage);
             
-            // Ghi log lỗi ra file
-            LogUtils.logError("AiComparisonService", "Lỗi xử lý yêu cầu với sessionId=" + sessionId + ", message=" + chatRequest.message(), e);
+            // Thu thập thông tin bối cảnh chi tiết
+            Map<String, Object> errorContext = new HashMap<>();
+            errorContext.put("sessionId", sessionId);
+            errorContext.put("userMessage", chatRequest.message());
+            errorContext.put("processingTimeMs", errorProcessingTime);
+            errorContext.put("timestamp", now.toString());
+            errorContext.put("dateContext", dateContext);
+            
+            // Thêm thông tin về OpenAI và OpenRouter nếu có
+            try {
+                if (openaiResult != null) {
+                    errorContext.put("openaiResult", openaiResult);
+                }
+            } catch (Exception ex) {
+                errorContext.put("openaiResultError", ex.getMessage());
+            }
+            
+            try {
+                if (openrouterResult != null) {
+                    errorContext.put("openrouterResult", openrouterResult);
+                }
+            } catch (Exception ex) {
+                errorContext.put("openrouterResultError", ex.getMessage());
+            }
+            
+            // Ghi log lỗi chi tiết ra file
+            LogUtils.logDetailedError(
+                "AiComparisonService", 
+                "Lỗi xử lý yêu cầu song song OpenAI và OpenRouter", 
+                e, 
+                errorContext
+            );
             
             result.put("success", false);
             result.put("error", e.getMessage());
@@ -272,8 +358,7 @@ public class AiComparisonService {
             System.out.println("=".repeat(80));
             System.out.println("Final Query OpenAI: " + finalQueryOpenAI);
             System.out.println("-".repeat(80));
-            System.out.println("Data: " + (content.length() > 500 ? content.substring(0, Math.min(content.length(), 1000)) + "..." : 
-                                          (content.length() > 300 ? content : content.substring(0, Math.min(content.length(), 300)) + "...")));
+            System.out.println("Data: " + content);
             System.out.println("=".repeat(80));
             
             result.put("elasticsearch", Map.of(
@@ -305,14 +390,35 @@ public class AiComparisonService {
             System.out.println("[OpenAI Thread] ✅ Hoàn thành trong " + totalTime + "ms");
             
         } catch (Exception e) {
+            long errorTime = System.currentTimeMillis() - startTime;
             String errorMessage = "[OpenAI Thread] ❌ Lỗi: " + e.getMessage();
             System.out.println(errorMessage);
             
-            // Ghi log lỗi ra file
-            LogUtils.logError("AiComparisonService.OpenAI", "Lỗi xử lý OpenAI với sessionId=" + sessionId, e);
+            // Thu thập thông tin bối cảnh chi tiết
+            Map<String, Object> errorContext = new HashMap<>();
+            errorContext.put("sessionId", sessionId);
+            errorContext.put("userMessage", chatRequest.message());
+            errorContext.put("processingTimeMs", errorTime);
+            errorContext.put("provider", "OpenAI");
+            errorContext.put("modelName", ModelProvider.OPENAI.getModelName());
+            
+            // Thêm thông tin về prompt nếu có
+            try {
+                errorContext.put("prompt", prompt.toString());
+            } catch (Exception ex) {
+                errorContext.put("promptError", ex.getMessage());
+            }
+            
+            // Ghi log lỗi chi tiết ra file
+            LogUtils.logDetailedError(
+                "AiComparisonService.OpenAI", 
+                "Lỗi xử lý yêu cầu OpenAI", 
+                e, 
+                errorContext
+            );
             
             result.put("error", e.getMessage());
-            result.put("total_time_ms", System.currentTimeMillis() - startTime);
+            result.put("total_time_ms", errorTime);
         }
         
         return result;
@@ -372,8 +478,7 @@ public class AiComparisonService {
             System.out.println("=".repeat(80));
             System.out.println("Final Query OpenRouter: " + finalQueryOpenRouter);
             System.out.println("-".repeat(80));
-            System.out.println("Data: " + (content.length() > 500 ? content.substring(0, Math.min(content.length(), 1000)) + "..." : 
-                                          (content.length() > 300 ? content : content.substring(0, Math.min(content.length(), 300)) + "...")));
+            System.out.println("Data: " + content);
             System.out.println("=".repeat(80));
             
             result.put("elasticsearch", Map.of(
@@ -405,14 +510,35 @@ public class AiComparisonService {
             System.out.println("[OpenRouter Thread] ✅ Hoàn thành trong " + totalTime + "ms");
             
         } catch (Exception e) {
+            long errorTime = System.currentTimeMillis() - startTime;
             String errorMessage = "[OpenRouter Thread] ❌ Lỗi: " + e.getMessage();
             System.out.println(errorMessage);
             
-            // Ghi log lỗi ra file
-            LogUtils.logError("AiComparisonService.OpenRouter", "Lỗi xử lý OpenRouter với sessionId=" + sessionId, e);
+            // Thu thập thông tin bối cảnh chi tiết
+            Map<String, Object> errorContext = new HashMap<>();
+            errorContext.put("sessionId", sessionId);
+            errorContext.put("userMessage", chatRequest.message());
+            errorContext.put("processingTimeMs", errorTime);
+            errorContext.put("provider", "OpenRouter");
+            errorContext.put("modelName", ModelProvider.OPENROUTER.getModelName());
+            
+            // Thêm thông tin về prompt nếu có
+            try {
+                errorContext.put("prompt", prompt.toString());
+            } catch (Exception ex) {
+                errorContext.put("promptError", ex.getMessage());
+            }
+            
+            // Ghi log lỗi chi tiết ra file
+            LogUtils.logDetailedError(
+                "AiComparisonService.OpenRouter", 
+                "Lỗi xử lý yêu cầu OpenRouter", 
+                e, 
+                errorContext
+            );
             
             result.put("error", e.getMessage());
-            result.put("total_time_ms", System.currentTimeMillis() - startTime);
+            result.put("total_time_ms", errorTime);
         }
         
         return result;

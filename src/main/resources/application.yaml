@@ -3,6 +3,8 @@ server:
   port: 8080
 
 spring:
+  codec:
+    max-in-memory-size: 10MB
   # Primary DataSource - Chat Database (Localhost)
   datasource:
     url: jdbc:postgresql://localhost:5432/chatlog

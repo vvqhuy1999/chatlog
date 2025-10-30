@@ -1,0 +1,371 @@
+[2025-10-30 11:03:21.270] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 15338ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: Liệt kê các egress interfaces được sử dụng nhiều nhất
+   - esPreview: OpenAI ES: {"took":248,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{... | OpenRouter ES: {"took":354,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{...
+   - timeSavedMs: 15338
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=19345, openai_totalMs=17691, openrouter_searchMs=797, openai_searchMs=604}
+   - sessionId: 216
+   - totalProcessingTimeMs: 21698
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 19345
+   - openai_totalMs: 17691
+   - openrouter_searchMs: 797
+   - openai_searchMs: 604
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":248,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{... | OpenRouter ES: {"took":354,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{...
+
+▶ TIMESTAMP: 2025-10-30T11:03:21.2706167
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 11:06:16.680] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 18961ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: Tỉ lệ operations thủ công vs tự động?
+   - esPreview: OpenAI ES: {"took":88,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"... | OpenRouter ES: {"took":104,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{...
+   - timeSavedMs: 18961
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=20770, openai_totalMs=36888, openrouter_searchMs=132, openai_searchMs=103}
+   - sessionId: 216
+   - totalProcessingTimeMs: 38697
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 20770
+   - openai_totalMs: 36888
+   - openrouter_searchMs: 132
+   - openai_searchMs: 103
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":88,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"... | OpenRouter ES: {"took":104,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{...
+
+▶ TIMESTAMP: 2025-10-30T11:06:16.6803464
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 11:08:34.048] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 37227ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: Data Loss Prevention: Phát hiện truyền file lớn ra ngoài qua FTP/HTTP?
+   - esPreview: OpenAI ES: {"took":234,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{... | OpenRouter ES: {"took":318,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{...
+   - timeSavedMs: 37227
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=38399, openai_totalMs=96218, openrouter_searchMs=362, openai_searchMs=284}
+   - sessionId: 216
+   - totalProcessingTimeMs: 97390
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 38399
+   - openai_totalMs: 96218
+   - openrouter_searchMs: 362
+   - openai_searchMs: 284
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":234,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{... | OpenRouter ES: {"took":318,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{...
+
+▶ TIMESTAMP: 2025-10-30T11:08:34.0480521
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 11:14:09.312] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 11032ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: Machine nào đầu tiên có signs của file encryption?
+   - esPreview: OpenAI ES: {"took":6,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":0,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"infection_timeline":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[]}}} | OpenRouter ES: {"took":7,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":0,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"infection_timeline":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[]}}}
+   - timeSavedMs: 11032
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=13241, openai_totalMs=24207, openrouter_searchMs=138, openai_searchMs=18}
+   - sessionId: 216
+   - totalProcessingTimeMs: 26416
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 13241
+   - openai_totalMs: 24207
+   - openrouter_searchMs: 138
+   - openai_searchMs: 18
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":6,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":0,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"infection_timeline":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[]}}} | OpenRouter ES: {"took":7,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":0,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"infection_timeline":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[]}}}
+
+▶ TIMESTAMP: 2025-10-30T11:14:09.3122118
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 11:18:39.528] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 15651ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: Có kết nối nào sử dụng protocol không phổ biến?
+   - timeSavedMs: 15651
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=21190, openai_totalMs=17369, openrouter_searchMs=700, openai_searchMs=293}
+   - sessionId: 216
+   - totalProcessingTimeMs: 22908
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":221,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":8,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.10.02-000002","_id":"sP9WM5oBwPewX2N5gT51","_score":null,"_source":{"destination":{"ip":"103.235.46.102"},"source":{"ip":"10.4.120.222"},"network":{"protocol":"ping","transport":"icmp"},"@timestamp":"2025-10-30T11:18:15.000+07:00"},"sort":[1761797895000]},{"_index":".ds-logs-el... | OpenRouter ES: {"took":499,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":8,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.10.02-000002","_id":"sP9WM5oBwPewX2N5gT51","_score":null,"_source":{"destination":{"ip":"103.235.46.102"},"source":{"ip":"10.4.120.222"},"network":{"protocol":"ping","transport":"icmp"},"@timestamp":"2025-10-30T11:18:15.000+07:00"},"sort":[176179... (preview truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 21190
+   - openai_totalMs: 17369
+   - openrouter_searchMs: 700
+   - openai_searchMs: 293
+
+▶ TIMESTAMP: 2025-10-30T11:18:39.5282531
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 11:22:51.758] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 24587ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: DDoS Detection: Phát hiện tấn công từ chối dịch vụ dựa trên volume và pattern?
+   - timeSavedMs: 24587
+   - aiSummary: {openrouter_esSuccess=false, openai_esSuccess=false, openrouter_totalMs=26751, openai_totalMs=27090, openrouter_searchMs=530, openai_searchMs=654}
+   - sessionId: 217
+   - totalProcessingTimeMs: 29254
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: ❌ **Elasticsearch Error**
+   
+   Không thể thực hiện truy vấn Elasticsearch.
+   
+   **Chi tiết lỗi:** 200 OK from POST https://10.0.18.23:9200/logs-*/_search, but response failed with cause: org.springframework.core.io.buffer.DataBufferLimitException: Exceeded limit on max bytes to buffer : 262144
+   
+   💡 **Gợi ý:** Kiểm tra lại câu hỏi hoặc liên hệ admin. | OpenRouter ES: ❌ **Elasticsearch Error**
+   
+   Không thể thực hiện truy vấn Elasticsearch.
+   
+   **Chi tiết lỗi:** 200 OK from POST https://10.0.18.23:9200/logs-*/_search, but response failed with cause: org.springframework.core.io.buffer.DataBufferLimitException: Exceeded limit on max bytes to buffer : 262144
+   
+   💡 **Gợi ý:** Kiểm tra lại câu hỏi hoặc liên hệ admin.
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: false
+   - openai_esSuccess: false
+   - openrouter_totalMs: 26751
+   - openai_totalMs: 27090
+   - openrouter_searchMs: 530
+   - openai_searchMs: 654
+
+▶ TIMESTAMP: 2025-10-30T11:22:51.7587605
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 11:26:39.915] [ERROR_DETAILED] [AiComparisonService.OpenAI] ❌ Lỗi xử lý yêu cầu OpenAI
+════════════════════════════ ERROR DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: DDoS Detection: Phát hiện tấn công từ chối dịch vụ dựa trên volume và pattern?
+   - modelName: gpt-4o-mini
+   - processingTimeMs: 14842
+   - provider: OpenAI
+   - sessionId: 218
+   - prompt: Prompt{messages=[SystemMessage{textContent='Elasticsearch Query Generator - Fortinet Firewall Logs
+
+CORE OBJECTIVE
+You are an expert Elasticsearch query generator for Fortinet logs. Your task is to generate ONE valid JSON query that matches the user's intent exactly.
+
+TIME HANDLING (Priority #1)
+Current Context: CURRENT TIME CONTEXT (Vietnam timezone +07:00):
+- Current exact time: 2025-10-30 11:26:23 (+07:00)
+- Current date: 2025-10-30
+
+PREFERRED TIME QUERY METHOD - Use Elasticsearch relative time expressions:
+- "5 phút qua, 5 phút trước, 5 minutes ago", "last 5 minutes" → {"gte": "now-5m"}
+- "1 giờ qua, 1 giờ trước, 1 hour ago", "last 1 hour" → {"gte": "now-1h"}
+- "24 giờ qua, 24 giờ trước, 24 hours ago", "last 24 hours" → {"gte": "now-24h"}
+- "1 tuần qua, 1 tuần trước, 1 week ago", "7 ngày qua, 7 ngày trước, 7 days ago", "last week" → {"gte": "now-7d"}
+- "1 tháng qua, 1 tháng trước, 1 month ago", "last month" → {"gte": "now-30d"}
+
+SPECIFIC DATE RANGES (when exact dates mentioned):
+- ... (truncated)
+
+▶ EXCEPTION:
+   Type: org.springframework.ai.retry.NonTransientAiException
+   Message: HTTP 400 - {
+  "error": {
+    "message": "This model's maximum context length is 128000 tokens. However, your messages resulted in 139758 tokens. Please reduce the length of the messages.",
+    "type": "invalid_request_error",
+    "param": "messages",
+    "code": "context_length_exceeded"
+  }
+}
+   Root Cause: org.springframework.ai.retry.NonTransientAiException: HTTP 400 - {
+  "error": {
+    "message": "This model's maximum context length is 128000 tokens. However, your messages resulted in 139758 tokens. Please reduce the length of the messages.",
+    "type": "invalid_request_error",
+    "param": "messages",
+    "code": "context_length_exceeded"
+  }
+}
+
+▶ STACK TRACE:
+    at org.springframework.ai.retry.autoconfigure.SpringAiRetryAutoConfiguration$2.handleError(SpringAiRetryAutoConfiguration.java:109)
+    at org.springframework.web.client.ResponseErrorHandler.handleError(ResponseErrorHandler.java:58)
+    at org.springframework.web.client.StatusHandler.lambda$fromErrorHandler$1(StatusHandler.java:71)
+    at org.springframework.web.client.StatusHandler.handle(StatusHandler.java:146)
+    at org.springframework.web.client.DefaultRestClient$DefaultResponseSpec.applyStatusHandlers(DefaultRestClient.java:838)
+    at org.springframework.web.client.DefaultRestClient$DefaultResponseSpec.lambda$readBody$4(DefaultRestClient.java:827)
+    at org.springframework.web.client.DefaultRestClient.readWithMessageConverters(DefaultRestClient.java:216)
+    at org.springframework.web.client.DefaultRestClient$DefaultResponseSpec.readBody(DefaultRestClient.java:826)
+    at org.springframework.web.client.DefaultRestClient$DefaultResponseSpec.lambda$toEntityInternal$2(DefaultRestClient.java:782)
+    at org.springframework.web.client.DefaultRestClient$DefaultRequestBodyUriSpec.exchangeInternal(DefaultRestClient.java:586)
+    at org.springframework.web.client.DefaultRestClient$DefaultRequestBodyUriSpec.exchange(DefaultRestClient.java:540)
+    at org.springframework.web.client.RestClient$RequestHeadersSpec.exchange(RestClient.java:680)
+    at org.springframework.web.client.DefaultRestClient$DefaultResponseSpec.executeAndExtract(DefaultRestClient.java:821)
+    at org.springframework.web.client.DefaultRestClient$DefaultResponseSpec.toEntityInternal(DefaultRestClient.java:781)
+    at org.springframework.web.client.DefaultRestClient$DefaultResponseSpec.toEntity(DefaultRestClient.java:770)
+    at org.springframework.ai.openai.api.OpenAiApi.chatCompletionEntity(OpenAiApi.java:198)
+    at org.springframework.ai.openai.OpenAiChatModel.lambda$internalCall$1(OpenAiChatModel.java:199)
+    at org.springframework.retry.support.RetryTemplate.doExecute(RetryTemplate.java:357)
+    at org.springframework.retry.support.RetryTemplate.execute(RetryTemplate.java:230)
+    at org.springframework.ai.openai.OpenAiChatModel.lambda$internalCall$3(OpenAiChatModel.java:199)
+    at io.micrometer.observation.Observation.observe(Observation.java:564)
+    at org.springframework.ai.openai.OpenAiChatModel.internalCall(OpenAiChatModel.java:196)
+    at org.springframework.ai.openai.OpenAiChatModel.call(OpenAiChatModel.java:181)
+    at org.springframework.ai.chat.client.advisor.ChatModelCallAdvisor.adviseCall(ChatModelCallAdvisor.java:54)
+    at org.springframework.ai.chat.client.advisor.DefaultAroundAdvisorChain.lambda$nextCall$1(DefaultAroundAdvisorChain.java:110)
+    at io.micrometer.observation.Observation.observe(Observation.java:564)
+    at org.springframework.ai.chat.client.advisor.DefaultAroundAdvisorChain.nextCall(DefaultAroundAdvisorChain.java:110)
+    at org.springframework.ai.chat.client.advisor.api.BaseAdvisor.adviseCall(BaseAdvisor.java:52)
+    at org.springframework.ai.chat.client.advisor.DefaultAroundAdvisorChain.lambda$nextCall$1(DefaultAroundAdvisorChain.java:110)
+    at io.micrometer.observation.Observation.observe(Observation.java:564)
+    at org.springframework.ai.chat.client.advisor.DefaultAroundAdvisorChain.nextCall(DefaultAroundAdvisorChain.java:110)
+    at org.springframework.ai.chat.client.DefaultChatClient$DefaultCallResponseSpec.lambda$doGetObservableChatClientResponse$1(DefaultChatClient.java:470)
+    at io.micrometer.observation.Observation.observe(Observation.java:564)
+    at org.springframework.ai.chat.client.DefaultChatClient$DefaultCallResponseSpec.doGetObservableChatClientResponse(DefaultChatClient.java:468)
+    at org.springframework.ai.chat.client.DefaultChatClient$DefaultCallResponseSpec.doGetObservableChatClientResponse(DefaultChatClient.java:447)
+    at org.springframework.ai.chat.client.DefaultChatClient$DefaultCallResponseSpec.content(DefaultChatClient.java:442)
+    at com.example.chatlog.service.impl.AiResponseService.getAiResponseForComparison(AiResponseService.java:293)
+    at com.example.chatlog.service.impl.AiComparisonService.processOpenAI(AiComparisonService.java:373)
+    at com.example.chatlog.service.impl.AiComparisonService.lambda$handleRequestWithComparison$0(AiComparisonService.java:134)
+    at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1814)
+    at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.exec(CompletableFuture.java:1806)
+    at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:507)
+    at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1394)
+    at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1970)
+    at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+
+▶ TIMESTAMP: 2025-10-30T11:26:39.9153653
+════════════════════════════ END ERROR DETAILS ════════════════════════════
+
+[2025-10-30 11:26:50.346] [ERROR_DETAILED] [AiComparisonService.OpenRouter] ❌ Lỗi xử lý yêu cầu OpenRouter
+════════════════════════════ ERROR DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: DDoS Detection: Phát hiện tấn công từ chối dịch vụ dựa trên volume và pattern?
+   - modelName: x-ai/grok-4-fast:free
+   - processingTimeMs: 25274
+   - provider: OpenRouter
+   - sessionId: 218
+   - prompt: Prompt{messages=[SystemMessage{textContent='Elasticsearch Query Generator - Fortinet Firewall Logs
+
+CORE OBJECTIVE
+You are an expert Elasticsearch query generator for Fortinet logs. Your task is to generate ONE valid JSON query that matches the user's intent exactly.
+
+TIME HANDLING (Priority #1)
+Current Context: CURRENT TIME CONTEXT (Vietnam timezone +07:00):
+- Current exact time: 2025-10-30 11:26:23 (+07:00)
+- Current date: 2025-10-30
+
+PREFERRED TIME QUERY METHOD - Use Elasticsearch relative time expressions:
+- "5 phút qua, 5 phút trước, 5 minutes ago", "last 5 minutes" → {"gte": "now-5m"}
+- "1 giờ qua, 1 giờ trước, 1 hour ago", "last 1 hour" → {"gte": "now-1h"}
+- "24 giờ qua, 24 giờ trước, 24 hours ago", "last 24 hours" → {"gte": "now-24h"}
+- "1 tuần qua, 1 tuần trước, 1 week ago", "7 ngày qua, 7 ngày trước, 7 days ago", "last week" → {"gte": "now-7d"}
+- "1 tháng qua, 1 tháng trước, 1 month ago", "last month" → {"gte": "now-30d"}
+
+SPECIFIC DATE RANGES (when exact dates mentioned):
+- ... (truncated)
+
+▶ EXCEPTION:
+   Type: org.springframework.ai.retry.NonTransientAiException
+   Message: HTTP 400 - {
+  "error": {
+    "message": "This model's maximum context length is 128000 tokens. However, your messages resulted in 143955 tokens. Please reduce the length of the messages.",
+    "type": "invalid_request_error",
+    "param": "messages",
+    "code": "context_length_exceeded"
+  }
+}
+   Root Cause: org.springframework.ai.retry.NonTransientAiException: HTTP 400 - {
+  "error": {
+    "message": "This model's maximum context length is 128000 tokens. However, your messages resulted in 143955 tokens. Please reduce the length of the messages.",
+    "type": "invalid_request_error",
+    "param": "messages",
+    "code": "context_length_exceeded"
+  }
+}
+
+▶ STACK TRACE:
+    at org.springframework.ai.retry.autoconfigure.SpringAiRetryAutoConfiguration$2.handleError(SpringAiRetryAutoConfiguration.java:109)
+    at org.springframework.web.client.ResponseErrorHandler.handleError(ResponseErrorHandler.java:58)
+    at org.springframework.web.client.StatusHandler.lambda$fromErrorHandler$1(StatusHandler.java:71)
+    at org.springframework.web.client.StatusHandler.handle(StatusHandler.java:146)
+    at org.springframework.web.client.DefaultRestClient$DefaultResponseSpec.applyStatusHandlers(DefaultRestClient.java:838)
+    at org.springframework.web.client.DefaultRestClient$DefaultResponseSpec.lambda$readBody$4(DefaultRestClient.java:827)
+    at org.springframework.web.client.DefaultRestClient.readWithMessageConverters(DefaultRestClient.java:216)
+    at org.springframework.web.client.DefaultRestClient$DefaultResponseSpec.readBody(DefaultRestClient.java:826)
+    at org.springframework.web.client.DefaultRestClient$DefaultResponseSpec.lambda$toEntityInternal$2(DefaultRestClient.java:782)
+    at org.springframework.web.client.DefaultRestClient$DefaultRequestBodyUriSpec.exchangeInternal(DefaultRestClient.java:586)
+    at org.springframework.web.client.DefaultRestClient$DefaultRequestBodyUriSpec.exchange(DefaultRestClient.java:540)
+    at org.springframework.web.client.RestClient$RequestHeadersSpec.exchange(RestClient.java:680)
+    at org.springframework.web.client.DefaultRestClient$DefaultResponseSpec.executeAndExtract(DefaultRestClient.java:821)
+    at org.springframework.web.client.DefaultRestClient$DefaultResponseSpec.toEntityInternal(DefaultRestClient.java:781)
+    at org.springframework.web.client.DefaultRestClient$DefaultResponseSpec.toEntity(DefaultRestClient.java:770)
+    at org.springframework.ai.openai.api.OpenAiApi.chatCompletionEntity(OpenAiApi.java:198)
+    at org.springframework.ai.openai.OpenAiChatModel.lambda$internalCall$1(OpenAiChatModel.java:199)
+    at org.springframework.retry.support.RetryTemplate.doExecute(RetryTemplate.java:357)
+    at org.springframework.retry.support.RetryTemplate.execute(RetryTemplate.java:230)
+    at org.springframework.ai.openai.OpenAiChatModel.lambda$internalCall$3(OpenAiChatModel.java:199)
+    at io.micrometer.observation.Observation.observe(Observation.java:564)
+    at org.springframework.ai.openai.OpenAiChatModel.internalCall(OpenAiChatModel.java:196)
+    at org.springframework.ai.openai.OpenAiChatModel.call(OpenAiChatModel.java:181)
+    at org.springframework.ai.chat.client.advisor.ChatModelCallAdvisor.adviseCall(ChatModelCallAdvisor.java:54)
+    at org.springframework.ai.chat.client.advisor.DefaultAroundAdvisorChain.lambda$nextCall$1(DefaultAroundAdvisorChain.java:110)
+    at io.micrometer.observation.Observation.observe(Observation.java:564)
+    at org.springframework.ai.chat.client.advisor.DefaultAroundAdvisorChain.nextCall(DefaultAroundAdvisorChain.java:110)
+    at org.springframework.ai.chat.client.advisor.api.BaseAdvisor.adviseCall(BaseAdvisor.java:52)
+    at org.springframework.ai.chat.client.advisor.DefaultAroundAdvisorChain.lambda$nextCall$1(DefaultAroundAdvisorChain.java:110)
+    at io.micrometer.observation.Observation.observe(Observation.java:564)
+    at org.springframework.ai.chat.client.advisor.DefaultAroundAdvisorChain.nextCall(DefaultAroundAdvisorChain.java:110)
+    at org.springframework.ai.chat.client.DefaultChatClient$DefaultCallResponseSpec.lambda$doGetObservableChatClientResponse$1(DefaultChatClient.java:470)
+    at io.micrometer.observation.Observation.observe(Observation.java:564)
+    at org.springframework.ai.chat.client.DefaultChatClient$DefaultCallResponseSpec.doGetObservableChatClientResponse(DefaultChatClient.java:468)
+    at org.springframework.ai.chat.client.DefaultChatClient$DefaultCallResponseSpec.doGetObservableChatClientResponse(DefaultChatClient.java:447)
+    at org.springframework.ai.chat.client.DefaultChatClient$DefaultCallResponseSpec.content(DefaultChatClient.java:442)
+    at com.example.chatlog.service.impl.AiResponseService.getAiResponseForComparison(AiResponseService.java:293)
+    at com.example.chatlog.service.impl.AiComparisonService.processOpenRouter(AiComparisonService.java:493)
+    at com.example.chatlog.service.impl.AiComparisonService.lambda$handleRequestWithComparison$1(AiComparisonService.java:139)
+    at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1814)
+    at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.exec(CompletableFuture.java:1806)
+    at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:507)
+    at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1394)
+    at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1970)
+    at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:187)
+
+▶ TIMESTAMP: 2025-10-30T11:26:50.3463786
+════════════════════════════ END ERROR DETAILS ════════════════════════════
+
+[2025-10-30 11:26:50.349] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 13102ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: DDoS Detection: Phát hiện tấn công từ chối dịch vụ dựa trên volume và pattern?
+   - timeSavedMs: 13102
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=25274, openai_totalMs=14842, openrouter_searchMs=294, openai_searchMs=547}
+   - sessionId: 218
+   - totalProcessingTimeMs: 27014
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":363,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"targeted_services":{"doc_count_error_upper_bound":46,"sum_other_doc_count":20098,"buckets":[{"key":"10.0.0.1","doc_count":10111,"attack_volume":{"value":3824634.0},"attacking_sources":{"value":128},"service_ports":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":53,"doc_count":9834},{"ke... | OpenRouter ES: {"took":234,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":0.0,"hits":[{"_index":".ds-logs-elastic_agent.filebeat-default-2025.10.02-000002","_id":"6P9eM5oBwPewX2N5NdHh","_score":0.0,"_source":{"@timestamp":"2025-10-30T04:26:34.794Z"}},{"_index":".ds-logs-elastic_agent.filebeat-default-2025.10.02-000002","_id":"6f9eM5oBwPewX2N5NdHh","_score":0.0,"_source":{"@timestamp":"2... (preview truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 25274
+   - openai_totalMs: 14842
+   - openrouter_searchMs: 294
+   - openai_searchMs: 547
+
+▶ TIMESTAMP: 2025-10-30T11:26:50.3494664
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
