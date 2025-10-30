@@ -883,12 +883,54 @@
     }
   },
   {
-    "question": "Tìm tất cả DNS queries đến domain có chứa 'google' trong 6h qua",
-    "keywords": ["dns queries", "truy vấn dns", "domain", "google", "6h qua", "wildcard", "dns.question.name", "contains", "chứa"],
+    "question": "Tìm tất cả truy vấn DNS trong 6 giờ qua được gửi đến máy chủ DNS thuộc tổ chức 'GOOGLE'.",
+    "keywords": [
+      "dns queries",
+      "truy vấn dns",
+      "6h qua",
+      "máy chủ dns",
+      "dns server",
+      "tổ chức",
+      "organization",
+      "GOOGLE",
+      "destination.as.organization.name",
+      "term",
+      "exact match"
+    ],
     "query": {
-      "query": { "bool": { "filter": [{ "wildcard": { "dns.question.name": "*google*" } }, { "range": { "@timestamp": { "gte": "now-6h" } } }] } },
-      "_source": ["@timestamp", "source.ip", "dns.question.name", "dns.question.type", "dns.resolved_ip"],
-      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "term": {
+                "destination.as.organization.name": "GOOGLE"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-6h"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.protocol": "dns"
+              }
+            },
+            {
+              "term": {
+                "destination.port": 53
+              }
+            }
+          ]
+        }
+      },
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "size": 50
     }
   },
@@ -944,7 +986,6 @@
   {
     "question": "User nào truy cập nhiều domains khác nhau nhất?",
     "keywords": ["user", "người dùng", "truy cập", "access", "nhiều domains", "unique domains", "nhiều nhất", "top", "cardinality"],
-    "keywords": ["user", "người dùng", "truy cập", "access", "nhiều domains", "unique domains", "nhiều nhất", "top", "cardinality"],
     "query": {
       "query": {
         "bool": { "filter": [{ "range": { "@timestamp": { "gte": "now-24h" } } }, { "exists": { "field": "destination.as.organization.name" } }] }
@@ -999,27 +1040,59 @@
     }
   },
   {
-    "question": "Tìm các DNS queries không thành công trong 24h qua",
+    "question": "Tìm các truy vấn DNS bị tường lửa chặn (deny) trong 24h qua",
     "keywords": [
       "dns queries",
       "truy vấn dns",
-      "không thành công",
+      "bị chặn",
+      "deny",
       "failed",
       "24h qua",
-      "must_not",
-      "exists",
-      "dns.resolved_ip",
-      "dns.question.name"
+      "event.action",
+      "network.protocol",
+      "destination.port"
     ],
     "query": {
       "query": {
         "bool": {
-          "filter": [{ "exists": { "field": "dns.question.name" } }, { "range": { "@timestamp": { "gte": "now-24h" } } }],
-          "must_not": [{ "exists": { "field": "dns.resolved_ip" } }]
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.protocol": "dns"
+              }
+            },
+            {
+              "term": {
+                "destination.port": 53
+              }
+            },
+            {
+              "term": {
+                "event.action": "deny"
+              }
+            }
+          ]
         }
       },
-      "_source": ["@timestamp", "source.ip", "dns.question.name", "dns.question.type"],
-      "sort": [{ "@timestamp": "desc" }],
+      "_source": [
+        "@timestamp",
+        "source.ip",
+        "destination.ip",
+        "event.action",
+        "rule.name"
+      ],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "size": 50
     }
   },
@@ -3922,7 +3995,7 @@
           "must_not": [
             {
               "terms": {
-                "destination.as.organization.name": ["GOOGLE", "MICROSOFT-CORP-MSN-AS-BLOCK", "FACEBOOK", "AMAZON-AES", "CLOUDFLARENET"]
+                "destination.as.organization.name": ["GOOGLE", "MICROSOFT-CORP-MSN-AS-BLOCK", "FACEBOOK", "AMAZON-AES", "CLOUDFLARENET", "Kaspersky Lab Switzerland GmbH", "CMC Telecom Infrastructure Company", "NETACTUATE", "Viettel Group", "GOOGLE-CLOUD-PLATFORM"]
               }
             }
           ]
@@ -5066,54 +5139,67 @@
     }
   },
   {
-    "question": "Phát hiện đường hầm DNS (DNS tunneling): các truy vấn có tên miền dài bất thường?",
+    "question": "Thống kê 50 máy chủ DNS (destination.ip) được truy vấn nhiều nhất trong 10 ngày qua?",
     "keywords": [
-      "dns tunneling",
-      "đường hầm dns",
-      "tên miền dài",
-      "đánh cắp dữ liệu",
-      "c2 communication",
-      "command and control",
-      "domain length",
-      "chiều dài tên miền",
-      "unusual domains",
-      "tên miền bất thường",
-      "data exfiltration",
-      "covert channel",
-      "kênh bí mật",
-      "dns queries",
-      "truy vấn dns"
+      "thống kê dns",
+      "dns statistics",
+      "top dns servers",
+      "máy chủ dns hàng đầu",
+      "aggregations",
+      "tổng hợp",
+      "terms",
+      "cardinality",
+      "destination.ip",
+      "source.ip",
+      "query frequency",
+      "tần suất truy vấn",
+      "10d qua"
     ],
-    "scenario": "PHÁT HIỆN MỐI ĐE DỌA BỀN VỮNG NÂNG CAO (APT DETECTION)",
-    "phase": "Giai đoạn 1: Phân tích mô hình dài hạn",
     "query": {
       "query": {
         "bool": {
           "filter": [
-            { "range": { "@timestamp": { "gte": "now-7d" } } },
-            { "term": { "network.protocol": "dns" } },
             {
-              "script": {
-                "script": "doc['url.domain'].size() > 0 && doc['url.domain'].value.length() > 50"
+              "range": {
+                "@timestamp": {
+                  "gte": "now-10d"
+                }
+              }
+            },
+            {
+              "term": {
+                "network.protocol": "dns"
+              }
+            },
+            {
+              "term": {
+                "destination.port": 53
               }
             }
           ]
         }
       },
       "aggs": {
-        "suspicious_domains": {
-          "terms": { "field": "url.domain", "size": 50 },
+        "top_dns_servers": {
+          "terms": {
+            "field": "destination.ip",
+            "size": 50
+          },
           "aggs": {
-            "query_frequency": { "value_count": { "field": "@timestamp" } },
-            "unique_sources": { "cardinality": { "field": "source.ip" } },
-            "domain_length": {
-              "max": {
-                "script": "doc['url.domain'].size() > 0 ? doc['url.domain'].value.length() : 0"
+            "query_frequency": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            },
+            "unique_sources": {
+              "cardinality": {
+                "field": "source.ip"
               }
             }
           }
         }
-      }
+      },
+      "size": 0
     }
   },
   {
@@ -6259,7 +6345,7 @@
               },
               "suspicious_destinations": {
                 "bool": {
-                  "must_not": [{ "terms": { "destination.as.organization.name": ["Google LLC", "Microsoft Corporation", "Amazon.com"] } }]
+                  "must_not": [{ "terms": { "destination.as.organization.name": ["GOOGLE", "MICROSOFT-CORP-MSN-AS-BLOCK", "FACEBOOK", "AMAZON-AES", "CLOUDFLARENET", "Kaspersky Lab Switzerland GmbH", "CMC Telecom Infrastructure Company", "NETACTUATE", "Viettel Group", "GOOGLE-CLOUD-PLATFORM"] } }]
                 }
               }
             }
@@ -7609,94 +7695,89 @@
     }
   },
   {
-    "question": "Living off the Land: Phát hiện sử dụng DNS để truyền dữ liệu bất thường?",
+    "question": "Phát hiện lưu lượng DNS bất thường (nghi ngờ tunneling) qua hành vi: top client theo số lượng truy vấn và dung lượng traffic?",
     "keywords": [
       "DNS tunneling",
       "đường hầm DNS",
       "data exfiltration",
       "đánh cắp dữ liệu",
-      "covert channels",
-      "kênh bí mật",
-      "DNS abuse",
-      "lạm dụng DNS",
       "abnormal DNS",
       "DNS bất thường",
       "living off the land",
-      "sống bằng đất",
-      "legitimate protocol abuse",
-      "lạm dụng giao thức hợp pháp"
+      "high query count",
+      "số lượng truy vấn cao",
+      "high byte count",
+      "dung lượng byte cao",
+      "behavioral detection",
+      "phát hiện hành vi",
+      "network.bytes",
+      "source.ip",
+      "destination.ip"
     ],
-    "scenario": "DNS TUNNELING DETECTION",
-    "phase": "Giai đoạn 2: Phát hiện lạm dụng DNS",
+    "scenario": "DNS TUNNELING DETECTION (BEHAVIORAL)",
+    "phase": "Giai đoạn 2: Phát hiện lạm dụng DNS (Phân tích hành vi)",
     "securityFramework": "MITRE ATT&CK T1071.004 - DNS",
     "query": {
       "query": {
         "bool": {
           "filter": [
-            { "range": { "@timestamp": { "gte": "now-2h" } } },
-            { "term": { "destination.port": 53 } },
-            { "term": { "network.protocol": "udp" } },
-            { "exists": { "field": "dns.question.name" } }
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-2h"
+                }
+              }
+            },
+            {
+              "term": {
+                "destination.port": 53
+              }
+            },
+            {
+              "term": {
+                "network.protocol": "dns"
+              }
+            }
           ]
         }
       },
       "aggs": {
-        "dns_analysis": {
-          "terms": { "field": "source.ip", "size": 100 },
-          "aggs": {
-            "query_patterns": {
-              "terms": { "field": "dns.question.name", "size": 50 }
-            },
-            "query_types": {
-              "terms": { "field": "dns.question.type", "size": 10 }
-            },
-            "query_frequency": {
-              "date_histogram": {
-                "field": "@timestamp",
-                "fixed_interval": "1m"
-              }
-            },
-            "unique_domains": {
-              "cardinality": { "field": "dns.question.registered_domain" }
-            },
-            "total_queries": {
-              "value_count": { "field": "dns.question.name" }
-            },
-            "suspicious_tlds": {
-              "terms": { "field": "dns.question.top_level_domain", "size": 20 }
-            },
-            "long_queries": {
-              "filter": {
-                "script": {
-                  "script": {
-                    "source": "doc['dns.question.name'].size() > 0 && doc['dns.question.name'].value.length() > 50"
-                  }
-                }
-              }
-            },
-            "subdomain_analysis": {
-              "terms": { "field": "dns.question.subdomain", "size": 30 }
+        "suspicious_clients": {
+          "terms": {
+            "field": "source.ip",
+            "size": 50,
+            "order": {
+              "query_count": "desc"
             }
-          }
-        },
-        "anomaly_indicators": {
-          "filters": {
-            "filters": {
-              "high_frequency": {
-                "range": { "@timestamp": { "gte": "now-1m" } }
+          },
+          "aggs": {
+            "query_count": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            },
+            "contacted_dns_servers": {
+              "terms": {
+                "field": "destination.ip",
+                "size": 10
               },
-              "unusual_record_types": {
-                "terms": { "dns.question.type": ["TXT", "NULL", "CNAME"] }
-              },
-              "non_standard_ports": {
-                "bool": {
-                  "must_not": [{ "term": { "destination.port": 53 } }]
+              "aggs": {
+                "total_traffic_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                },
+                "avg_traffic_per_query": {
+                  "avg": {
+                    "field": "network.bytes"
+                  }
                 }
               }
             }
           }
         }
-      }
+      },
+      "size": 0
     }
   },
   {

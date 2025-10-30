@@ -1,0 +1,276 @@
+[2025-10-30 14:31:10.931] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 13179ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: tổ chức đích nào hôm nay truy cập nhiều nhất
+   - timeSavedMs: 13179
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=16117, openai_totalMs=14527, openrouter_searchMs=637, openai_searchMs=165}
+   - sessionId: 218
+   - totalProcessingTimeMs: 17465
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":156,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"top_organizations":{"doc_count_error_upper_bound":-1,"sum_other_doc_count":220219,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":235764,"access_count":{"value":235764}},{"key":"GOOGLE","doc_count":160605,"access_count":{"value":160605}},{"key":"FACEBOOK","doc_count":50848,"access_count":{"value":5084... | OpenRouter ES: {"took":230,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"top_organizations":{"doc_count_error_upper_bound":3716,"sum_other_doc_count":220219,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":235764},{"key":"GOOGLE","doc_count":160605},{"key":"FACEBOOK","doc_count":50848},{"key":"FPT Telecom Company","doc_count":40497},{"key":"C... (preview truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 16117
+   - openai_totalMs: 14527
+   - openrouter_searchMs: 637
+   - openai_searchMs: 165
+
+▶ TIMESTAMP: 2025-10-30T14:31:10.9313224
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 14:32:08.769] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 16487ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: 20 tổ chức đích truy cập vào hôm nay
+   - timeSavedMs: 16487
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=17688, openai_totalMs=18445, openrouter_searchMs=198, openai_searchMs=176}
+   - sessionId: 218
+   - totalProcessingTimeMs: 19646
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":117,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"top_organizations":{"doc_count_error_upper_bound":1431,"sum_other_doc_count":85954,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":236481},{"key":"GOOGLE","doc_count":160983},{"key":"FACEBOOK","doc_count":50939},{"key":"FPT Telecom Company","doc_count":40544},{"key":"CLOUDFLARENET","doc_count":34084},... | OpenRouter ES: {"took":184,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"top_organizations":{"doc_count_error_upper_bound":1431,"sum_other_doc_count":85954,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":236481},{"key":"GOOGLE","doc_count":160983},{"key":"FACEBOOK","doc_count":50939},{"key":"FPT Telecom Company","doc_count":40544},{"key":"CL... (preview truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 17688
+   - openai_totalMs: 18445
+   - openrouter_searchMs: 198
+   - openai_searchMs: 176
+
+▶ TIMESTAMP: 2025-10-30T14:32:08.7692656
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 14:32:32.028] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 9938ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: tổ chức đích GOOGLE hôm nay user nào truy cập nhiều nhất
+   - timeSavedMs: 9938
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=10959, openai_totalMs=12973, openrouter_searchMs=20, openai_searchMs=19}
+   - sessionId: 218
+   - totalProcessingTimeMs: 13994
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":10,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":0,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"top_users":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[]}}} | OpenRouter ES: {"took":9,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":0,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"top_users":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[]}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 10959
+   - openai_totalMs: 12973
+   - openrouter_searchMs: 20
+   - openai_searchMs: 19
+
+▶ TIMESTAMP: 2025-10-30T14:32:32.028775
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 14:41:21.790] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 14751ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: 20 tổ chức đích truy cập vào hôm nay
+   - timeSavedMs: 14751
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=16025, openai_totalMs=18467, openrouter_searchMs=261, openai_searchMs=174}
+   - sessionId: 219
+   - totalProcessingTimeMs: 19741
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":124,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"top_organizations":{"doc_count_error_upper_bound":1477,"sum_other_doc_count":87893,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":244551},{"key":"GOOGLE","doc_count":165302},{"key":"FACEBOOK","doc_count":53018},{"key":"FPT Telecom Company","doc_count":41207},{"key":"CLOUDFLARENET","doc_count":34737},... | OpenRouter ES: {"took":203,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"top_organizations":{"doc_count_error_upper_bound":1477,"sum_other_doc_count":87893,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":244551},{"key":"GOOGLE","doc_count":165302},{"key":"FACEBOOK","doc_count":53018},{"key":"FPT Telecom Company","doc_count":41207},{"key":"CL... (preview truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 16025
+   - openai_totalMs: 18467
+   - openrouter_searchMs: 261
+   - openai_searchMs: 174
+
+▶ TIMESTAMP: 2025-10-30T14:41:21.7907829
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 14:42:09.991] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 11255ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: tổ chức đích GOOGLE hôm nay user nào truy cập nhiều nhất
+   - timeSavedMs: 11255
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=25449, openai_totalMs=12375, openrouter_searchMs=27, openai_searchMs=24}
+   - sessionId: 219
+   - totalProcessingTimeMs: 26569
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":16,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":0,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"top_users":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[]}}} | OpenRouter ES: {"took":17,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":0,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"top_users":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[]}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 25449
+   - openai_totalMs: 12375
+   - openrouter_searchMs: 27
+   - openai_searchMs: 24
+
+▶ TIMESTAMP: 2025-10-30T14:42:09.9919827
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 14:43:10.796] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 17305ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: tổ chức đích "GOOGLE" hôm nay user nào truy cập nhiều nhất
+   - timeSavedMs: 17305
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=24216, openai_totalMs=18460, openrouter_searchMs=17, openai_searchMs=61}
+   - sessionId: 219
+   - totalProcessingTimeMs: 25371
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":52,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":0,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"top_users":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[]}}} | OpenRouter ES: {"took":9,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":0,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"top_users":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[]}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 24216
+   - openai_totalMs: 18460
+   - openrouter_searchMs: 17
+   - openai_searchMs: 61
+
+▶ TIMESTAMP: 2025-10-30T14:43:10.7966616
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 14:45:14.088] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 14883ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: 20 tổ chức đích truy cập vào hôm nay
+   - timeSavedMs: 14883
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=16969, openai_totalMs=17298, openrouter_searchMs=298, openai_searchMs=170}
+   - sessionId: 220
+   - totalProcessingTimeMs: 19384
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":121,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"top_organizations":{"doc_count_error_upper_bound":1487,"sum_other_doc_count":88683,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":247753},{"key":"GOOGLE","doc_count":166902},{"key":"FACEBOOK","doc_count":54987},{"key":"FPT Telecom Company","doc_count":41531},{"key":"CLOUDFLARENET","doc_count":35065},... | OpenRouter ES: {"took":173,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"top_organizations":{"doc_count_error_upper_bound":1487,"sum_other_doc_count":88683,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":247753},{"key":"GOOGLE","doc_count":166902},{"key":"FACEBOOK","doc_count":54987},{"key":"FPT Telecom Company","doc_count":41531},{"key":"CL... (preview truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 16969
+   - openai_totalMs: 17298
+   - openrouter_searchMs: 298
+   - openai_searchMs: 170
+
+▶ TIMESTAMP: 2025-10-30T14:45:14.0889129
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 14:45:49.045] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 14469ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: tổ chức đích GOOGLE hôm nay user nào truy cập nhiều nhất
+   - timeSavedMs: 14469
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=16380, openai_totalMs=18450, openrouter_searchMs=65, openai_searchMs=19}
+   - sessionId: 220
+   - totalProcessingTimeMs: 20361
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":9,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":0,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"top_users":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[]}}} | OpenRouter ES: {"took":52,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":0,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"top_users":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[]}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 16380
+   - openai_totalMs: 18450
+   - openrouter_searchMs: 65
+   - openai_searchMs: 19
+
+▶ TIMESTAMP: 2025-10-30T14:45:49.0455806
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 14:47:07.873] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 8048ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: tổ chức đích GOOGLE hôm nay truy cập bao nhiêu lần
+   - timeSavedMs: 8048
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=20345, openai_totalMs=9462, openrouter_searchMs=14, openai_searchMs=25}
+   - sessionId: 220
+   - totalProcessingTimeMs: 21759
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":14,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":0,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"total_access":{"value":0}}} | OpenRouter ES: {"took":2,"timed_out":false,"_shards":{"total":14,"successful":14,"skipped":0,"failed":0},"hits":{"total":{"value":0,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"total_access":{"value":0}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 20345
+   - openai_totalMs: 9462
+   - openrouter_searchMs: 14
+   - openai_searchMs: 25
+
+▶ TIMESTAMP: 2025-10-30T14:47:07.873464
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 14:48:29.450] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 10846ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: DNS thuộc tổ chức 'GOOGLE'
+   - timeSavedMs: 10846
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=11761, openai_totalMs=12514, openrouter_searchMs=111, openai_searchMs=18}
+   - sessionId: 220
+   - totalProcessingTimeMs: 13429
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch. | OpenRouter ES: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch.
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 11761
+   - openai_totalMs: 12514
+   - openrouter_searchMs: 111
+   - openai_searchMs: 18
+
+▶ TIMESTAMP: 2025-10-30T14:48:29.4504764
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 14:50:26.823] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 6588ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: Tìm tất cả truy vấn DNS trong 6 giờ qua được gửi đến máy chủ DNS thuộc tổ chức 'GOOGLE'.
+   - timeSavedMs: 6588
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=9975, openai_totalMs=7793, openrouter_searchMs=10, openai_searchMs=10}
+   - sessionId: 220
+   - totalProcessingTimeMs: 11180
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch. | OpenRouter ES: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch.
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 9975
+   - openai_totalMs: 7793
+   - openrouter_searchMs: 10
+   - openai_searchMs: 10
+
+▶ TIMESTAMP: 2025-10-30T14:50:26.8236589
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-10-30 14:51:58.648] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 7081ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: Tìm tất cả truy vấn DNS trong 6 giờ qua được gửi đến máy chủ DNS thuộc tổ chức "GOOGLE"
+   - timeSavedMs: 7081
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=8717, openai_totalMs=8126, openrouter_searchMs=13, openai_searchMs=17}
+   - sessionId: 220
+   - totalProcessingTimeMs: 9762
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch. | OpenRouter ES: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch.
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 8717
+   - openai_totalMs: 8126
+   - openrouter_searchMs: 13
+   - openai_searchMs: 17
+
+▶ TIMESTAMP: 2025-10-30T14:51:58.6484378
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
