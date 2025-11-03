@@ -251,6 +251,20 @@ public class AiComparisonService {
             }
             successContext.put("esPreview", esPreview);
 
+            // Lưu thêm dữ liệu đầy đủ theo từng nguồn để log riêng biệt
+            try {
+                if (openaiResult != null && openaiResult.get("elasticsearch") instanceof Map) {
+                    Object od = ((Map<?, ?>) openaiResult.get("elasticsearch")).get("data");
+                    if (od != null) successContext.put("openaiEsData", od.toString());
+                }
+            } catch (Exception ignore) {}
+            try {
+                if (openrouterResult != null && openrouterResult.get("elasticsearch") instanceof Map) {
+                    Object rd = ((Map<?, ?>) openrouterResult.get("elasticsearch")).get("data");
+                    if (rd != null) successContext.put("openrouterEsData", rd.toString());
+                }
+            } catch (Exception ignore) {}
+
             LogUtils.logDetailedSuccess(
                 "AiComparisonService", 
                 String.format("Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm %dms)", calculateTimeSaved(openaiResult, openrouterResult, totalProcessingTime)), 
@@ -358,7 +372,7 @@ public class AiComparisonService {
             System.out.println("=".repeat(80));
             System.out.println("Final Query OpenAI: " + finalQueryOpenAI);
             System.out.println("-".repeat(80));
-            System.out.println("Data: " + content);
+            System.out.println("OpenAI Data: " + content);
             System.out.println("=".repeat(80));
             
             result.put("elasticsearch", Map.of(
@@ -478,7 +492,7 @@ public class AiComparisonService {
             System.out.println("=".repeat(80));
             System.out.println("Final Query OpenRouter: " + finalQueryOpenRouter);
             System.out.println("-".repeat(80));
-            System.out.println("Data: " + content);
+            System.out.println("OpenRouter Data: " + content);
             System.out.println("=".repeat(80));
             
             result.put("elasticsearch", Map.of(

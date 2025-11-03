@@ -36,6 +36,144 @@ public interface AiEmbeddingRepository extends JpaRepository<AiEmbedding, UUID> 
     @Query(nativeQuery = true, value = "SELECT * FROM ai_embedding WHERE is_deleted = 0 ORDER BY embedding <=> CAST(:queryEmbedding AS vector) LIMIT :limit")
     List<AiEmbedding> findSimilarEmbeddings(@Param("queryEmbedding") String queryEmbedding, @Param("limit") int limit);
     
+    /**
+     * Full-text search trên content và metadata
+     */
+    @Query(value = """
+        SELECT * FROM ai_embedding 
+        WHERE is_deleted = 0 
+        AND (
+            LOWER(content) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+            OR LOWER(CAST(metadata AS TEXT)) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+        )
+        ORDER BY 
+            CASE 
+                WHEN LOWER(content) LIKE LOWER(CONCAT('%', :searchTerm, '%')) THEN 1
+                ELSE 2
+            END
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<AiEmbedding> fullTextSearch(
+        @Param("searchTerm") String searchTerm, 
+        @Param("limit") int limit
+    );
+    
+    /**
+     * Hybrid search: Kết hợp vector similarity và keyword matching
+     */
+    @Query(value = """
+        WITH vector_results AS (
+            SELECT 
+                id,
+                content,
+                embedding,
+                metadata,
+                created_at,
+                updated_at,
+                is_deleted,
+                (1 - (embedding <=> CAST(:queryEmbedding AS vector))) AS similarity_score
+            FROM ai_embedding
+            WHERE is_deleted = 0
+            ORDER BY embedding <=> CAST(:queryEmbedding AS vector)
+            LIMIT :vectorLimit
+        ),
+        keyword_results AS (
+            SELECT 
+                id,
+                content,
+                embedding,
+                metadata,
+                created_at,
+                updated_at,
+                is_deleted,
+                0.8 AS keyword_score
+            FROM ai_embedding
+            WHERE is_deleted = 0
+            AND (
+                LOWER(content) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                OR LOWER(CAST(metadata AS TEXT)) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+            )
+            LIMIT :keywordLimit
+        )
+        SELECT DISTINCT
+            COALESCE(v.id, k.id) as id,
+            COALESCE(v.content, k.content) as content,
+            COALESCE(v.embedding, k.embedding) as embedding,
+            COALESCE(v.metadata, k.metadata) as metadata,
+            COALESCE(v.created_at, k.created_at) as created_at,
+            COALESCE(v.updated_at, k.updated_at) as updated_at,
+            COALESCE(v.is_deleted, k.is_deleted) as is_deleted,
+            (COALESCE(v.similarity_score, 0) * 0.7 + COALESCE(k.keyword_score, 0) * 0.3) as final_score
+        FROM vector_results v
+        FULL OUTER JOIN keyword_results k ON v.id = k.id
+        ORDER BY final_score DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<AiEmbedding> hybridSearch(
+        @Param("queryEmbedding") String queryEmbedding,
+        @Param("searchTerm") String searchTerm,
+        @Param("vectorLimit") int vectorLimit,
+        @Param("keywordLimit") int keywordLimit,
+        @Param("limit") int limit
+    );
+
+    /**
+     * Hybrid search (debug): trả về điểm số để log (similarity_score, keyword_score, final_score)
+     */
+    @Query(value = """
+        WITH vector_results AS (
+            SELECT 
+                id,
+                content,
+                embedding,
+                metadata,
+                created_at,
+                updated_at,
+                is_deleted,
+                (1 - (embedding <=> CAST(:queryEmbedding AS vector))) AS similarity_score
+            FROM ai_embedding
+            WHERE is_deleted = 0
+            ORDER BY embedding <=> CAST(:queryEmbedding AS vector)
+            LIMIT :vectorLimit
+        ),
+        keyword_results AS (
+            SELECT 
+                id,
+                content,
+                embedding,
+                metadata,
+                created_at,
+                updated_at,
+                is_deleted,
+                0.8 AS keyword_score
+            FROM ai_embedding
+            WHERE is_deleted = 0
+            AND (
+                LOWER(content) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                OR LOWER(CAST(metadata AS TEXT)) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+            )
+            LIMIT :keywordLimit
+        )
+        SELECT DISTINCT
+            COALESCE(v.id, k.id) as id,
+            COALESCE(v.content, k.content) as content,
+            COALESCE(v.metadata, k.metadata) as metadata,
+            COALESCE(v.similarity_score, 0) as similarity_score,
+            COALESCE(k.keyword_score, 0) as keyword_score,
+            (COALESCE(v.similarity_score, 0) * 0.7 + COALESCE(k.keyword_score, 0) * 0.3) as final_score
+        FROM vector_results v
+        FULL OUTER JOIN keyword_results k ON v.id = k.id
+        ORDER BY final_score DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Object[]> hybridSearchDebug(
+        @Param("queryEmbedding") String queryEmbedding,
+        @Param("searchTerm") String searchTerm,
+        @Param("vectorLimit") int vectorLimit,
+        @Param("keywordLimit") int keywordLimit,
+        @Param("limit") int limit
+    );
+    
     // Custom insert với explicit vector cast
     @Modifying
     @Transactional

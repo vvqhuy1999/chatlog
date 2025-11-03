@@ -146,7 +146,10 @@ public class AiQueryService {
             // CHỈ check hits empty NẾU KHÔNG CÓ aggregations (vì size:0 query sẽ có aggs thay vì hits)
             boolean hasAggregations = content.contains("\"aggregations\"") || content.contains("\"aggs\"");
             boolean hitsEmpty = content.contains("\"hits\":[]") || content.contains("\"hits\": []");
-            
+
+            // Log trạng thái để debug
+            System.out.println("[AiQueryService] hasAggregations=" + hasAggregations + ", hitsEmpty=" + hitsEmpty);
+
             if (hitsEmpty && !hasAggregations) {
                 System.out.println("[AiQueryService] ℹ️ INFO: Elasticsearch returned 0 results (no hits and no aggregations)");
                 return new String[]{

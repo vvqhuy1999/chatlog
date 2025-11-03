@@ -1,0 +1,92 @@
+[2025-11-03 15:30:43.044] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 4353ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: ip của user QuynhTX là bao nhiêu
+   - timeSavedMs: 4353
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=7890, openai_totalMs=8435, openrouter_searchMs=191, openai_searchMs=190}
+   - sessionId: 234
+   - totalProcessingTimeMs: 11972
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":19,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":0.0,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"RdIdhJkBWAVxoLH72dzc","_score":0.0,"_source":{"source":{"ip":"10.4.100.77","user":{"name":"QuynhTX"}},"@timestamp":"2025-09-26T10:42:42.000+07:00"}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"R9IdhJkBWAVxoLH72dzc","_score":0.... | OpenRouter ES: {"took":18,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":0.0,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"RdIdhJkBWAVxoLH72dzc","_score":0.0,"_source":{"source":{"ip":"10.4.100.77"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"R9IdhJkBWAVxoLH72dzc","_score":0.0,"_source":{"source":{"ip":"10.4.100.7... (preview truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 7890
+   - openai_totalMs: 8435
+   - openrouter_searchMs: 191
+   - openai_searchMs: 190
+
+▶ TIMESTAMP: 2025-11-03T15:30:43.0445314
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-03 15:37:38.206] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 8120ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: 5 ngày gần đây ip của user QuynhTX là bao nhiêu
+   - timeSavedMs: 8120
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=9600, openai_totalMs=13953, openrouter_searchMs=222, openai_searchMs=244}
+   - sessionId: 234
+   - totalProcessingTimeMs: 15433
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":233,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":45978},{"key":"10.4.100.117","doc_count":38411},{"key":"10.4.100.99","doc_count":2626}]}}} | OpenRouter ES: {"took":213,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":45978},{"key":"10.4.100.117","doc_count":38411},{"key":"10.4.100.99","doc_count":2626}]}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 9600
+   - openai_totalMs: 13953
+   - openrouter_searchMs: 222
+   - openai_searchMs: 244
+
+▶ TIMESTAMP: 2025-11-03T15:37:38.2061371
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-03 15:46:52.252] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 6901ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: 5 ngày gần đây ip của user QuynhTX là bao nhiêu
+   - timeSavedMs: 6901
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=17260, openai_totalMs=9646, openrouter_searchMs=214, openai_searchMs=385}
+   - sessionId: 234
+   - totalProcessingTimeMs: 20005
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":247,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":46164},{"key":"10.4.100.117","doc_count":38420},{"key":"10.4.100.99","doc_count":1962}]}}} | OpenRouter ES: {"took":146,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":46164},{"key":"10.4.100.117","doc_count":38420},{"key":"10.4.100.99","doc_count":1962}]}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 17260
+   - openai_totalMs: 9646
+   - openrouter_searchMs: 214
+   - openai_searchMs: 385
+
+▶ TIMESTAMP: 2025-11-03T15:46:52.2529666
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-03 15:49:41.904] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 9060ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: 5 ngày gần đây có bao nhiêu ip của user QuynhTX
+   - timeSavedMs: 9060
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=10925, openai_totalMs=12725, openrouter_searchMs=172, openai_searchMs=29}
+   - sessionId: 234
+   - totalProcessingTimeMs: 14590
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":16,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":46052},{"key":"10.4.100.117","doc_count":38420},{"key":"10.4.100.99","doc_count":1860}]}}} | OpenRouter ES: {"took":161,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":46054},{"key":"10.4.100.117","doc_count":38420},{"key":"10.4.100.99","doc_count":1861}]}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 10925
+   - openai_totalMs: 12725
+   - openrouter_searchMs: 172
+   - openai_searchMs: 29
+
+▶ TIMESTAMP: 2025-11-03T15:49:41.9043277
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+

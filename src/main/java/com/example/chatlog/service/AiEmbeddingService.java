@@ -37,4 +37,19 @@ public interface AiEmbeddingService {
 
     // Đếm số embeddings theo source file
     long countBySourceFile(String sourceFile);
+
+    /**
+     * Full-text search
+     */
+    List<AiEmbedding> fullTextSearch(String searchTerm, int limit);
+
+    /**
+     * Hybrid search: Kết hợp vector similarity và keyword matching
+     */
+    List<AiEmbedding> hybridSearch(String queryEmbedding, String searchTerm, int limit);
+
+    /**
+     * Hybrid search debug: trả về danh sách map chứa điểm số để in log
+     */
+    List<java.util.Map<String, Object>> hybridSearchDebug(String queryEmbedding, String searchTerm, int limit);
 }

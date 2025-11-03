@@ -243,6 +243,23 @@ public class LogUtils {
         } else {
             logEntry.append("\n   No ES data available (OpenAI ES: N/A | OpenRouter ES: N/A)");
         }
+
+        // Hiển thị dữ liệu chi tiết theo từng nguồn nếu có (đã cắt ngắn)
+        String openaiEsData = context != null && context.get("openaiEsData") != null ? context.get("openaiEsData").toString() : null;
+        String openrouterEsData = context != null && context.get("openrouterEsData") != null ? context.get("openrouterEsData").toString() : null;
+        if (openaiEsData != null || openrouterEsData != null) {
+            logEntry.append("\n\n▶ ES DATA (FULL, truncated):");
+            if (openaiEsData != null) {
+                String s = openaiEsData;
+                if (s.length() > 1500) s = s.substring(0, 1500) + "... (truncated)";
+                logEntry.append("\n   OpenAI Data: ").append(s.replace("\n", " "));
+            }
+            if (openrouterEsData != null) {
+                String s = openrouterEsData;
+                if (s.length() > 1500) s = s.substring(0, 1500) + "... (truncated)";
+                logEntry.append("\n   OpenRouter Data: ").append(s.replace("\n", " "));
+            }
+        }
         
         // Phần AI Results nếu có (từ openai/openrouter)
         logEntry.append("\n\n▶ AI RESULTS SUMMARY:");

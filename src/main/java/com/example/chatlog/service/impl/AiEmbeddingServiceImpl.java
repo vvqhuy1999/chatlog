@@ -110,4 +110,79 @@ public class AiEmbeddingServiceImpl implements AiEmbeddingService {
     public long countBySourceFile(String sourceFile) {
         return aiEmbeddingRepository.countBySourceFile(sourceFile);
     }
+
+    @Override
+    public List<AiEmbedding> fullTextSearch(String searchTerm, int limit) {
+        System.out.println("🔍 Full-text search for: " + searchTerm);
+        return aiEmbeddingRepository.fullTextSearch(searchTerm, limit);
+    }
+
+    @Override
+    public List<AiEmbedding> hybridSearch(String queryEmbedding, String searchTerm, int limit) {
+        System.out.println("🔍 Hybrid search for: " + searchTerm);
+        
+        // Tính toán số lượng kết quả từ mỗi phương pháp
+        int vectorLimit = Math.max(limit * 2, 20); // Lấy nhiều hơn để có pool lớn
+        int keywordLimit = Math.max(limit, 10);
+        
+        return aiEmbeddingRepository.hybridSearch(
+            queryEmbedding, 
+            searchTerm, 
+            vectorLimit, 
+            keywordLimit, 
+            limit
+        );
+    }
+
+    @Override
+    public List<java.util.Map<String, Object>> hybridSearchDebug(String queryEmbedding, String searchTerm, int limit) {
+        int vectorLimit = Math.max(limit * 2, 20);
+        int keywordLimit = Math.max(limit, 10);
+        List<Object[]> rows = aiEmbeddingRepository.hybridSearchDebug(
+            queryEmbedding, searchTerm, vectorLimit, keywordLimit, limit
+        );
+        java.util.List<java.util.Map<String, Object>> out = new java.util.ArrayList<>();
+        for (Object[] r : rows) {
+            java.util.Map<String, Object> m = new java.util.HashMap<>();
+            m.put("id", r[0]);
+            m.put("content", r[1]);
+            m.put("metadata", r[2]);
+            m.put("similarity_score", r[3]);
+            m.put("keyword_score", r[4]);
+            m.put("final_score", r[5]);
+            out.add(m);
+        }
+        // Print debug to console
+        System.out.println("\n===== HYBRID SCORE DEBUG =====");
+        for (int i = 0; i < out.size(); i++) {
+            java.util.Map<String, Object> m = out.get(i);
+            String question = null;
+            try {
+                // metadata may be Map already from entity; from native it's JSON string
+                Object meta = m.get("metadata");
+                if (meta instanceof java.util.Map) {
+                    Object q = ((java.util.Map<?, ?>) meta).get("question");
+                    question = q != null ? q.toString() : null;
+                } else if (meta != null) {
+                    question = meta.toString();
+                }
+            } catch (Exception ignore) {}
+            System.out.println(String.format(
+                "#%d final=%.4f (semantic=%.4f, keyword=%.4f) | %s",
+                i + 1,
+                toDouble(m.get("final_score")),
+                toDouble(m.get("similarity_score")),
+                toDouble(m.get("keyword_score")),
+                question != null ? (question.length() > 80 ? question.substring(0, 80) + "..." : question) : ""
+            ));
+        }
+        System.out.println("==============================\n");
+        return out;
+    }
+
+    private static double toDouble(Object o) {
+        if (o == null) return 0.0;
+        if (o instanceof Number) return ((Number) o).doubleValue();
+        try { return Double.parseDouble(o.toString()); } catch (Exception e) { return 0.0; }
+    }
 }

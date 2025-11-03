@@ -103,6 +103,7 @@ public class KnowledgeBaseIndexingService {
                         metadata.put("question", example.getQuestion());
                         metadata.put("query_dsl", queryDslJson);
                         metadata.put("source_file", fileName);
+                        metadata.put("keywords", example.getKeywords());
 
                         // Lưu embedding vào database
                         if (embedding != null) {

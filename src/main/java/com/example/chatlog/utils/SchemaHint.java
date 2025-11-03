@@ -703,7 +703,7 @@ public class SchemaHint {
       - destination.as (object, destination autonomous system information)
       - destination.as.number (long, destination ASN number)
       - destination.as.organization (object, destination AS organization)
-      - destination.as.organization.name (keyword, external organization name, e.g., "Google LLC", "Amazon.com", "Microsoft Corporation")
+      - destination.as.organization.name (keyword, external organization name, e.g.)
       - destination.as.organization.name.text (text, destination AS organization name as text field)
       - destination.bytes (long, bytes sent to destination)
       - destination.domain (keyword, destination domain/hostname)

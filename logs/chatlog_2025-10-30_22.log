@@ -1,0 +1,24 @@
+[2025-10-30 22:52:18.326] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 7886ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: có ai vào web google trong hôm nay không
+   - timeSavedMs: 7886
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=9781, openai_totalMs=10572, openrouter_searchMs=789, openai_searchMs=22}
+   - sessionId: 228
+   - totalProcessingTimeMs: 12467
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch. |
+   OpenRouter ES: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch.
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 9781
+   - openai_totalMs: 10572
+   - openrouter_searchMs: 789
+   - openai_searchMs: 22
+
+▶ TIMESTAMP: 2025-10-30T22:52:18.3262051
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+

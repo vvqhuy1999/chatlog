@@ -223,12 +223,17 @@ public class AiResponseService {
                                 
                 BYTE UNIT CONVERSION RULES:
                 When displaying network.bytes or any byte values, automatically convert to appropriate units:
-                - If bytes >= 1,073,741,824 (1024³): Convert to GB (divide by 1,073,741,824), format as "X.XX GB"
-                - If bytes >= 1,048,576 (1024²): Convert to MB (divide by 1,048,576), format as "X.XX MB"
-                - If bytes >= 1,024: Convert to KB (divide by 1,024), format as "X.XX KB"
-                - If bytes < 1,024: Keep as bytes, format as "X bytes"
-                Always show both converted unit and original bytes in parentheses when converting.
-                Example: "152.34 MB (159,744,032 bytes)" or "2.15 GB (2,308,743,168 bytes)"
+                - If bytes >= 1,073,741,824 (1024^3): convert to GB (divide by 1,073,741,824), format as "X.XX GB"
+                - If bytes >= 1,048,576 (1024^2): convert to MB (divide by 1,048,576), format as "X.XX MB"
+                - If bytes >= 1,024: convert to KB (divide by 1,024), format as "X.XX KB"
+                - If bytes < 1,024: keep as bytes, format as "X bytes"
+                Always show both the converted unit and the original bytes in parentheses when converting.
+                Examples:
+                - 152.34 MB (159,744,032 bytes)
+                - 2.15 GB (2,308,743,168 bytes)
+                - Scientific notation example: 5.4976546E7 -> 52.42 MB (54,976,546 bytes)
+                - Scientific notation example (GB): 2.5E9 -> 2.33 GB (2,500,000,000 bytes)
+                Note: Scientific notation must be converted to a standard number before applying unit conversion.
                                 
                 QUERY VALIDATION (Before conceptual execution):
                 Self-check these points:
@@ -272,8 +277,7 @@ public class AiResponseService {
 //        System.out.println("[AiResponseService] 📤 Sending context to AI:");
 //        System.out.println("[AiResponseService] 📝 User question: " + chatRequest.message());
 //        System.out.println("[AiResponseService] 📊 Content length: " + content.length() + " characters");
-//        System.out.println("[AiResponseService] 🔍 Content preview: " +
-//            (content.length() > 500 ? content.substring(0, 1000) + "..." : content));
+//        System.out.println("[AiResponseService] 🔍 Content preview: " + content);
 //        System.out.println("[AiResponseService] 🔎 Query: " + query);
 
         // ✅ Validate inputs before sending to AI

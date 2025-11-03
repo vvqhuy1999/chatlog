@@ -6067,7 +6067,7 @@
             {
               "bool": {
                 "should": [
-                  { "wildcard": { "source.user.name": "*admin*" } },
+                  { "wildcard": { "source.user.name": "tanln" } },
                   { "wildcard": { "source.user.name": "*root*" } },
                   { "term": { "source.user.roles": "Administrator" } },
                   { "term": { "source.user.group.name": "administrators" } }

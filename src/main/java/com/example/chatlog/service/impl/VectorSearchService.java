@@ -4,21 +4,17 @@ import com.example.chatlog.entity.ai.AiEmbedding;
 import com.example.chatlog.service.AiEmbeddingService;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
-import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
-@Transactional("secondaryTransactionManager")  // SỬ DỤNG TRANSACTION MANAGER PHỤ
+@Transactional("secondaryTransactionManager")
 public class VectorSearchService {
-
-    @Autowired
-    private VectorStore vectorStore;
 
     @Autowired
     private EmbeddingModel embeddingModel;
@@ -26,142 +22,171 @@ public class VectorSearchService {
     @Autowired
     private AiEmbeddingService aiEmbeddingService;
 
+    /**
+     * HYBRID SEARCH: Kết hợp Semantic + Keyword matching
+     * Formula: Final Score = (Semantic Score × 0.7) + (Keyword Score × 0.3)
+     */
     public String findRelevantExamples(String userQuery) {
         System.out.println("\n" + "=".repeat(100));
-        System.out.println("🔍 VECTOR SEARCH - EMBEDDING & COMPARISON (Database)");
+        System.out.println("🔍 HYBRID SEARCH - SEMANTIC + KEYWORD MATCHING");
         System.out.println("=".repeat(100));
         
-        // BƯỚC 1: Tạo Query Embedding
         System.out.println("\n📝 QUERY: \"" + userQuery + "\"");
         
+        // BƯỚC 1: Tạo Query Embedding cho semantic search
         float[] queryEmbedding = null;
+        String queryEmbeddingString = null;
+        
         if (embeddingModel != null) {
             try {
-                System.out.println("\n🔄 STEP 1: Creating Query Embedding");
-                System.out.println("   Calling: embeddingModel.embed(userQuery)");
-                
+                System.out.println("\n🔄 STEP 1: Creating Query Embedding for Semantic Search");
                 queryEmbedding = embeddingModel.embed(userQuery);
                 
-                System.out.println("   ✅ Query Embedding Created:");
-                System.out.println("      Dimensions: " + queryEmbedding.length);
-                
-                // Hiển thị first 10 values
-                System.out.print("      First 10 values: [");
-                for (int i = 0; i < Math.min(10, queryEmbedding.length); i++) {
-                    System.out.print(String.format("%.4f", queryEmbedding[i]));
-                    if (i < Math.min(10, queryEmbedding.length) - 1) System.out.print(", ");
+                // Convert to PostgreSQL vector format
+                StringBuilder sb = new StringBuilder("[");
+                for (int i = 0; i < queryEmbedding.length; i++) {
+                    if (i > 0) sb.append(",");
+                    sb.append(queryEmbedding[i]);
                 }
-                System.out.println("]");
+                sb.append("]");
+                queryEmbeddingString = sb.toString();
                 
-                // Hiển thị last 10 values
-                System.out.print("      Last 10 values: [");
-                for (int i = Math.max(0, queryEmbedding.length - 10); i < queryEmbedding.length; i++) {
-                    System.out.print(String.format("%.4f", queryEmbedding[i]));
-                    if (i < queryEmbedding.length - 1) System.out.print(", ");
-                }
-                System.out.println("]");
-                
-                // Tính magnitude
-                double magnitude = 0;
-                for (float val : queryEmbedding) {
-                    magnitude += val * val;
-                }
-                magnitude = Math.sqrt(magnitude);
-                System.out.println("      Magnitude: " + String.format("%.6f", magnitude));
-                
+                System.out.println("   ✅ Query Embedding Created: " + queryEmbedding.length + " dimensions");
             } catch (Exception e) {
                 System.out.println("   ❌ Error: " + e.getMessage());
                 e.printStackTrace();
             }
         }
         
-        // BƯỚC 2: Similarity Search từ Database với SearchRequest
-        System.out.println("\n🔍 STEP 2: Similarity Search from Database");
+        // BƯỚC 2: Extract keywords từ user query
+        System.out.println("\n🔍 STEP 2: Extracting Keywords from Query");
+        String keywords = extractKeywords(userQuery);
+        System.out.println("   ✅ Extracted keywords: " + keywords);
         
-        // Tạo SearchRequest theo Spring AI API pattern
-        SearchRequest searchRequest = SearchRequest.builder()
-            .query(userQuery)
-            .topK(8)  // Lấy 8 ví dụ tương tự nhất
-            .build();
+        // BƯỚC 3: Hybrid Search
+        System.out.println("\n🎯 STEP 3: Hybrid Search (70% Semantic + 30% Keyword)");
         
-        System.out.println("   Using SearchRequest with topK=" + searchRequest.getTopK());
-        System.out.println("   → Searching for " + searchRequest.getTopK() + " most similar embeddings using vector similarity");
+        List<AiEmbedding> similarEmbeddings;
+        String resultMode = "";
+        int topK = 8; // Số lượng kết quả mong muốn
         
-        List<AiEmbedding> similarEmbeddings = null;
-        if (queryEmbedding != null) {
-            // Convert float[] to PostgreSQL vector format: "[0.1,0.2,0.3,...]"
-            StringBuilder sb = new StringBuilder("[");
-            for (int i = 0; i < queryEmbedding.length; i++) {
-                if (i > 0) sb.append(",");
-                sb.append(queryEmbedding[i]);
+        if (queryEmbeddingString != null && !keywords.isEmpty()) {
+            // Hybrid search: Kết hợp vector similarity + keyword matching
+            similarEmbeddings = aiEmbeddingService.hybridSearch(
+                queryEmbeddingString, 
+                keywords, 
+                topK
+            );
+            System.out.println("   ✅ Used: HYBRID SEARCH (Semantic + Keyword)");
+            resultMode = "HYBRID";
+
+            // Debug: in ra điểm số tính toán
+            try {
+                List<java.util.Map<String, Object>> debugRows = aiEmbeddingService.hybridSearchDebug(
+                    queryEmbeddingString, keywords, topK
+                );
+                // đã in trong service; nếu cần thêm, có thể in ở đây
+            } catch (Exception e) {
+                System.out.println("   ⚠️ Debug print failed: " + e.getMessage());
             }
-            sb.append("]");
-            String queryEmbeddingString = sb.toString();
-            
-            // Query với topK từ SearchRequest
-            similarEmbeddings = aiEmbeddingService.findSimilarEmbeddings(queryEmbeddingString, searchRequest.getTopK());
+        } else if (queryEmbeddingString != null) {
+            // Fallback: Chỉ dùng semantic search
+            similarEmbeddings = aiEmbeddingService.findSimilarEmbeddings(
+                queryEmbeddingString, 
+                topK
+            );
+            System.out.println("   ⚠️ Fallback: SEMANTIC SEARCH only");
+            resultMode = "SEMANTIC";
+        } else if (!keywords.isEmpty()) {
+            // Fallback: Chỉ dùng keyword search
+            similarEmbeddings = aiEmbeddingService.fullTextSearch(keywords, topK);
+            System.out.println("   ⚠️ Fallback: KEYWORD SEARCH only");
+            resultMode = "KEYWORD";
         } else {
             similarEmbeddings = List.of();
+            System.out.println("   ❌ No search method available");
+            resultMode = "NONE";
         }
         
-        System.out.println("   ✅ Found: " + similarEmbeddings.size() + " similar embeddings (topK=" + searchRequest.getTopK() + ")");
+        System.out.println("   ✅ Found: " + similarEmbeddings.size() + " similar embeddings");
         
         if (similarEmbeddings.isEmpty()) {
-            System.out.println("   ⚠️ No similar documents found in database!");
-            return "⚠️ Không tìm thấy ví dụ tương đồng trong database.";
+            System.out.println("   ⚠️ No similar documents found!");
+            return "⚠️ Không tìm thấy ví dụ tương đồng.";
         }
         
-        // Convert AiEmbedding to Document format for compatibility
-        List<Document> similarDocuments = new java.util.ArrayList<>();
-        for (AiEmbedding embedding : similarEmbeddings) {
-            Document doc = new Document(
-                embedding.getContent(),
-                embedding.getMetadata()
-            );
-            similarDocuments.add(doc);
-        }
-        
-        // BƯỚC 3: Hiển thị chi tiết so sánh
-        System.out.println("\n📊 STEP 3: Similarity Comparison Details");
+        // BƯỚC 4: Convert và hiển thị kết quả
+        System.out.println("\n📊 STEP 4: Results Analysis");
         System.out.println("-".repeat(100));
         
-        for (int i = 0; i < Math.min(8, similarDocuments.size()); i++) {
-            Document doc = similarDocuments.get(i);
-            String question = (String) doc.getMetadata().get("question");
+        for (int i = 0; i < similarEmbeddings.size(); i++) {
+            AiEmbedding embedding = similarEmbeddings.get(i);
+            String question = (String) embedding.getMetadata().get("question");
+            String scenario = (String) embedding.getMetadata().get("scenario");
             
             System.out.println("\n[RANK #" + (i+1) + "] " + question);
-            System.out.println("   Document Object: " + doc.toString().substring(0, Math.min(150, doc.toString().length())) + "...");
-            
-            // Nếu có query embedding, tính similarity
-            if (queryEmbedding != null) {
-                System.out.println("   ");
-                System.out.println("   🧮 Cosine Similarity Calculation:");
-                
-                // Hiển thị first 5 values của query embedding
-                System.out.print("      Query Embedding: [");
-                for (int j = 0; j < Math.min(5, queryEmbedding.length); j++) {
-                    System.out.print(String.format("%.4f", queryEmbedding[j]));
-                    if (j < Math.min(5, queryEmbedding.length) - 1) System.out.print(", ");
-                }
+            if (scenario != null) {
+                System.out.println("   📁 Scenario: " + scenario);
             }
+            System.out.println("   🎯 Matched by: Hybrid Score (Semantic + Keyword)");
         }
         
         System.out.println("\n" + "-".repeat(100));
         
         // Format kết quả cho LLM
         StringBuilder examples = new StringBuilder();
-        examples.append("RELEVANT EXAMPLES FROM KNOWLEDGE BASE (Semantic Search from Database):\n\n");
+        examples.append("RELEVANT EXAMPLES FROM KNOWLEDGE BASE\n");
+        examples.append("Mode: ").append(resultMode).append("\n\n");
 
-        for (int i = 0; i < similarDocuments.size(); i++) {
-            Document doc = similarDocuments.get(i);
+        for (int i = 0; i < similarEmbeddings.size(); i++) {
+            AiEmbedding embedding = similarEmbeddings.get(i);
             examples.append("Example ").append(i + 1).append(":\n");
-            examples.append("Question: ").append(doc.getMetadata().get("question")).append("\n");
-            examples.append("Query: ").append(doc.getMetadata().get("query_dsl")).append("\n\n");
+            examples.append("Question: ").append(embedding.getMetadata().get("question")).append("\n");
+            
+            // Include scenario if available
+            Object scenario = embedding.getMetadata().get("scenario");
+            if (scenario != null) {
+                examples.append("Scenario: ").append(scenario).append("\n");
+            }
+            
+            // Include phase if available
+            Object phase = embedding.getMetadata().get("phase");
+            if (phase != null) {
+                examples.append("Phase: ").append(phase).append("\n");
+            }
+            
+            examples.append("Query: ").append(embedding.getMetadata().get("query_dsl")).append("\n\n");
         }
         
-        System.out.println("\n✅ Total: " + similarDocuments.size() + " examples found");
+        System.out.println("\n✅ Total: " + similarEmbeddings.size() + " examples found using HYBRID SEARCH");
         System.out.println("=".repeat(100) + "\n");
         
         return examples.toString();
+    }
+
+    /**
+     * Extract keywords từ user query
+     * Loại bỏ stop words và giữ lại các từ khóa quan trọng
+     */
+    private String extractKeywords(String query) {
+        // Stop words tiếng Việt và tiếng Anh
+        List<String> stopWords = Arrays.asList(
+            "là", "của", "và", "có", "trong", "từ", "được", "cho", "để", "này", "đó",
+            "the", "is", "are", "in", "on", "at", "to", "for", "of", "a", "an",
+            "what", "which", "who", "when", "where", "why", "how",
+            "gì", "nào", "ai", "khi", "ở", "đâu", "tại", "sao", "như", "thế", "nào"
+        );
+        
+        // Lowercase và tách từ
+        String[] words = query.toLowerCase()
+            .replaceAll("[^a-z0-9\\sáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ]", " ")
+            .split("\\s+");
+        
+        // Filter stop words và từ ngắn
+        return Arrays.stream(words)
+            .filter(word -> word.length() > 2)
+            .filter(word -> !stopWords.contains(word))
+            .distinct()
+            .collect(Collectors.joining(" "));
     }
 }
