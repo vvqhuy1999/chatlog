@@ -86,12 +86,54 @@ public interface AiEmbeddingRepository extends JpaRepository<AiEmbedding, UUID> 
                 created_at,
                 updated_at,
                 is_deleted,
-                0.8 AS keyword_score
+                CASE 
+                    WHEN jsonb_typeof(metadata->'keywords') = 'array' AND (
+                        EXISTS (
+                            SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                            WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                            CROSS JOIN LATERAL unnest(string_to_array(:searchTerm, ' ')) AS word
+                            WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', word, '%'))
+                        )
+                    ) THEN 0.9
+                    WHEN LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                       OR EXISTS (
+                           SELECT 1 FROM unnest(string_to_array(:searchTerm, ' ')) AS word
+                           WHERE LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', word, '%'))
+                       ) THEN 0.8
+                    WHEN LOWER(content) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                       OR EXISTS (
+                           SELECT 1 FROM unnest(string_to_array(:searchTerm, ' ')) AS word
+                           WHERE LOWER(content) LIKE LOWER(CONCAT('%', word, '%'))
+                       ) THEN 0.7
+                    ELSE 0.5
+                END AS keyword_score
             FROM ai_embedding
             WHERE is_deleted = 0
             AND (
-                LOWER(content) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
-                OR LOWER(CAST(metadata AS TEXT)) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                (jsonb_typeof(metadata->'keywords') = 'array' AND (
+                    EXISTS (
+                        SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                        WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                        CROSS JOIN unnest(string_to_array(:searchTerm, ' ')) AS word
+                        WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', word, '%'))
+                    )
+                ))
+                OR LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                OR EXISTS (
+                    SELECT 1 FROM unnest(string_to_array(:searchTerm, ' ')) AS word
+                    WHERE LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', word, '%'))
+                )
+                OR LOWER(content) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                OR EXISTS (
+                    SELECT 1 FROM unnest(string_to_array(:searchTerm, ' ')) AS word
+                    WHERE LOWER(content) LIKE LOWER(CONCAT('%', word, '%'))
+                )
             )
             LIMIT :keywordLimit
         )
@@ -145,12 +187,54 @@ public interface AiEmbeddingRepository extends JpaRepository<AiEmbedding, UUID> 
                 created_at,
                 updated_at,
                 is_deleted,
-                0.8 AS keyword_score
+                CASE 
+                    WHEN jsonb_typeof(metadata->'keywords') = 'array' AND (
+                        EXISTS (
+                            SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                            WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                            CROSS JOIN LATERAL unnest(string_to_array(:searchTerm, ' ')) AS word
+                            WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', word, '%'))
+                        )
+                    ) THEN 0.9
+                    WHEN LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                       OR EXISTS (
+                           SELECT 1 FROM unnest(string_to_array(:searchTerm, ' ')) AS word
+                           WHERE LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', word, '%'))
+                       ) THEN 0.8
+                    WHEN LOWER(content) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                       OR EXISTS (
+                           SELECT 1 FROM unnest(string_to_array(:searchTerm, ' ')) AS word
+                           WHERE LOWER(content) LIKE LOWER(CONCAT('%', word, '%'))
+                       ) THEN 0.7
+                    ELSE 0.5
+                END AS keyword_score
             FROM ai_embedding
             WHERE is_deleted = 0
             AND (
-                LOWER(content) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
-                OR LOWER(CAST(metadata AS TEXT)) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                (jsonb_typeof(metadata->'keywords') = 'array' AND (
+                    EXISTS (
+                        SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                        WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                        CROSS JOIN unnest(string_to_array(:searchTerm, ' ')) AS word
+                        WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', word, '%'))
+                    )
+                ))
+                OR LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                OR EXISTS (
+                    SELECT 1 FROM unnest(string_to_array(:searchTerm, ' ')) AS word
+                    WHERE LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', word, '%'))
+                )
+                OR LOWER(content) LIKE LOWER(CONCAT('%', :searchTerm, '%'))
+                OR EXISTS (
+                    SELECT 1 FROM unnest(string_to_array(:searchTerm, ' ')) AS word
+                    WHERE LOWER(content) LIKE LOWER(CONCAT('%', word, '%'))
+                )
             )
             LIMIT :keywordLimit
         )

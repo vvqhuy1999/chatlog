@@ -201,3 +201,395 @@
 ▶ TIMESTAMP: 2025-11-04T11:48:14.7636122
 ════════════════════════════ END SUCCESS DETAILS ════════════════════════════
 
+[2025-11-04 11:56:05.963] [ERROR_DETAILED] [AiComparisonService] ❌ Lỗi xử lý yêu cầu song song OpenAI và OpenRouter
+════════════════════════════ ERROR DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: website yt3.ggpht.com là ip đích nào
+   - dateContext: CURRENT TIME CONTEXT (Vietnam timezone +07:00):
+- Current exact time: 2025-11-04 11:56:03 (+07:00)
+- Current date: 2025-11-04
+
+PREFERRED TIME QUERY METHOD - Use Elasticsearch relative time expressions:
+- "5 phút qua, 5 phút trước, 5 minutes ago", "last 5 minutes" → {"gte": "now-5m"}
+- "1 giờ qua, 1 giờ trước, 1 hour ago", "last 1 hour" → {"gte": "now-1h"}
+- "24 giờ qua, 24 giờ trước, 24 hours ago", "last 24 hours" → {"gte": "now-24h"}
+- "1 tuần qua, 1 tuần trước, 1 week ago", "7 ngày qua, 7 ngày trước, 7 days ago", "last week" → {"gte": "now-7d"}
+- "1 tháng qua, 1 tháng trước, 1 month ago", "last month" → {"gte": "now-30d"}
+
+SPECIFIC DATE RANGES (when exact dates mentioned):
+- "hôm nay, hôm nay, today" → {"gte": "now/d"}
+- "hôm qua, hôm qua, yesterday" → {"gte": "now-1d/d"}
+- Specific date like "ngày 15-09" → {"gte": "2025-09-15T00:00:00.000+07:00", "lte": "2025-09-15T23:59:59.999+07:00"}
+
+ADVANTAGES of "now-Xh/d/m" format:
+- More efficient than absolute timestamps
+- Automatically hand... (truncated)
+   - processingTimeMs: 2562
+   - sessionId: 237
+   - timestamp: 2025-11-04T11:56:03.398502900
+
+▶ EXCEPTION:
+   Type: org.springframework.dao.DataIntegrityViolationException
+   Message: JDBC exception executing SQL [WITH vector_results AS (
+    SELECT
+        id,
+        content,
+        embedding,
+        metadata,
+        created_at,
+        updated_at,
+        is_deleted,
+        (1 - (embedding <=> CAST(? AS vector))) AS similarity_score
+    FROM ai_embedding
+    WHERE is_deleted = 0
+    ORDER BY embedding <=> CAST(? AS vector)
+    LIMIT ?
+),
+keyword_results AS (
+    SELECT
+        id,
+        content,
+        embedding,
+        metadata,
+        created_at,
+        updated_at,
+        is_deleted,
+        CASE
+            WHEN EXISTS (
+                SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', ?, '%'))
+            ) THEN 0.9
+            WHEN LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', ?, '%')) THEN 0.8
+            WHEN LOWER(content) LIKE LOWER(CONCAT('%', ?, '%')) THEN 0.7
+            ELSE 0.5
+        END AS keyword_score
+    FROM ai_embedding
+    WHERE is_deleted = 0
+    AND (
+        EXISTS (
+            SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+            WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', ?, '%'))
+        )
+        OR LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', ?, '%'))
+        OR LOWER(content) LIKE LOWER(CONCAT('%', ?, '%'))
+    )
+    LIMIT ?
+)
+SELECT DISTINCT
+    COALESCE(v.id, k.id) as id,
+    COALESCE(v.content, k.content) as content,
+    COALESCE(v.embedding, k.embedding) as embedding,
+    COALESCE(v.metadata, k.metadata) as metadata,
+    COALESCE(v.created_at, k.created_at) as created_at,
+    COALESCE(v.updated_at, k.updated_at) as updated_at,
+    COALESCE(v.is_deleted, k.is_deleted) as is_deleted,
+    (COALESCE(v.similarity_score, 0) * 0.7 + COALESCE(k.keyword_score, 0) * 0.3) as final_score
+FROM vector_results v
+FULL OUTER JOIN keyword_results k ON v.id = k.id
+ORDER BY final_score DESC
+LIMIT ?
+] [ERROR: cannot extract elements from a scalar] [n/a]; SQL [n/a]
+   Root Cause: org.postgresql.util.PSQLException: ERROR: cannot extract elements from a scalar
+
+▶ STACK TRACE:
+    at org.springframework.orm.jpa.vendor.HibernateJpaDialect.convertHibernateAccessException(HibernateJpaDialect.java:297)
+    at org.springframework.orm.jpa.vendor.HibernateJpaDialect.convertHibernateAccessException(HibernateJpaDialect.java:256)
+    at org.springframework.orm.jpa.vendor.HibernateJpaDialect.translateExceptionIfPossible(HibernateJpaDialect.java:241)
+    at org.springframework.orm.jpa.AbstractEntityManagerFactoryBean.translateExceptionIfPossible(AbstractEntityManagerFactoryBean.java:560)
+    at org.springframework.dao.support.ChainedPersistenceExceptionTranslator.translateExceptionIfPossible(ChainedPersistenceExceptionTranslator.java:61)
+    at org.springframework.dao.support.DataAccessUtils.translateIfNecessary(DataAccessUtils.java:343)
+    at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:160)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.data.jpa.repository.support.CrudMethodMetadataPostProcessor$CrudMethodMetadataPopulatingMethodInterceptor.invoke(CrudMethodMetadataPostProcessor.java:136)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.aop.framework.JdkDynamicAopProxy.invoke(JdkDynamicAopProxy.java:223)
+    at jdk.proxy4/jdk.proxy4.$Proxy163.hybridSearch(Unknown Source)
+    at com.example.chatlog.service.impl.AiEmbeddingServiceImpl.hybridSearch(AiEmbeddingServiceImpl.java:128)
+    at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+    at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+    at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+    at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+    at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:119)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
+    at com.example.chatlog.service.impl.AiEmbeddingServiceImpl$$SpringCGLIB$$0.hybridSearch(<generated>)
+    at com.example.chatlog.service.impl.VectorSearchService.findRelevantExamples(VectorSearchService.java:76)
+    at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+    at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+    at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+    at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+    at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:119)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
+    at com.example.chatlog.service.impl.VectorSearchService$$SpringCGLIB$$0.findRelevantExamples(<generated>)
+    at com.example.chatlog.service.impl.AiComparisonService.buildDynamicExamples(AiComparisonService.java:589)
+    at com.example.chatlog.service.impl.AiComparisonService.handleRequestWithComparison(AiComparisonService.java:101)
+    at com.example.chatlog.service.impl.AiServiceImpl.handleRequestWithComparison(AiServiceImpl.java:66)
+    at com.example.chatlog.controller.ChatMessagesController.sendMessageWithComparison(ChatMessagesController.java:96)
+    at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+    at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+    at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:258)
+    at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191)
+    at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+    at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:991)
+    at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:896)
+    at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+    at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+    at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+    at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+    at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:914)
+    at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:590)
+    at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+    at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:195)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:110)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+    at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+    at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:483)
+    at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:116)
+    at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+    at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+    at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:344)
+    at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:398)
+    at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+    at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903)
+    at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1769)
+    at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+    at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1189)
+    at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:658)
+    at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
+    at java.base/java.lang.Thread.run(Thread.java:1447)
+
+▶ CAUSED BY: org.hibernate.exception.DataException: JDBC exception executing SQL [WITH vector_results AS (
+    SELECT
+        id,
+        content,
+        embedding,
+        metadata,
+        created_at,
+        updated_at,
+        is_deleted,
+        (1 - (embedding <=> CAST(? AS vector))) AS similarity_score
+    FROM ai_embedding
+    WHERE is_deleted = 0
+    ORDER BY embedding <=> CAST(? AS vector)
+    LIMIT ?
+),
+keyword_results AS (
+    SELECT
+        id,
+        content,
+        embedding,
+        metadata,
+        created_at,
+        updated_at,
+        is_deleted,
+        CASE
+            WHEN EXISTS (
+                SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', ?, '%'))
+            ) THEN 0.9
+            WHEN LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', ?, '%')) THEN 0.8
+            WHEN LOWER(content) LIKE LOWER(CONCAT('%', ?, '%')) THEN 0.7
+            ELSE 0.5
+        END AS keyword_score
+    FROM ai_embedding
+    WHERE is_deleted = 0
+    AND (
+        EXISTS (
+            SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+            WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', ?, '%'))
+        )
+        OR LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', ?, '%'))
+        OR LOWER(content) LIKE LOWER(CONCAT('%', ?, '%'))
+    )
+    LIMIT ?
+)
+SELECT DISTINCT
+    COALESCE(v.id, k.id) as id,
+    COALESCE(v.content, k.content) as content,
+    COALESCE(v.embedding, k.embedding) as embedding,
+    COALESCE(v.metadata, k.metadata) as metadata,
+    COALESCE(v.created_at, k.created_at) as created_at,
+    COALESCE(v.updated_at, k.updated_at) as updated_at,
+    COALESCE(v.is_deleted, k.is_deleted) as is_deleted,
+    (COALESCE(v.similarity_score, 0) * 0.7 + COALESCE(k.keyword_score, 0) * 0.3) as final_score
+FROM vector_results v
+FULL OUTER JOIN keyword_results k ON v.id = k.id
+ORDER BY final_score DESC
+LIMIT ?
+] [ERROR: cannot extract elements from a scalar] [n/a]
+    at org.hibernate.exception.internal.SQLStateConversionDelegate.convert(SQLStateConversionDelegate.java:103)
+    at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:58)
+    at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:108)
+    at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:94)
+    at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.executeQuery(DeferredResultSetAccess.java:269)
+    at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.getResultSet(DeferredResultSetAccess.java:172)
+    at org.hibernate.sql.results.jdbc.internal.AbstractResultSetAccess.getMetaData(AbstractResultSetAccess.java:36)
+    at org.hibernate.sql.results.jdbc.internal.AbstractResultSetAccess.getColumnCount(AbstractResultSetAccess.java:52)
+    at org.hibernate.query.results.ResultSetMappingImpl.resolve(ResultSetMappingImpl.java:194)
+    at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.resolveJdbcValuesSource(JdbcSelectExecutorStandardImpl.java:340)
+    at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.doExecuteQuery(JdbcSelectExecutorStandardImpl.java:137)
+    at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.executeQuery(JdbcSelectExecutorStandardImpl.java:102)
+    at org.hibernate.sql.exec.spi.JdbcSelectExecutor.executeQuery(JdbcSelectExecutor.java:91)
+    at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:165)
+    at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:142)
+    at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:132)
+    at org.hibernate.query.sql.internal.NativeSelectQueryPlanImpl.performList(NativeSelectQueryPlanImpl.java:135)
+    at org.hibernate.query.sql.internal.NativeQueryImpl.doList(NativeQueryImpl.java:697)
+    at org.hibernate.query.spi.AbstractSelectionQuery.list(AbstractSelectionQuery.java:143)
+    at org.hibernate.query.Query.getResultList(Query.java:120)
+    at org.springframework.data.jpa.repository.query.JpaQueryExecution$CollectionExecution.doExecute(JpaQueryExecution.java:130)
+    at org.springframework.data.jpa.repository.query.JpaQueryExecution.execute(JpaQueryExecution.java:93)
+    at org.springframework.data.jpa.repository.query.AbstractJpaQuery.doExecute(AbstractJpaQuery.java:160)
+    at org.springframework.data.jpa.repository.query.AbstractJpaQuery.execute(AbstractJpaQuery.java:148)
+    at org.springframework.data.repository.core.support.RepositoryMethodInvoker.doInvoke(RepositoryMethodInvoker.java:170)
+    at org.springframework.data.repository.core.support.RepositoryMethodInvoker.invoke(RepositoryMethodInvoker.java:158)
+    at org.springframework.data.repository.core.support.QueryExecutorMethodInterceptor.doInvoke(QueryExecutorMethodInterceptor.java:170)
+    at org.springframework.data.repository.core.support.QueryExecutorMethodInterceptor.invoke(QueryExecutorMethodInterceptor.java:149)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.data.projection.DefaultMethodInvokingMethodInterceptor.invoke(DefaultMethodInvokingMethodInterceptor.java:69)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+    at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:119)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.data.jpa.repository.support.CrudMethodMetadataPostProcessor$CrudMethodMetadataPopulatingMethodInterceptor.invoke(CrudMethodMetadataPostProcessor.java:136)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.aop.framework.JdkDynamicAopProxy.invoke(JdkDynamicAopProxy.java:223)
+    at jdk.proxy4/jdk.proxy4.$Proxy163.hybridSearch(Unknown Source)
+    at com.example.chatlog.service.impl.AiEmbeddingServiceImpl.hybridSearch(AiEmbeddingServiceImpl.java:128)
+    at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+    at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+    at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+    at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+    at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:119)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
+    at com.example.chatlog.service.impl.AiEmbeddingServiceImpl$$SpringCGLIB$$0.hybridSearch(<generated>)
+    at com.example.chatlog.service.impl.VectorSearchService.findRelevantExamples(VectorSearchService.java:76)
+    at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+    at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+    at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+    at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+    at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:119)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
+    at com.example.chatlog.service.impl.VectorSearchService$$SpringCGLIB$$0.findRelevantExamples(<generated>)
+    at com.example.chatlog.service.impl.AiComparisonService.buildDynamicExamples(AiComparisonService.java:589)
+    at com.example.chatlog.service.impl.AiComparisonService.handleRequestWithComparison(AiComparisonService.java:101)
+    at com.example.chatlog.service.impl.AiServiceImpl.handleRequestWithComparison(AiServiceImpl.java:66)
+    at com.example.chatlog.controller.ChatMessagesController.sendMessageWithComparison(ChatMessagesController.java:96)
+    at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+    at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+    at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:258)
+    at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191)
+    at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+    at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:991)
+    at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:896)
+    at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+    at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+    at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+    at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+    at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:914)
+    at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:590)
+    at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+    at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:195)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:110)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+    at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+    at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:483)
+    at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:116)
+    at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+    at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+    at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:344)
+    at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:398)
+    at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+    at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903)
+    at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1769)
+    at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+    at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1189)
+    at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:658)
+    at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
+    at java.base/java.lang.Thread.run(Thread.java:1447)
+
+▶ TIMESTAMP: 2025-11-04T11:56:05.9635614
+════════════════════════════ END ERROR DETAILS ════════════════════════════
+
+[2025-11-04 11:59:03.894] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 10245ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: website yt3.ggpht.com là ip đích nào
+   - timeSavedMs: 10245
+   - openaiEsData: {"took":104,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":882,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"Lrk7TZoBwPewX2N5QRuB","_score":null,"_source":{"destination":{"ip":"142.250.199.65"},"@timestamp":"2025-11-04T11:58:32.000+07:00"},"sort":[1762232312000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"6Lk6TZoBwPewX2N5KgHZ","_score":null,"_source":{"destination":{"ip":"142.250.198.193"},"@timestamp":"2025-11-04T11:57:27.000+07:00"},"sort":[1762232247000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"D7g5TZoBwPewX2N53Pnq","_score":null,"_source":{"destination":{"ip":"142.250.197.65"},"@timestamp":"2025-11-04T11:57:06.000+07:00"},"sort":[1762232226000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"c7g5TZoBwPewX2N5tfWu","_score":null,"_source":{"destination":{... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=15384, openai_totalMs=12057, openrouter_searchMs=314, openai_searchMs=534}
+   - openrouterEsData: {"took":16,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":882,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"Lrk7TZoBwPewX2N5QRuB","_score":null,"_source":{"destination":{"ip":"142.250.199.65"},"@timestamp":"2025-11-04T11:58:32.000+07:00"},"sort":[1762232312000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"6Lk6TZoBwPewX2N5KgHZ","_score":null,"_source":{"destination":{"ip":"142.250.198.193"},"@timestamp":"2025-11-04T11:57:27.000+07:00"},"sort":[1762232247000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"D7g5TZoBwPewX2N53Pnq","_score":null,"_source":{"destination":{"ip":"142.250.197.65"},"@timestamp":"2025-11-04T11:57:06.000+07:00"},"sort":[1762232226000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"c7g5TZoBwPewX2N5tfWu","_score":null,"_source":{"destination":{"... (truncated)
+   - sessionId: 237
+   - totalProcessingTimeMs: 17196
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":104,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":882,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"Lrk7TZoBwPewX2N5QRuB","_score":null,"_source":{"destination":{"ip":"142.250.199.65"},"@timestamp":"2025-11-04T11:58:32.000+07:00"},"sort":[1762232312000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"6Lk6TZoBwPewX2N5KgHZ","_sco... | OpenRouter ES: {"took":16,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":882,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"Lrk7TZoBwPewX2N5QRuB","_score":null,"_source":{"destination":{"ip":"142.250.199.65"},"@timestamp":"2025-11-04T11:58:32.000+07:00"},"sort":[1762232312000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_i... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":104,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":882,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"Lrk7TZoBwPewX2N5QRuB","_score":null,"_source":{"destination":{"ip":"142.250.199.65"},"@timestamp":"2025-11-04T11:58:32.000+07:00"},"sort":[1762232312000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"6Lk6TZoBwPewX2N5KgHZ","_score":null,"_source":{"destination":{"ip":"142.250.198.193"},"@timestamp":"2025-11-04T11:57:27.000+07:00"},"sort":[1762232247000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"D7g5TZoBwPewX2N53Pnq","_score":null,"_source":{"destination":{"ip":"142.250.197.65"},"@timestamp":"2025-11-04T11:57:06.000+07:00"},"sort":[1762232226000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"c7g5TZoBwPewX2N5tfWu","_score":null,"_source":{"destination":{"ip":"142.250.198.193"},"@timestamp":"2025-11-04T11:56:57.000+07:00"},"sort":[1762232217000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"lbg5TZoBwPewX2N5tfWu","_score":null,"_source":{"destination":{"ip":"142.250.198.193"},"@timestamp":"2025-11-04T11:56:57.000+07:00"},"sort":[1762232217000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"jbg5TZoBwPewX2N5tfOu","_score":null,"_source":{"destination":{"ip":"142.250.198.193"},"@timestam... (truncated)
+   OpenRouter Data: {"took":16,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":882,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"Lrk7TZoBwPewX2N5QRuB","_score":null,"_source":{"destination":{"ip":"142.250.199.65"},"@timestamp":"2025-11-04T11:58:32.000+07:00"},"sort":[1762232312000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"6Lk6TZoBwPewX2N5KgHZ","_score":null,"_source":{"destination":{"ip":"142.250.198.193"},"@timestamp":"2025-11-04T11:57:27.000+07:00"},"sort":[1762232247000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"D7g5TZoBwPewX2N53Pnq","_score":null,"_source":{"destination":{"ip":"142.250.197.65"},"@timestamp":"2025-11-04T11:57:06.000+07:00"},"sort":[1762232226000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"c7g5TZoBwPewX2N5tfWu","_score":null,"_source":{"destination":{"ip":"142.250.198.193"},"@timestamp":"2025-11-04T11:56:57.000+07:00"},"sort":[1762232217000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"lbg5TZoBwPewX2N5tfWu","_score":null,"_source":{"destination":{"ip":"142.250.198.193"},"@timestamp":"2025-11-04T11:56:57.000+07:00"},"sort":[1762232217000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"jbg5TZoBwPewX2N5tfOu","_score":null,"_source":{"destination":{"ip":"142.250.198.193"},"@timestamp... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 15384
+   - openai_totalMs: 12057
+   - openrouter_searchMs: 314
+   - openai_searchMs: 534
+
+▶ TIMESTAMP: 2025-11-04T11:59:03.8945879
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+

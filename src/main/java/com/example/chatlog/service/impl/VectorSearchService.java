@@ -61,7 +61,8 @@ public class VectorSearchService {
         // BƯỚC 2: Extract keywords từ user query
         System.out.println("\n🔍 STEP 2: Extracting Keywords from Query");
         String keywords = extractKeywords(userQuery);
-        System.out.println("   ✅ Extracted keywords: " + keywords);
+        System.out.println("   ✅ Extracted keywords: \"" + keywords + "\"");
+        System.out.println("   📝 Keywords will be searched in: metadata->keywords array, question, and content");
         
         // BƯỚC 3: Hybrid Search
         System.out.println("\n🎯 STEP 3: Hybrid Search (70% Semantic + 30% Keyword)");
@@ -167,6 +168,7 @@ public class VectorSearchService {
     /**
      * Extract keywords từ user query
      * Loại bỏ stop words và giữ lại các từ khóa quan trọng
+     * Trả về chuỗi các từ khóa để tìm kiếm trong keywords array
      */
     private String extractKeywords(String query) {
         // Stop words tiếng Việt và tiếng Anh
@@ -174,7 +176,8 @@ public class VectorSearchService {
             "là", "của", "và", "có", "trong", "từ", "được", "cho", "để", "này", "đó",
             "the", "is", "are", "in", "on", "at", "to", "for", "of", "a", "an",
             "what", "which", "who", "when", "where", "why", "how",
-            "gì", "nào", "ai", "khi", "ở", "đâu", "tại", "sao", "như", "thế", "nào"
+            "gì", "nào", "ai", "khi", "ở", "đâu", "tại", "sao", "như", "thế", "nào",
+            "bao", "nhiêu", "của", "với", "về"
         );
         
         // Lowercase và tách từ
@@ -182,11 +185,31 @@ public class VectorSearchService {
             .replaceAll("[^a-z0-9\\sáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ]", " ")
             .split("\\s+");
         
-        // Filter stop words và từ ngắn
-        return Arrays.stream(words)
+        // Filter stop words và từ ngắn, giữ lại các từ quan trọng
+        List<String> keywords = Arrays.stream(words)
             .filter(word -> word.length() > 2)
             .filter(word -> !stopWords.contains(word))
             .distinct()
-            .collect(Collectors.joining(" "));
+            .collect(Collectors.toList());
+        
+        // Nếu có ít từ, thêm các từ ghép phổ biến
+        if (keywords.size() <= 2 && query.length() > 10) {
+            // Thêm các cụm từ phổ biến từ query gốc
+            String lower = query.toLowerCase();
+            if (lower.contains("truy cập") || lower.contains("truy cập")) {
+                keywords.add("truy cập");
+            }
+            if (lower.contains("website") || lower.contains("trang web")) {
+                keywords.add("website");
+            }
+            if (lower.contains("ip") || lower.contains("địa chỉ")) {
+                keywords.add("ip");
+            }
+            if (lower.contains("user") || lower.contains("người dùng")) {
+                keywords.add("user");
+            }
+        }
+        
+        return String.join(" ", keywords);
     }
 }
