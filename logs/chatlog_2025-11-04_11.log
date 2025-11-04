@@ -1,0 +1,203 @@
+[2025-11-04 11:14:58.326] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 10022ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: user QuynhTX có bao nhiêu đỉa chỉ ip?
+   - timeSavedMs: 10022
+   - openaiEsData: {"took":75,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"value":2}}}
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=11393, openai_totalMs=12313, openrouter_searchMs=423, openai_searchMs=469}
+   - openrouterEsData: {"took":75,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"value":2}}}
+   - sessionId: 237
+   - totalProcessingTimeMs: 13684
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":75,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"value":2}}} | OpenRouter ES: {"took":75,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"value":2}}}
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":75,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"value":2}}}
+   OpenRouter Data: {"took":75,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"value":2}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 11393
+   - openai_totalMs: 12313
+   - openrouter_searchMs: 423
+   - openai_searchMs: 469
+
+▶ TIMESTAMP: 2025-11-04T11:14:58.3263255
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-04 11:15:30.020] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 7580ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: bạn có thể đưa ra 2 đỉa chỉ ip đó ko?
+   - timeSavedMs: 7580
+   - openaiEsData: {"took":283,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"value":309}}}
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=8735, openai_totalMs=9870, openrouter_searchMs=293, openai_searchMs=293}
+   - openrouterEsData: {"took":284,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"value":309}}}
+   - sessionId: 237
+   - totalProcessingTimeMs: 11025
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":283,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"value":309}}} | OpenRouter ES: {"took":284,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"value":309}}}
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":283,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"value":309}}}
+   OpenRouter Data: {"took":284,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"value":309}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 8735
+   - openai_totalMs: 9870
+   - openrouter_searchMs: 293
+   - openai_searchMs: 293
+
+▶ TIMESTAMP: 2025-11-04T11:15:30.0207692
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-04 11:16:22.370] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 12198ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: bạn có thể đưa ra 2 địa chỉ ip của QuynhTX ko?
+   - timeSavedMs: 12198
+   - openaiEsData: {"took":11,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":20864},{"key":"10.4.100.117","doc_count":17379}]}}}
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=13797, openai_totalMs=14833, openrouter_searchMs=129, openai_searchMs=21}
+   - openrouterEsData: {"took":115,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":20864},{"key":"10.4.100.117","doc_count":17379}]}}}
+   - sessionId: 237
+   - totalProcessingTimeMs: 16432
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":11,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":20864},{"key":"10.4.100.117","doc_count":17379}]}}} | OpenRouter ES: {"took":115,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":20864},{"key":"10.4.100.117","doc_count":17379}]}}}
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":11,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":20864},{"key":"10.4.100.117","doc_count":17379}]}}}
+   OpenRouter Data: {"took":115,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":20864},{"key":"10.4.100.117","doc_count":17379}]}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 13797
+   - openai_totalMs: 14833
+   - openrouter_searchMs: 129
+   - openai_searchMs: 21
+
+▶ TIMESTAMP: 2025-11-04T11:16:22.3709714
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-04 11:38:44.621] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 10808ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: IP 10.4.110.107 truy cập những website nào
+   - timeSavedMs: 10808
+   - openaiEsData: {"took":89,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"e7YoTZoBwPewX2N5w_ih","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:27.000+07:00"},"sort":[1762231107000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"hrYoTZoBwPewX2N5w_ih","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:27.000+07:00"},"sort":[1762231107000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"krYoTZoBwPewX2N5w_ih","_score":null,"_source":{"url":{"domain":"signaler-pa.clients6.google.com"},"@timestamp":"2025-11-04T11:38:27.000+07:00"},"sort":[1762231107000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"0rYoTZoBwPewX2N5w_eh","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:26.000+07:00"},"sort":[1762231106000]},{"_inde... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=11827, openai_totalMs=13455, openrouter_searchMs=256, openai_searchMs=156}
+   - openrouterEsData: {"took":131,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"e7YoTZoBwPewX2N5w_ih","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:27.000+07:00"},"sort":[1762231107000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"hrYoTZoBwPewX2N5w_ih","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:27.000+07:00"},"sort":[1762231107000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"krYoTZoBwPewX2N5w_ih","_score":null,"_source":{"url":{"domain":"signaler-pa.clients6.google.com"},"@timestamp":"2025-11-04T11:38:27.000+07:00"},"sort":[1762231107000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"0rYoTZoBwPewX2N5w_eh","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:26.000+07:00"},"sort":[1762231106000]},{"_ind... (truncated)
+   - sessionId: 237
+   - totalProcessingTimeMs: 14474
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":89,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"e7YoTZoBwPewX2N5w_ih","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:27.000+07:00"},"sort":[1762231107000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"hrYoTZoBwPewX2N5w_ih","_score":null,"_source":{"@timestamp":"20... | OpenRouter ES: {"took":131,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"e7YoTZoBwPewX2N5w_ih","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:27.000+07:00"},"sort":[1762231107000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"hrYoTZoBwPewX2N5w_ih","_score"... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":89,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"e7YoTZoBwPewX2N5w_ih","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:27.000+07:00"},"sort":[1762231107000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"hrYoTZoBwPewX2N5w_ih","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:27.000+07:00"},"sort":[1762231107000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"krYoTZoBwPewX2N5w_ih","_score":null,"_source":{"url":{"domain":"signaler-pa.clients6.google.com"},"@timestamp":"2025-11-04T11:38:27.000+07:00"},"sort":[1762231107000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"0rYoTZoBwPewX2N5w_eh","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:26.000+07:00"},"sort":[1762231106000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"F7YoTZoBwPewX2N5w_ih","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:26.000+07:00"},"sort":[1762231106000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"WrYoTZoBwPewX2N5w_ih","_score":null,"_source":{"url":{"domain":"www.figma.com"},"@timestamp":"2025-11-04T11:38:26.000+07:00"},"sort":[1762231106000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"n7YoTZoBw... (truncated)
+   OpenRouter Data: {"took":131,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"e7YoTZoBwPewX2N5w_ih","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:27.000+07:00"},"sort":[1762231107000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"hrYoTZoBwPewX2N5w_ih","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:27.000+07:00"},"sort":[1762231107000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"krYoTZoBwPewX2N5w_ih","_score":null,"_source":{"url":{"domain":"signaler-pa.clients6.google.com"},"@timestamp":"2025-11-04T11:38:27.000+07:00"},"sort":[1762231107000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"0rYoTZoBwPewX2N5w_eh","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:26.000+07:00"},"sort":[1762231106000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"F7YoTZoBwPewX2N5w_ih","_score":null,"_source":{"@timestamp":"2025-11-04T11:38:26.000+07:00"},"sort":[1762231106000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"WrYoTZoBwPewX2N5w_ih","_score":null,"_source":{"url":{"domain":"www.figma.com"},"@timestamp":"2025-11-04T11:38:26.000+07:00"},"sort":[1762231106000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"n7YoTZoB... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 11827
+   - openai_totalMs: 13455
+   - openrouter_searchMs: 256
+   - openai_searchMs: 156
+
+▶ TIMESTAMP: 2025-11-04T11:38:44.6213802
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-04 11:40:05.511] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 8677ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: ip 10.4.100.110 truy cập những website nào
+   - timeSavedMs: 8677
+   - openaiEsData: {"took":20,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"s7cqTZoBwPewX2N5JSE5","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:49.000+07:00"},"sort":[1762231189000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"zbcqTZoBwPewX2N5JSE5","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:49.000+07:00"},"sort":[1762231189000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"LLcqTZoBwPewX2N5JSE5","_score":null,"_source":{"url":{"domain":"www.google.com"},"@timestamp":"2025-11-04T11:39:48.000+07:00"},"sort":[1762231188000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"ObcqTZoBwPewX2N5JSE5","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:48.000+07:00"},"sort":[1762231188000]},{"_index":".ds-logs-fort... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=10331, openai_totalMs=9719, openrouter_searchMs=482, openai_searchMs=32}
+   - openrouterEsData: {"took":468,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"s7cqTZoBwPewX2N5JSE5","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:49.000+07:00"},"sort":[1762231189000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"zbcqTZoBwPewX2N5JSE5","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:49.000+07:00"},"sort":[1762231189000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"LLcqTZoBwPewX2N5JSE5","_score":null,"_source":{"url":{"domain":"www.google.com"},"@timestamp":"2025-11-04T11:39:48.000+07:00"},"sort":[1762231188000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"ObcqTZoBwPewX2N5JSE5","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:48.000+07:00"},"sort":[1762231188000]},{"_index":".ds-logs-fort... (truncated)
+   - sessionId: 237
+   - totalProcessingTimeMs: 11373
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":20,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"s7cqTZoBwPewX2N5JSE5","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:49.000+07:00"},"sort":[1762231189000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"zbcqTZoBwPewX2N5JSE5","_score":null,"_source":{"@timestamp":"20... | OpenRouter ES: {"took":468,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"s7cqTZoBwPewX2N5JSE5","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:49.000+07:00"},"sort":[1762231189000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"zbcqTZoBwPewX2N5JSE5","_score":... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":20,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"s7cqTZoBwPewX2N5JSE5","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:49.000+07:00"},"sort":[1762231189000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"zbcqTZoBwPewX2N5JSE5","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:49.000+07:00"},"sort":[1762231189000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"LLcqTZoBwPewX2N5JSE5","_score":null,"_source":{"url":{"domain":"www.google.com"},"@timestamp":"2025-11-04T11:39:48.000+07:00"},"sort":[1762231188000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"ObcqTZoBwPewX2N5JSE5","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:48.000+07:00"},"sort":[1762231188000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"E7cpTZoBwPewX2N5_iAa","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:46.000+07:00"},"sort":[1762231186000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"TLcpTZoBwPewX2N5_iAa","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:46.000+07:00"},"sort":[1762231186000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"T7cpTZoBwPewX2N5_iAa","_score":null,"_source":{"@timestamp"... (truncated)
+   OpenRouter Data: {"took":468,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"s7cqTZoBwPewX2N5JSE5","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:49.000+07:00"},"sort":[1762231189000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"zbcqTZoBwPewX2N5JSE5","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:49.000+07:00"},"sort":[1762231189000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"LLcqTZoBwPewX2N5JSE5","_score":null,"_source":{"url":{"domain":"www.google.com"},"@timestamp":"2025-11-04T11:39:48.000+07:00"},"sort":[1762231188000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"ObcqTZoBwPewX2N5JSE5","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:48.000+07:00"},"sort":[1762231188000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"E7cpTZoBwPewX2N5_iAa","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:46.000+07:00"},"sort":[1762231186000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"TLcpTZoBwPewX2N5_iAa","_score":null,"_source":{"@timestamp":"2025-11-04T11:39:46.000+07:00"},"sort":[1762231186000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"T7cpTZoBwPewX2N5_iAa","_score":null,"_source":{"@timestamp"... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 10331
+   - openai_totalMs: 9719
+   - openrouter_searchMs: 482
+   - openai_searchMs: 32
+
+▶ TIMESTAMP: 2025-11-04T11:40:05.5119433
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-04 11:40:48.414] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 8959ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: tìm những ip truy cập đến website www.google.com
+   - timeSavedMs: 8959
+   - openaiEsData: {"took":19,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"zbcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.110.69"},"@timestamp":"2025-11-04T11:40:34.000+07:00"},"sort":[1762231234000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"7LcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.110.69"},"@timestamp":"2025-11-04T11:40:34.000+07:00"},"sort":[1762231234000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"PrcqTZoBwPewX2N5wzd7","_score":null,"_source":{"source":{"ip":"10.4.100.90"},"@timestamp":"2025-11-04T11:40:34.000+07:00"},"sort":[1762231234000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"mLcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.110.69"},"@timest... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=10899, openai_totalMs=10001, openrouter_searchMs=113, openai_searchMs=31}
+   - openrouterEsData: {"took":100,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"zbcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.110.69"},"@timestamp":"2025-11-04T11:40:34.000+07:00"},"sort":[1762231234000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"7LcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.110.69"},"@timestamp":"2025-11-04T11:40:34.000+07:00"},"sort":[1762231234000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"PrcqTZoBwPewX2N5wzd7","_score":null,"_source":{"source":{"ip":"10.4.100.90"},"@timestamp":"2025-11-04T11:40:34.000+07:00"},"sort":[1762231234000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"mLcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.110.69"},"@times... (truncated)
+   - sessionId: 237
+   - totalProcessingTimeMs: 11941
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":19,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"zbcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.110.69"},"@timestamp":"2025-11-04T11:40:34.000+07:00"},"sort":[1762231234000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"7LcqTZoBwPewX2N5wzZ7","_score":nu... | OpenRouter ES: {"took":100,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"zbcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.110.69"},"@timestamp":"2025-11-04T11:40:34.000+07:00"},"sort":[1762231234000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":19,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"zbcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.110.69"},"@timestamp":"2025-11-04T11:40:34.000+07:00"},"sort":[1762231234000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"7LcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.110.69"},"@timestamp":"2025-11-04T11:40:34.000+07:00"},"sort":[1762231234000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"PrcqTZoBwPewX2N5wzd7","_score":null,"_source":{"source":{"ip":"10.4.100.90"},"@timestamp":"2025-11-04T11:40:34.000+07:00"},"sort":[1762231234000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"mLcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.110.69"},"@timestamp":"2025-11-04T11:40:33.000+07:00"},"sort":[1762231233000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"tLcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.100.60"},"@timestamp":"2025-11-04T11:40:33.000+07:00"},"sort":[1762231233000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"A7cqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.100.92"},"@timestamp":"2025-11-04T11:40:32.000+07:00"},"sort":[176223... (truncated)
+   OpenRouter Data: {"took":100,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"zbcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.110.69"},"@timestamp":"2025-11-04T11:40:34.000+07:00"},"sort":[1762231234000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"7LcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.110.69"},"@timestamp":"2025-11-04T11:40:34.000+07:00"},"sort":[1762231234000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"PrcqTZoBwPewX2N5wzd7","_score":null,"_source":{"source":{"ip":"10.4.100.90"},"@timestamp":"2025-11-04T11:40:34.000+07:00"},"sort":[1762231234000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"mLcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.110.69"},"@timestamp":"2025-11-04T11:40:33.000+07:00"},"sort":[1762231233000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"tLcqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.100.60"},"@timestamp":"2025-11-04T11:40:33.000+07:00"},"sort":[1762231233000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"A7cqTZoBwPewX2N5wzZ7","_score":null,"_source":{"source":{"ip":"10.4.100.92"},"@timestamp":"2025-11-04T11:40:32.000+07:00"},"sort":[17622... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 10899
+   - openai_totalMs: 10001
+   - openrouter_searchMs: 113
+   - openai_searchMs: 31
+
+▶ TIMESTAMP: 2025-11-04T11:40:48.4140676
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-04 11:48:14.763] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 8254ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: 3 ngày qua ip 10.4.100.110 truy cập những website nào
+   - timeSavedMs: 8254
+   - openaiEsData: {"took":155,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":19,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"0LgxTZoBwPewX2N5iQhz","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:58.000+07:00"},"sort":[1762231678000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EbgxTZoBwPewX2N5iQdy","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:54.000+07:00"},"sort":[1762231674000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"ErgxTZoBwPewX2N5iQdy","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:54.000+07:00"},"sort":[1762231674000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"XLgxTZoBwPewX2N5YgZr","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:52.000+07:00"},"sort":[1762231672000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.1... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=10383, openai_totalMs=11369, openrouter_searchMs=300, openai_searchMs=311}
+   - openrouterEsData: {"took":156,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":19,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"0LgxTZoBwPewX2N5iQhz","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:58.000+07:00"},"sort":[1762231678000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EbgxTZoBwPewX2N5iQdy","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:54.000+07:00"},"sort":[1762231674000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"ErgxTZoBwPewX2N5iQdy","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:54.000+07:00"},"sort":[1762231674000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"XLgxTZoBwPewX2N5YgZr","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:52.000+07:00"},"sort":[1762231672000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.1... (truncated)
+   - sessionId: 237
+   - totalProcessingTimeMs: 13498
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":155,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":19,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"0LgxTZoBwPewX2N5iQhz","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:58.000+07:00"},"sort":[1762231678000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EbgxTZoBwPewX2N5iQdy","_score":null,"_source":{"@timestamp":"2... | OpenRouter ES: {"took":156,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":19,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"0LgxTZoBwPewX2N5iQhz","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:58.000+07:00"},"sort":[1762231678000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EbgxTZoBwPewX2N5iQdy","_score"... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":155,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":19,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"0LgxTZoBwPewX2N5iQhz","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:58.000+07:00"},"sort":[1762231678000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EbgxTZoBwPewX2N5iQdy","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:54.000+07:00"},"sort":[1762231674000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"ErgxTZoBwPewX2N5iQdy","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:54.000+07:00"},"sort":[1762231674000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"XLgxTZoBwPewX2N5YgZr","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:52.000+07:00"},"sort":[1762231672000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"SLgxTZoBwPewX2N5YgVq","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:49.000+07:00"},"sort":[1762231669000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"brgxTZoBwPewX2N5YgVq","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:49.000+07:00"},"sort":[1762231669000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"s7cxTZoBwPewX2N5Ff0X","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:31.000+07:00"}... (truncated)
+   OpenRouter Data: {"took":156,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":19,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"0LgxTZoBwPewX2N5iQhz","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:58.000+07:00"},"sort":[1762231678000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EbgxTZoBwPewX2N5iQdy","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:54.000+07:00"},"sort":[1762231674000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"ErgxTZoBwPewX2N5iQdy","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:54.000+07:00"},"sort":[1762231674000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"XLgxTZoBwPewX2N5YgZr","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:52.000+07:00"},"sort":[1762231672000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"SLgxTZoBwPewX2N5YgVq","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:49.000+07:00"},"sort":[1762231669000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"brgxTZoBwPewX2N5YgVq","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:49.000+07:00"},"sort":[1762231669000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"s7cxTZoBwPewX2N5Ff0X","_score":null,"_source":{"@timestamp":"2025-11-04T11:47:31.000+07:00"}... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 10383
+   - openai_totalMs: 11369
+   - openrouter_searchMs: 300
+   - openai_searchMs: 311
+
+▶ TIMESTAMP: 2025-11-04T11:48:14.7636122
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+

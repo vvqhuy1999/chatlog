@@ -16724,5 +16724,556 @@
       },
       "size": 0
     }
+  },
+    {
+      "question": "Các tổ chức đích (organizations) nào nhận nhiều traffic nhất từ các địa chỉ nguồn không phải địa chỉ IP nội bộ 198.162.10.1/24, và tỷ lệ blocked traffic (deny) từ những IP này ra sao? Query cần hiển thị chi tiết về tổ chức, quốc gia, port đích, và tỷ lệ blocked connections vs. allowed connections để đánh giá mối đe dọa.",
+      "keywords": [
+          "IP nguồn",
+          "source ip",
+          "đa tổ chức",
+          "multiple organizations",
+          "nhiều tổ chức",
+          "tổ chức đích",
+          "destination organization",
+          "không chính thống",
+          "rogue IPs",
+          "destinations",
+          "địa chỉ đích",
+          "action",
+          "hành động",
+          "firewall action",
+          "block",
+          "chặn",
+          "deny",
+          "lưu lượng",
+          "bytes",
+          "denied",
+          "bị từ chối",
+          "cấm",
+          "từ chối",
+          "reject",
+          "ngăn chặn",
+          "prevent",
+          "traffic",
+          "connections",
+          "not",
+          "không",
+          "block",
+          "chặn",
+          "deny",
+          "outlier",
+          "trend",
+          "xu hướng",
+          "analysis",
+          "phân tích",
+          "geographical",
+          "địa lý",
+          "aggregation",
+          "tổng hợp",
+          "destination.ip",
+          "destination.port",
+          "destination.domain",
+          "destination.as.organization.name",
+          "destination.geo.country_name",
+          "fortinet.firewall.action",
+          "query"
+      ],
+      "scenario": "Network security",
+      "query": {
+          "size": 0,
+          "query": {
+              "bool": {
+                  "filter": [
+                      {
+                          "range": {
+                              "@timestamp": {
+                                  "gte": "now-24h"
+                              }
+                          }
+                      },
+                      {
+                          "terms": {
+                              "fortinet.firewall.action": [
+                                  "accept",
+                                  "deny"
+                              ]
+                          }
+                      }
+                  ],
+                  "must_not": [
+                      {
+                          "term": {
+                              "source.ip.keyword": "198.162.10.1"
+                          }
+                      }
+                  ]
+              }
+          },
+          "aggs": {
+              "rogue_ips": {
+                  "terms": {
+                      "field": "source.ip",
+                      "size": 20
+                  },
+                  "aggs": {
+                      "destinations": {
+                          "terms": {
+                              "field": "destination.ip",
+                              "size": 10
+                          },
+                          "aggs": {
+                              "organizations": {
+                                  "terms": {
+                                      "field": "destination.as.organization.name",
+                                      "size": 15,
+                                      "order": {
+                                          "total_bytes": "desc"
+                                      }
+                                  },
+                                  "aggs": {
+                                      "total_bytes": {
+                                          "sum": {
+                                              "field": "network.bytes"
+                                          }
+                                      },
+                                      "destination_ports": {
+                                          "terms": {
+                                              "field": "destination.port",
+                                              "size": 10
+                                          }
+                                      },
+                                      "destination_domains": {
+                                          "terms": {
+                                              "field": "destination.domain",
+                                              "size": 10
+                                          }
+                                      },
+                                      "connection_stats": {
+                                          "filters": {
+                                              "filters": {
+                                                  "allow": {
+                                                      "bool": {
+                                                          "filter": [
+                                                              {
+                                                                  "term": {
+                                                                      "fortinet.firewall.action": "accept"
+                                                                  }
+                                                              }
+                                                          ]
+                                                      }
+                                                  },
+                                                  "deny": {
+                                                      "bool": {
+                                                          "filter": [
+                                                              {
+                                                                  "term": {
+                                                                      "fortinet.firewall.action": "deny"
+                                                                  }
+                                                              }
+                                                          ]
+                                                      }
+                                                  }
+                                              }
+                                          },
+                                          "aggs": {
+                                              "bytes_allow": {
+                                                  "sum": {
+                                                      "field": "network.bytes"
+                                                  }
+                                              },
+                                              "bytes_deny": {
+                                                  "sum": {
+                                                      "field": "network.bytes"
+                                                  }
+                                              }
+                                          }
+                                      },
+                                      "country_distribution": {
+                                          "terms": {
+                                              "field": "destination.geo.country_name",
+                                              "size": 10
+                                          },
+                                          "aggs": {
+                                              "country_bytes": {
+                                                  "sum": {
+                                                      "field": "network.bytes"
+                                                  }
+                                              },
+                                              "countries": {
+                                                  "terms": {
+                                                      "field": "destination.geo.country_name",
+                                                      "size": 5
+                                                  },
+                                                  "aggs": {
+                                                      "ports": {
+                                                          "terms": {
+                                                              "field": "destination.port"
+                                                          }
+                                                      },
+                                                      "destinations": {
+                                                          "terms": {
+                                                              "field": "destination.ip"
+                                                          }
+                                                      }
+                                                  }
+                                              }
+                                          }
+                                      },
+                                      "allowed_blocked_ratio": {
+                                          "bucket_script": {
+                                              "buckets_path": {
+                                                  "allow_bytes": "connection_stats['allow']>bytes_allow",
+                                                  "deny_bytes": "connection_stats['deny']>bytes_deny"
+                                              },
+                                              "script": "params.deny_bytes > 0 ? params.allow_bytes / params.deny_bytes : 0"
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+      }
+  },
+  {
+    "question": "Top 20 domains nào có lưu lượng outbound cao nhất và nghi ngờ rủi ro cao nhất (based on blocked/denied traffic) cùng với thông tin về risk score và geo-location?",
+    "keywords": [
+      "domain risk analysis",
+      "outbound traffic",
+      "traffic blocking",
+      "geo-location",
+      "url.domain",
+      "destination.domain",
+      "destination.geo.country_name",
+      "destination.ip",
+      "destination.as.organization.name",
+      "fortinet.firewall.action",
+      "network.bytes",
+      "network.transport",
+      "network.protocol",
+      "high risk traffic",
+      "outbound traffic pattern",
+      "regional traffic analysis",
+      "threat intelligence"
+    ],
+    "scenario": "Security monitoring",
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
+              }
+            },
+            {
+              "exists": {
+                "field": "destination.domain"
+              }
+            }
+          ],
+          "should": [
+            {
+              "term": {
+                "network.direction": "outbound"
+              }
+            },
+            {
+              "term": {
+                "fortinet.firewall.action": "deny"
+              }
+            }
+          ],
+          "minimum_should_match": 1
+        }
+      },
+      "aggs": {
+        "top_domains": {
+          "terms": {
+            "field": "destination.domain",
+            "size": 20,
+            "order": {
+              "total_bytes": "desc"
+            }
+          },
+          "aggs": {
+            "action_breakdown": {
+              "terms": {
+                "field": "fortinet.firewall.action",
+                "size": 2
+              },
+              "aggs": {
+                "byte_count": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                },
+                "connection_count": {
+                  "value_count": {
+                    "field": "@timestamp"
+                  }
+                }
+              }
+            },
+            "geo_distribution": {
+              "terms": {
+                "field": "destination.geo.country_name",
+                "size": 5
+              },
+              "aggs": {
+                "country_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            },
+            "ip_distribution": {
+              "terms": {
+                "field": "destination.ip",
+                "size": 5
+              },
+              "aggs": {
+                "ip_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            },
+            "protocol_analysis": {
+              "terms": {
+                "field": "network.protocol",
+                "size": 5
+              },
+              "aggs": {
+                "protocol_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            },
+            "transport_analysis": {
+              "terms": {
+                "field": "network.transport",
+                "size": 2
+              },
+              "aggs": {
+                "transport_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            },
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "unique_ips": {
+              "cardinality": {
+                "field": "destination.ip"
+              }
+            },
+            "port_distribution": {
+              "terms": {
+                "field": "destination.port",
+                "size": 10
+              },
+              "aggs": {
+                "protocol": {
+                  "terms": {
+                    "field": "network.protocol",
+                    "size": 2
+                  }
+                }
+              }
+            }
+          }
+        },
+        "organization_stats": {
+          "terms": {
+            "field": "destination.as.organization.name",
+            "size": 10
+          },
+          "aggs": {
+            "org_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "org_domains": {
+              "terms": {
+                "field": "destination.domain",
+                "size": 10
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "User nào truy cập nhiều websites khác nhau nhất?",
+    "keywords": ["user", "website access", "unique websites", "web traffic", "user behavior", "url.domain", "cardinality"],
+    "scenario": "Phân tích số lượng tên miền được truy cập nhiều nhất bởi mỗi user để hiểu rõ hành vi web của họ.",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-24h" } } },
+            { "terms": { "network.protocol": ["http", "https"] } },
+            { "exists": { "field": "url.domain" } }
+          ]
+        }
+      },
+      "aggs": {
+        "by_user": {
+          "terms": { "field": "source.user.name", "size": 10 },
+          "aggs": {
+            "unique_websites": {
+              "cardinality": { "field": "url.domain" }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "User truy cập domain/tổ chức nào nhiều nhất (all traffic)?",
+    "keywords": ["user", "domain access", "website traffic", "most accessed websites", "web behavior", "url.domain", "terms"],
+    "scenario": "Quan tâm đến việc xác định domain, tổ chức được truy cập nhiều nhất và user sử dụng nhiều nhất mỗi tên miền đó bao nhiêu lần.",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-24h" } } }
+          ]
+        }
+      },
+      "aggs": {
+        "by_user": {
+          "terms": { "field": "source.user.name", "size": 10 },
+          "aggs": {
+            "by_url_domain": {
+              "terms": { "field": "url.domain", "size": 50 },
+              "aggs": {
+                "traffic": { "sum": { "field": "network.bytes" } }
+              }
+            },
+            "by_dest_domain": {
+              "terms": { "field": "destination.domain", "size": 50 }
+            },
+            "by_organization": {
+              "terms": { "field": "destination.as.organization.name", "size": 30 }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Phân tích đầy đủ domains được truy cập từ các source IP",
+    "query": {
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "term": { "source.ip": "192.168.1.100" }
+            },
+            {
+              "range": { "@timestamp": { "gte": "now-24h" } }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "http_traffic": {
+          "filter": { "exists": { "field": "url.domain" } },
+          "aggs": {
+            "unique_urls": {
+              "cardinality": { "field": "url.domain" }
+            },
+            "top_websites": {
+              "terms": { "field": "url.domain", "size": 50 },
+              "aggs": {
+                "total_bytes": { "sum": { "field": "network.bytes" } },
+                "protocols": { "terms": { "field": "network.protocol" } }
+              }
+            }
+          }
+        },
+        "non_http_traffic": {
+          "filter": {
+            "bool": {
+              "must_not": { "exists": { "field": "url.domain" } },
+              "must": { "exists": { "field": "destination.domain" } }
+            }
+          },
+          "aggs": {
+            "unique_dest_domains": {
+              "cardinality": { "field": "destination.domain" }
+            },
+            "top_dest_domains": {
+              "terms": { "field": "destination.domain", "size": 30 }
+            }
+          }
+        },
+        "by_organization": {
+          "terms": {
+            "field": "destination.as.organization.name",
+            "size": 20
+          },
+          "aggs": {
+            "total_bytes": { "sum": { "field": "network.bytes" } }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "IP nào truy cập đến các website như thế nào?",
+    "keywords": ["ip website", "source.ip truy cập url", "theo dõi IP"],
+    "scenario": "Theo dõi các địa chỉ IP truy cập vào các websites để biết ai đang vào web nào",
+    "query": {
+      "query": {
+        "exists": {
+          "field": "url.domain"
+        }
+      },
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
+      "size": 10,
+      "_source": ["@timestamp", "source.ip", "url.domain"]
+    }
+  },
+  {
+    "question": "IP 10.4.110.107 truy cập những website nào?",
+    "keywords": ["theo dõi IP", "IP truy cập web", "website access"],
+    "scenario": "Phân tích danh sách các website mà IP 10.4.110.107 đã truy cập",
+    "query": {
+      "query": {
+        "match": {
+          "source.ip": "10.4.110.107"
+        }
+      },
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
+      "size": 10,
+      "_source": ["@timestamp", "url.domain"]
+    }
   }
 ]

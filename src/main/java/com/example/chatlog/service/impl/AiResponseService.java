@@ -72,7 +72,8 @@ public class AiResponseService {
                                 
                 ERROR HANDLING RULES:
                 - If Elasticsearch returns error (timeout, connection, parsing): Respond with "Đã xảy ra lỗi khi truy vấn dữ liệu: [mô tả lỗi]. Vui lòng thử lại hoặc điều chỉnh câu hỏi."
-                - If query is too broad (hits.total.value > 10000): Add warning "Kết quả quá lớn (>10,000 bản ghi). Đề xuất thu hẹp khoảng thời gian hoặc thêm điều kiện lọc."
+                - CRITICAL: If hits.total.value >= 10000 (relation: "gte") BUT hits.hits array contains data: You MUST use the data from hits.hits to answer. Add a note like "Tìm thấy hơn 10,000 bản ghi phù hợp, hiển thị [N] bản ghi đầu tiên:" then proceed with the answer using available hits data.
+                - CRITICAL: Only respond "không có dữ liệu" if hits.hits is empty [] AND no aggregations exist. If hits.hits has data, you MUST use it even if total.value is large.
                 - If required fields are missing in results: Use available fields and note "Một số trường dữ liệu không khả dụng trong kết quả."
                 - If index not found: Respond with "Không tìm thấy index dữ liệu. Vui lòng kiểm tra tên index hoặc khoảng thời gian."
                 - NEVER generate fake data when errors occur
@@ -118,7 +119,9 @@ public class AiResponseService {
                                 
                 DATA INTERPRETATION RULES:
                 - CRITICAL: Nếu có dữ liệu hợp lệ trong hits hoặc aggregations, bạn PHẢI đưa ra kết luận rõ ràng, trực tiếp trả lời đúng ý định của người dùng trước, sau đó cung cấp các chi tiết hỗ trợ (số liệu, người dùng liên quan, mốc thời gian).
-                - CRITICAL: If hits.total.value = 0 and hits.hits = [], respond with "Không tìm thấy dữ liệu phù hợp với điều kiện tìm kiếm. Vui lòng thử điều chỉnh khoảng thời gian hoặc điều kiện lọc." DO NOT generate fake data.
+                - CRITICAL: If hits.total.value = 0 and hits.hits = [] AND no aggregations: respond with "Không tìm thấy dữ liệu phù hợp với điều kiện tìm kiếm. Vui lòng thử điều chỉnh khoảng thời gian hoặc điều kiện lọc." DO NOT generate fake data.
+                - CRITICAL: If hits.total.value >= 10000 (relation: "gte") BUT hits.hits array has items: The hits.hits array contains REAL DATA. You MUST extract and use this data to answer the user's question. Do NOT say "no data" or "too large to display". Show the actual IP addresses, users, or other data from hits.hits.
+                - CRITICAL: If hits.hits.length > 0, there IS data available. Use it regardless of total.value size. Only mention "large result set" as an informational note, not as a reason to skip answering.
                 - If aggregations.total_count.value exists, that is the count of documents.
                 - If aggregations.total_bytes.value (or total_packets.value) exists, that is the total metric.
                 - If size:0 with only aggregations is returned, base your answer on aggregations instead of hits.
@@ -202,6 +205,8 @@ public class AiResponseService {
                                 
                 Additional guidance:
                 - If data exists: Start with a direct, concrete answer to the user's question (kết luận rõ ràng), then provide brief supporting details and numbers.
+                - CRITICAL: If hits.hits array contains items (even if total.value >= 10000), extract the actual data (IPs, users, timestamps, etc.) from hits.hits and use it to answer. Do NOT skip answering just because total.value is large.
+                - Example: If user asks "IP nào truy cập google.com" and hits.hits has 10 items with source.ip, list those 10 IPs even if total.value = 10000. Add note "Tìm thấy hơn 10,000 kết quả, hiển thị [10] IP đầu tiên:" then list them.
                                 
                 LOG INFORMATION PRESENTATION:
                 Present log information in a natural, descriptive format. For each log entry, write a clear description that includes the key details:
@@ -250,7 +255,8 @@ public class AiResponseService {
                 - Giải thích việc sử dụng aggregations (nếu có): sum, count, terms, date_histogram, v.v.
                                 
                 BEFORE SENDING (Self-checklist):
-                - The response starts with a direct answer if data exists; otherwise, a natural "Không tìm thấy dữ liệu phù hợp" with suggestion.
+                - CRITICAL CHECK: If hits.hits array has items, you MUST extract and use that data. Do NOT say "no data" or "too large" if hits.hits contains data.
+                - The response starts with a direct answer if data exists (from hits.hits or aggregations); otherwise, a natural "Không tìm thấy dữ liệu phù hợp" with suggestion.
                 - If error occurred, error message is clear and helpful.
                 - The section "Lý do chọn các trường" exists with 3–6 bullets.
                 - The final section includes "**Elasticsearch Query Used:**" followed by the JSON query (pretty-printed if available).
