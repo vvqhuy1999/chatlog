@@ -288,3 +288,119 @@
 ▶ TIMESTAMP: 2025-11-03T16:30:22.0258536
 ════════════════════════════ END SUCCESS DETAILS ════════════════════════════
 
+[2025-11-03 16:55:20.332] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 8379ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: có ai vào web google trong hôm nay không
+   - timeSavedMs: 8379
+   - openaiEsData: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch.
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=17459, openai_totalMs=10146, openrouter_searchMs=72, openai_searchMs=198}
+   - openrouterEsData: {"took":56,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":1142,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"R5QjSZoBwPewX2N5QGHT","_score":null,"_source":{"destination":{"ip":"142.250.197.110"},"source":{"ip":"10.4.110.137"},"@timestamp":"2025-11-03T16:53:54.000+07:00"},"sort":[1762163634000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"j5QjSZoBwPewX2N5QGHT","_score":null,"_source":{"destination":{"ip":"142.250.197.110"},"source":{"ip":"10.4.110.137"},"@timestamp":"2025-11-03T16:53:54.000+07:00"},"sort":[1762163634000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"npQjSZoBwPewX2N5GV1y","_score":null,"_source":{"destination":{"ip":"142.250.199.206"},"source":{"ip":"10.4.110.152"},"@timestamp":"2025-11-03T16:53:47.000+07:00"},"sort":[1762163627000]},{"_index":".ds-logs-fortinet_fortigate.log-d... (truncated)
+   - sessionId: 235
+   - totalProcessingTimeMs: 19226
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch. | OpenRouter ES: {"took":56,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":1142,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"R5QjSZoBwPewX2N5QGHT","_score":null,"_source":{"destination":{"ip":"142.250.197.110"},"source":{"ip":"10.4.110.137"},"@timestamp":"2025-11-03T16:53:54.000+07:00"},"sort":[1762163634000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_...
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch.
+   OpenRouter Data: {"took":56,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":1142,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"R5QjSZoBwPewX2N5QGHT","_score":null,"_source":{"destination":{"ip":"142.250.197.110"},"source":{"ip":"10.4.110.137"},"@timestamp":"2025-11-03T16:53:54.000+07:00"},"sort":[1762163634000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"j5QjSZoBwPewX2N5QGHT","_score":null,"_source":{"destination":{"ip":"142.250.197.110"},"source":{"ip":"10.4.110.137"},"@timestamp":"2025-11-03T16:53:54.000+07:00"},"sort":[1762163634000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"npQjSZoBwPewX2N5GV1y","_score":null,"_source":{"destination":{"ip":"142.250.199.206"},"source":{"ip":"10.4.110.152"},"@timestamp":"2025-11-03T16:53:47.000+07:00"},"sort":[1762163627000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"GZQiSZoBwPewX2N5oEug","_score":null,"_source":{"destination":{"ip":"142.250.197.110"},"source":{"ip":"10.4.100.60"},"@timestamp":"2025-11-03T16:53:09.000+07:00"},"sort":[1762163589000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"gpQiSZoBwPewX2N5eUZP","_score":null,"_source":{"destination":{"ip":"142.250.197.110"},"source":{"ip":"10.4.110.137"},"@timestamp":"2025-11-03T16:52:57.000+07:00"},"sort":[1762163577000]},{"_index":".ds-lo... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 17459
+   - openai_totalMs: 10146
+   - openrouter_searchMs: 72
+   - openai_searchMs: 198
+
+▶ TIMESTAMP: 2025-11-03T16:55:20.3326948
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-03 16:55:50.941] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 7470ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: có ai vào web google trong hôm nay không
+   - timeSavedMs: 7470
+   - openaiEsData: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch.
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=8978, openai_totalMs=8720, openrouter_searchMs=14, openai_searchMs=70}
+   - openrouterEsData: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch.
+   - sessionId: 236
+   - totalProcessingTimeMs: 10228
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch. | OpenRouter ES: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch.
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch.
+   OpenRouter Data: ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch.
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 8978
+   - openai_totalMs: 8720
+   - openrouter_searchMs: 14
+   - openai_searchMs: 70
+
+▶ TIMESTAMP: 2025-11-03T16:55:50.9410063
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-03 16:56:48.548] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 13885ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: trong một giờ qua user đã truy cập những website nào
+   - timeSavedMs: 13885
+   - openaiEsData: {"took":43,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"visited_websites":{"doc_count_error_upper_bound":26,"sum_other_doc_count":3364,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":69158},{"key":"GOOGLE","doc_count":23387},{"key":"FACEBOOK","doc_count":9369},{"key":"VNG Corporation","doc_count":8233},{"key":"AMAZON-02","doc_count":6886},{"key":"AMAZON-AES","doc_count":6836},{"key":"Akamai International B.V.","doc_count":6309},{"key":"CLOUDFLARENET","doc_count":6146},{"key":"CMC Telecom Infrastructure Company","doc_count":5148},{"key":"FPT Telecom Company","doc_count":5094},{"key":"GOOGLE-CLOUD-PLATFORM","doc_count":4133},{"key":"APPLE-ENGINEERING","doc_count":4113},{"key":"AKAMAI-AS","doc_count":3544},{"key":"Kaspersky Lab Switzerland GmbH","doc_count":2926},{"key":"APPLE-AUSTIN","doc_count":2067},{"key":"FASTLY","doc_count":1889},{"key":"LEVEL3... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=22373, openai_totalMs=15122, openrouter_searchMs=164, openai_searchMs=53}
+   - openrouterEsData: {"took":147,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"TpQlSZoBwPewX2N5kaNK","_score":null,"_source":{"destination":{"as":{"organization":{"name":"MICROSOFT-CORP-MSN-AS-BLOCK"}}},"source":{"ip":"10.4.100.52","user":{"name":"TuanNM"}},"@timestamp":"2025-11-03T16:56:29.000+07:00"},"sort":[1762163789000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"UJQlSZoBwPewX2N5kaNK","_score":null,"_source":{"destination":{"as":{"organization":{"name":"GOOGLE-CLOUD-PLATFORM"}}},"source":{"ip":"10.4.100.91","user":{"name":"PhucVH01"}},"@timestamp":"2025-11-03T16:56:29.000+07:00"},"sort":[1762163789000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"UZQlSZoBwPewX2N5kaNK","_score":null,"_source":{"destination":{"as":{"organization":{"name":"AMAZON-02"}}},"s... (truncated)
+   - sessionId: 236
+   - totalProcessingTimeMs: 23610
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":43,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"visited_websites":{"doc_count_error_upper_bound":26,"sum_other_doc_count":3364,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":69158},{"key":"GOOGLE","doc_count":23387},{"key":"FACEBOOK","doc_count":9369},{"key":"VNG Corporation","doc_count":8233},{"key":"AMAZON-02","doc_count":6886},{"key":"AMAZON-AES... | OpenRouter ES: {"took":147,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"TpQlSZoBwPewX2N5kaNK","_score":null,"_source":{"destination":{"as":{"organization":{"name":"MICROSOFT-CORP-MSN-AS-BLOCK"}}},"source":{"ip":"10.4.100.52","user":{"name":"TuanNM"}},"@timestamp":"2025-11-03T16:56:29.000+07:00"}... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":43,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"visited_websites":{"doc_count_error_upper_bound":26,"sum_other_doc_count":3364,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":69158},{"key":"GOOGLE","doc_count":23387},{"key":"FACEBOOK","doc_count":9369},{"key":"VNG Corporation","doc_count":8233},{"key":"AMAZON-02","doc_count":6886},{"key":"AMAZON-AES","doc_count":6836},{"key":"Akamai International B.V.","doc_count":6309},{"key":"CLOUDFLARENET","doc_count":6146},{"key":"CMC Telecom Infrastructure Company","doc_count":5148},{"key":"FPT Telecom Company","doc_count":5094},{"key":"GOOGLE-CLOUD-PLATFORM","doc_count":4133},{"key":"APPLE-ENGINEERING","doc_count":4113},{"key":"AKAMAI-AS","doc_count":3544},{"key":"Kaspersky Lab Switzerland GmbH","doc_count":2926},{"key":"APPLE-AUSTIN","doc_count":2067},{"key":"FASTLY","doc_count":1889},{"key":"LEVEL3","doc_count":1185},{"key":"VNPT Corp","doc_count":1122},{"key":"HUAWEI CLOUDS","doc_count":1077},{"key":"SHOPEE SINGAPORE PRIVATE LIMITED","doc_count":971},{"key":"Edgevana, Inc.","doc_count":911},{"key":"CHT Compamy Ltd","doc_count":831},{"key":"DROPBOX","doc_count":819},{"key":"VIETNAM POSTS AND TELECOMMUNICATIONS GROUP","doc_count":783},{"key":"MOBIFONE Corporation","doc_count":744},{"key":"INCAPSULA","doc_count":658},{"key":"OVH SAS","doc_count":596},{"key":"FPT Online JSC","doc_count":563}... (truncated)
+   OpenRouter Data: {"took":147,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"TpQlSZoBwPewX2N5kaNK","_score":null,"_source":{"destination":{"as":{"organization":{"name":"MICROSOFT-CORP-MSN-AS-BLOCK"}}},"source":{"ip":"10.4.100.52","user":{"name":"TuanNM"}},"@timestamp":"2025-11-03T16:56:29.000+07:00"},"sort":[1762163789000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"UJQlSZoBwPewX2N5kaNK","_score":null,"_source":{"destination":{"as":{"organization":{"name":"GOOGLE-CLOUD-PLATFORM"}}},"source":{"ip":"10.4.100.91","user":{"name":"PhucVH01"}},"@timestamp":"2025-11-03T16:56:29.000+07:00"},"sort":[1762163789000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"UZQlSZoBwPewX2N5kaNK","_score":null,"_source":{"destination":{"as":{"organization":{"name":"AMAZON-02"}}},"source":{"ip":"10.4.110.123","user":{"name":"NTDuong"}},"@timestamp":"2025-11-03T16:56:29.000+07:00"},"sort":[1762163789000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"U5QlSZoBwPewX2N5kaNK","_score":null,"_source":{"destination":{"as":{"organization":{"name":"MICROSOFT-CORP-MSN-AS-BLOCK"}}},"source":{"ip":"10.4.100.52","user":{"name":"TuanNM"}},"@timestamp":"2025-11-03T16:56:29.000+07:00"},"sort":[1762163789000]},{"_index":".ds-logs-fortinet_fortigate.log-defaul... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 22373
+   - openai_totalMs: 15122
+   - openrouter_searchMs: 164
+   - openai_searchMs: 53
+
+▶ TIMESTAMP: 2025-11-03T16:56:48.5480686
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-03 16:57:56.364] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 10547ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: ip của tổ chức VNPT Corp là ip nào
+   - timeSavedMs: 10547
+   - openaiEsData: {"took":17,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":0.0,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"yIRTo5kBWAVxoLH7viWR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.70"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"34RTo5kBWAVxoLH7viWR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.70"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"QIRTo5kBWAVxoLH7vieR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"14.238.122.90"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"SIRTo5kBWAVxoLH7vieR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.88"}}},{"_index":".ds-l... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=13104, openai_totalMs=12754, openrouter_searchMs=373, openai_searchMs=303}
+   - openrouterEsData: {"took":359,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":0.0,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"yIRTo5kBWAVxoLH7viWR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.70"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"34RTo5kBWAVxoLH7viWR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.70"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"QIRTo5kBWAVxoLH7vieR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"14.238.122.90"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"SIRTo5kBWAVxoLH7vieR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.88"}}},{"_index":".ds-... (truncated)
+   - sessionId: 236
+   - totalProcessingTimeMs: 15311
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":17,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":0.0,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"yIRTo5kBWAVxoLH7viWR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.70"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"34RTo5kBWAVxoLH7viWR","_score":0.0,"_source":{"destina... | OpenRouter ES: {"took":359,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":0.0,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"yIRTo5kBWAVxoLH7viWR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.70"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"34RTo5kBWAVxoLH7viWR"... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":17,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":0.0,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"yIRTo5kBWAVxoLH7viWR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.70"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"34RTo5kBWAVxoLH7viWR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.70"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"QIRTo5kBWAVxoLH7vieR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"14.238.122.90"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"SIRTo5kBWAVxoLH7vieR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.88"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"SYRTo5kBWAVxoLH7vieR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.88"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"h4RTo5kBWAVxoLH7vieR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"14.238.122.90"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"m4RTo5kBWAVxoLH7vieR","_score... (truncated)
+   OpenRouter Data: {"took":359,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":0.0,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"yIRTo5kBWAVxoLH7viWR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.70"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"34RTo5kBWAVxoLH7viWR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.70"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"QIRTo5kBWAVxoLH7vieR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"14.238.122.90"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"SIRTo5kBWAVxoLH7vieR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.88"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"SYRTo5kBWAVxoLH7vieR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"123.30.151.88"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"h4RTo5kBWAVxoLH7vieR","_score":0.0,"_source":{"destination":{"as":{"organization":{"name":"VNPT Corp"}},"ip":"14.238.122.90"}}},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.09.02-000001","_id":"m4RTo5kBWAVxoLH7vieR","_scor... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 13104
+   - openai_totalMs: 12754
+   - openrouter_searchMs: 373
+   - openai_searchMs: 303
+
+▶ TIMESTAMP: 2025-11-03T16:57:56.3644032
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
