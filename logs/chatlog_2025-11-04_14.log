@@ -1,0 +1,788 @@
+[2025-11-04 14:14:57.530] [ERROR_DETAILED] [AiComparisonService] ❌ Lỗi xử lý yêu cầu song song OpenAI và OpenRouter
+════════════════════════════ ERROR DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: ai đã vào trang website ogs.google.com
+   - dateContext: CURRENT TIME CONTEXT (Vietnam timezone +07:00):
+- Current exact time: 2025-11-04 14:14:54 (+07:00)
+- Current date: 2025-11-04
+
+PREFERRED TIME QUERY METHOD - Use Elasticsearch relative time expressions:
+- "5 phút qua, 5 phút trước, 5 minutes ago", "last 5 minutes" → {"gte": "now-5m"}
+- "1 giờ qua, 1 giờ trước, 1 hour ago", "last 1 hour" → {"gte": "now-1h"}
+- "24 giờ qua, 24 giờ trước, 24 hours ago", "last 24 hours" → {"gte": "now-24h"}
+- "1 tuần qua, 1 tuần trước, 1 week ago", "7 ngày qua, 7 ngày trước, 7 days ago", "last week" → {"gte": "now-7d"}
+- "1 tháng qua, 1 tháng trước, 1 month ago", "last month" → {"gte": "now-30d"}
+
+SPECIFIC DATE RANGES (when exact dates mentioned):
+- "hôm nay, hôm nay, today" → {"gte": "now/d"}
+- "hôm qua, hôm qua, yesterday" → {"gte": "now-1d/d"}
+- Specific date like "ngày 15-09" → {"gte": "2025-09-15T00:00:00.000+07:00", "lte": "2025-09-15T23:59:59.999+07:00"}
+
+ADVANTAGES of "now-Xh/d/m" format:
+- More efficient than absolute timestamps
+- Automatically hand... (truncated)
+   - processingTimeMs: 2996
+   - sessionId: 237
+   - timestamp: 2025-11-04T14:14:54.490737300
+
+▶ EXCEPTION:
+   Type: org.springframework.dao.InvalidDataAccessResourceUsageException
+   Message: JDBC exception executing SQL [WITH vector_results AS (
+    SELECT
+        id,
+        content,
+        embedding,
+        metadata,
+        created_at,
+        updated_at,
+        is_deleted,
+        (1 - (embedding <=> CAST(? AS vector))) AS similarity_score
+    FROM ai_embedding
+    WHERE is_deleted = 0
+    ORDER BY embedding <=> CAST(? AS vector)
+    LIMIT ?
+),
+keyword_results AS (
+    SELECT
+        id,
+        content,
+        embedding,
+        metadata,
+        created_at,
+        updated_at,
+        is_deleted,
+        CASE
+            WHEN jsonb_typeof(metadata->'keywords') = 'array' AND (
+                EXISTS (
+                    SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                    WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', ?, '%'))
+                )
+                OR EXISTS (
+                    SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                    CROSS JOIN LATERAL unnest(string_to_array(?, ' ')) AS word
+                    WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', word, '%'))
+                )
+            ) THEN 0.9
+            WHEN LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', ?, '%'))
+               OR EXISTS (
+                   SELECT 1 FROM unnest(string_to_array(?, ' ')) AS word
+                   WHERE LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', word, '%'))
+               ) THEN 0.8
+            WHEN LOWER(content) LIKE LOWER(CONCAT('%', ?, '%'))
+               OR EXISTS (
+                   SELECT 1 FROM unnest(string_to_array(?, ' ')) AS word
+                   WHERE LOWER(content) LIKE LOWER(CONCAT('%', word, '%'))
+               ) THEN 0.7
+            ELSE 0.5
+        END AS keyword_score
+    FROM ai_embedding
+    WHERE is_deleted = 0
+    AND (
+        (jsonb_typeof(metadata->'keywords') = 'array' AND (
+            EXISTS (
+                SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', ?, '%'))
+            )
+            OR EXISTS (
+                SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                CROSS JOIN unnest(string_to_array(?, ' ')) AS word
+                WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', word, '%'))
+            )
+        ))
+        OR LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', ?, '%'))
+        OR EXISTS (
+            SELECT 1 FROM unnest(string_to_array(?, ' ')) AS word
+            WHERE LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', word, '%'))
+        )
+        OR LOWER(content) LIKE LOWER(CONCAT('%', ?, '%'))
+        OR EXISTS (
+            SELECT 1 FROM unnest(string_to_array(?, ' ')) AS word
+            WHERE LOWER(content) LIKE LOWER(CONCAT('%', word, '%'))
+        )
+    )
+    LIMIT ?
+)
+SELECT DISTINCT
+    COALESCE(v.id, k.id) as id,
+    COALESCE(v.content, k.content) as content,
+    COALESCE(v.embedding, k.embedding) as embedding,
+    COALESCE(v.metadata, k.metadata) as metadata,
+    COALESCE(v.created_at, k.created_at) as created_at,
+    COALESCE(v.updated_at, k.updated_at) as updated_at,
+    COALESCE(v.is_deleted, k.is_deleted) as is_deleted,
+    (COALESCE(v.similarity_score, 0) * 0.6 + COALESCE(k.keyword_score, 0) * 0.4) as final_score
+FROM vector_results v
+FULL OUTER JOIN keyword_results k ON v.id = k.id
+ORDER BY final_score DESC, k.keyword_score DESC
+LIMIT ?
+] [ERROR: for SELECT DISTINCT, ORDER BY expressions must appear in select list
+  Position: 3373] [n/a]; SQL [n/a]
+   Root Cause: org.postgresql.util.PSQLException: ERROR: for SELECT DISTINCT, ORDER BY expressions must appear in select list
+  Position: 3373
+
+▶ STACK TRACE:
+    at org.springframework.orm.jpa.vendor.HibernateJpaDialect.convertHibernateAccessException(HibernateJpaDialect.java:281)
+    at org.springframework.orm.jpa.vendor.HibernateJpaDialect.convertHibernateAccessException(HibernateJpaDialect.java:256)
+    at org.springframework.orm.jpa.vendor.HibernateJpaDialect.translateExceptionIfPossible(HibernateJpaDialect.java:241)
+    at org.springframework.orm.jpa.AbstractEntityManagerFactoryBean.translateExceptionIfPossible(AbstractEntityManagerFactoryBean.java:560)
+    at org.springframework.dao.support.ChainedPersistenceExceptionTranslator.translateExceptionIfPossible(ChainedPersistenceExceptionTranslator.java:61)
+    at org.springframework.dao.support.DataAccessUtils.translateIfNecessary(DataAccessUtils.java:343)
+    at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:160)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.data.jpa.repository.support.CrudMethodMetadataPostProcessor$CrudMethodMetadataPopulatingMethodInterceptor.invoke(CrudMethodMetadataPostProcessor.java:136)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.aop.framework.JdkDynamicAopProxy.invoke(JdkDynamicAopProxy.java:223)
+    at jdk.proxy4/jdk.proxy4.$Proxy163.hybridSearch(Unknown Source)
+    at com.example.chatlog.service.impl.AiEmbeddingServiceImpl.hybridSearch(AiEmbeddingServiceImpl.java:128)
+    at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+    at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+    at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+    at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+    at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:119)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
+    at com.example.chatlog.service.impl.AiEmbeddingServiceImpl$$SpringCGLIB$$0.hybridSearch(<generated>)
+    at com.example.chatlog.service.impl.VectorSearchService.findRelevantExamples(VectorSearchService.java:76)
+    at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+    at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+    at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+    at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+    at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:119)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
+    at com.example.chatlog.service.impl.VectorSearchService$$SpringCGLIB$$0.findRelevantExamples(<generated>)
+    at com.example.chatlog.service.impl.AiComparisonService.buildDynamicExamples(AiComparisonService.java:589)
+    at com.example.chatlog.service.impl.AiComparisonService.handleRequestWithComparison(AiComparisonService.java:101)
+    at com.example.chatlog.service.impl.AiServiceImpl.handleRequestWithComparison(AiServiceImpl.java:66)
+    at com.example.chatlog.controller.ChatMessagesController.sendMessageWithComparison(ChatMessagesController.java:96)
+    at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+    at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+    at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:258)
+    at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191)
+    at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+    at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:991)
+    at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:896)
+    at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+    at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+    at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+    at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+    at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:914)
+    at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:590)
+    at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+    at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:195)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:110)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+    at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+    at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:483)
+    at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:116)
+    at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+    at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+    at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:344)
+    at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:398)
+    at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+    at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903)
+    at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1769)
+    at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+    at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1189)
+    at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:658)
+    at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
+    at java.base/java.lang.Thread.run(Thread.java:1447)
+
+▶ CAUSED BY: org.hibernate.exception.SQLGrammarException: JDBC exception executing SQL [WITH vector_results AS (
+    SELECT
+        id,
+        content,
+        embedding,
+        metadata,
+        created_at,
+        updated_at,
+        is_deleted,
+        (1 - (embedding <=> CAST(? AS vector))) AS similarity_score
+    FROM ai_embedding
+    WHERE is_deleted = 0
+    ORDER BY embedding <=> CAST(? AS vector)
+    LIMIT ?
+),
+keyword_results AS (
+    SELECT
+        id,
+        content,
+        embedding,
+        metadata,
+        created_at,
+        updated_at,
+        is_deleted,
+        CASE
+            WHEN jsonb_typeof(metadata->'keywords') = 'array' AND (
+                EXISTS (
+                    SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                    WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', ?, '%'))
+                )
+                OR EXISTS (
+                    SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                    CROSS JOIN LATERAL unnest(string_to_array(?, ' ')) AS word
+                    WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', word, '%'))
+                )
+            ) THEN 0.9
+            WHEN LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', ?, '%'))
+               OR EXISTS (
+                   SELECT 1 FROM unnest(string_to_array(?, ' ')) AS word
+                   WHERE LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', word, '%'))
+               ) THEN 0.8
+            WHEN LOWER(content) LIKE LOWER(CONCAT('%', ?, '%'))
+               OR EXISTS (
+                   SELECT 1 FROM unnest(string_to_array(?, ' ')) AS word
+                   WHERE LOWER(content) LIKE LOWER(CONCAT('%', word, '%'))
+               ) THEN 0.7
+            ELSE 0.5
+        END AS keyword_score
+    FROM ai_embedding
+    WHERE is_deleted = 0
+    AND (
+        (jsonb_typeof(metadata->'keywords') = 'array' AND (
+            EXISTS (
+                SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', ?, '%'))
+            )
+            OR EXISTS (
+                SELECT 1 FROM jsonb_array_elements_text(metadata->'keywords') AS keyword
+                CROSS JOIN unnest(string_to_array(?, ' ')) AS word
+                WHERE LOWER(keyword) LIKE LOWER(CONCAT('%', word, '%'))
+            )
+        ))
+        OR LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', ?, '%'))
+        OR EXISTS (
+            SELECT 1 FROM unnest(string_to_array(?, ' ')) AS word
+            WHERE LOWER(metadata->>'question') LIKE LOWER(CONCAT('%', word, '%'))
+        )
+        OR LOWER(content) LIKE LOWER(CONCAT('%', ?, '%'))
+        OR EXISTS (
+            SELECT 1 FROM unnest(string_to_array(?, ' ')) AS word
+            WHERE LOWER(content) LIKE LOWER(CONCAT('%', word, '%'))
+        )
+    )
+    LIMIT ?
+)
+SELECT DISTINCT
+    COALESCE(v.id, k.id) as id,
+    COALESCE(v.content, k.content) as content,
+    COALESCE(v.embedding, k.embedding) as embedding,
+    COALESCE(v.metadata, k.metadata) as metadata,
+    COALESCE(v.created_at, k.created_at) as created_at,
+    COALESCE(v.updated_at, k.updated_at) as updated_at,
+    COALESCE(v.is_deleted, k.is_deleted) as is_deleted,
+    (COALESCE(v.similarity_score, 0) * 0.6 + COALESCE(k.keyword_score, 0) * 0.4) as final_score
+FROM vector_results v
+FULL OUTER JOIN keyword_results k ON v.id = k.id
+ORDER BY final_score DESC, k.keyword_score DESC
+LIMIT ?
+] [ERROR: for SELECT DISTINCT, ORDER BY expressions must appear in select list
+  Position: 3373] [n/a]
+    at org.hibernate.exception.internal.SQLStateConversionDelegate.convert(SQLStateConversionDelegate.java:91)
+    at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:58)
+    at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:108)
+    at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:94)
+    at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.executeQuery(DeferredResultSetAccess.java:269)
+    at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.getResultSet(DeferredResultSetAccess.java:172)
+    at org.hibernate.sql.results.jdbc.internal.AbstractResultSetAccess.getMetaData(AbstractResultSetAccess.java:36)
+    at org.hibernate.sql.results.jdbc.internal.AbstractResultSetAccess.getColumnCount(AbstractResultSetAccess.java:52)
+    at org.hibernate.query.results.ResultSetMappingImpl.resolve(ResultSetMappingImpl.java:194)
+    at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.resolveJdbcValuesSource(JdbcSelectExecutorStandardImpl.java:340)
+    at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.doExecuteQuery(JdbcSelectExecutorStandardImpl.java:137)
+    at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.executeQuery(JdbcSelectExecutorStandardImpl.java:102)
+    at org.hibernate.sql.exec.spi.JdbcSelectExecutor.executeQuery(JdbcSelectExecutor.java:91)
+    at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:165)
+    at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:142)
+    at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:132)
+    at org.hibernate.query.sql.internal.NativeSelectQueryPlanImpl.performList(NativeSelectQueryPlanImpl.java:135)
+    at org.hibernate.query.sql.internal.NativeQueryImpl.doList(NativeQueryImpl.java:697)
+    at org.hibernate.query.spi.AbstractSelectionQuery.list(AbstractSelectionQuery.java:143)
+    at org.hibernate.query.Query.getResultList(Query.java:120)
+    at org.springframework.data.jpa.repository.query.JpaQueryExecution$CollectionExecution.doExecute(JpaQueryExecution.java:130)
+    at org.springframework.data.jpa.repository.query.JpaQueryExecution.execute(JpaQueryExecution.java:93)
+    at org.springframework.data.jpa.repository.query.AbstractJpaQuery.doExecute(AbstractJpaQuery.java:160)
+    at org.springframework.data.jpa.repository.query.AbstractJpaQuery.execute(AbstractJpaQuery.java:148)
+    at org.springframework.data.repository.core.support.RepositoryMethodInvoker.doInvoke(RepositoryMethodInvoker.java:170)
+    at org.springframework.data.repository.core.support.RepositoryMethodInvoker.invoke(RepositoryMethodInvoker.java:158)
+    at org.springframework.data.repository.core.support.QueryExecutorMethodInterceptor.doInvoke(QueryExecutorMethodInterceptor.java:170)
+    at org.springframework.data.repository.core.support.QueryExecutorMethodInterceptor.invoke(QueryExecutorMethodInterceptor.java:149)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.data.projection.DefaultMethodInvokingMethodInterceptor.invoke(DefaultMethodInvokingMethodInterceptor.java:69)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+    at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:119)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.data.jpa.repository.support.CrudMethodMetadataPostProcessor$CrudMethodMetadataPopulatingMethodInterceptor.invoke(CrudMethodMetadataPostProcessor.java:136)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.aop.framework.JdkDynamicAopProxy.invoke(JdkDynamicAopProxy.java:223)
+    at jdk.proxy4/jdk.proxy4.$Proxy163.hybridSearch(Unknown Source)
+    at com.example.chatlog.service.impl.AiEmbeddingServiceImpl.hybridSearch(AiEmbeddingServiceImpl.java:128)
+    at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+    at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+    at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+    at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+    at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:119)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
+    at com.example.chatlog.service.impl.AiEmbeddingServiceImpl$$SpringCGLIB$$0.hybridSearch(<generated>)
+    at com.example.chatlog.service.impl.VectorSearchService.findRelevantExamples(VectorSearchService.java:76)
+    at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+    at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+    at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:360)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:196)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163)
+    at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380)
+    at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:119)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
+    at com.example.chatlog.service.impl.VectorSearchService$$SpringCGLIB$$0.findRelevantExamples(<generated>)
+    at com.example.chatlog.service.impl.AiComparisonService.buildDynamicExamples(AiComparisonService.java:589)
+    at com.example.chatlog.service.impl.AiComparisonService.handleRequestWithComparison(AiComparisonService.java:101)
+    at com.example.chatlog.service.impl.AiServiceImpl.handleRequestWithComparison(AiServiceImpl.java:66)
+    at com.example.chatlog.controller.ChatMessagesController.sendMessageWithComparison(ChatMessagesController.java:96)
+    at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+    at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+    at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:258)
+    at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191)
+    at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+    at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:991)
+    at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:896)
+    at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+    at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+    at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+    at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+    at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:914)
+    at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:590)
+    at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+    at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:195)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:110)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+    at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+    at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:483)
+    at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:116)
+    at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+    at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+    at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:344)
+    at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:398)
+    at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+    at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903)
+    at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1769)
+    at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+    at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1189)
+    at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:658)
+    at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
+    at java.base/java.lang.Thread.run(Thread.java:1447)
+
+▶ TIMESTAMP: 2025-11-04T14:14:57.5309223
+════════════════════════════ END ERROR DETAILS ════════════════════════════
+
+[2025-11-04 14:18:17.260] [ERROR_DETAILED] [AiComparisonService] ❌ Lỗi xử lý yêu cầu song song OpenAI và OpenRouter
+════════════════════════════ ERROR DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: ai đã vào trang website ogs.google.com
+   - dateContext: CURRENT TIME CONTEXT (Vietnam timezone +07:00):
+- Current exact time: 2025-11-04 14:18:15 (+07:00)
+- Current date: 2025-11-04
+
+PREFERRED TIME QUERY METHOD - Use Elasticsearch relative time expressions:
+- "5 phút qua, 5 phút trước, 5 minutes ago", "last 5 minutes" → {"gte": "now-5m"}
+- "1 giờ qua, 1 giờ trước, 1 hour ago", "last 1 hour" → {"gte": "now-1h"}
+- "24 giờ qua, 24 giờ trước, 24 hours ago", "last 24 hours" → {"gte": "now-24h"}
+- "1 tuần qua, 1 tuần trước, 1 week ago", "7 ngày qua, 7 ngày trước, 7 days ago", "last week" → {"gte": "now-7d"}
+- "1 tháng qua, 1 tháng trước, 1 month ago", "last month" → {"gte": "now-30d"}
+
+SPECIFIC DATE RANGES (when exact dates mentioned):
+- "hôm nay, hôm nay, today" → {"gte": "now/d"}
+- "hôm qua, hôm qua, yesterday" → {"gte": "now-1d/d"}
+- Specific date like "ngày 15-09" → {"gte": "2025-09-15T00:00:00.000+07:00", "lte": "2025-09-15T23:59:59.999+07:00"}
+
+ADVANTAGES of "now-Xh/d/m" format:
+- More efficient than absolute timestamps
+- Automatically hand... (truncated)
+   - processingTimeMs: 2162
+   - sessionId: 237
+   - timestamp: 2025-11-04T14:18:15.096419500
+
+▶ EXCEPTION:
+   Type: org.springframework.transaction.UnexpectedRollbackException
+   Message: Transaction silently rolled back because it has been marked as rollback-only
+   Root Cause: org.springframework.transaction.UnexpectedRollbackException: Transaction silently rolled back because it has been marked as rollback-only
+
+▶ STACK TRACE:
+    at org.springframework.transaction.support.AbstractPlatformTransactionManager.processCommit(AbstractPlatformTransactionManager.java:804)
+    at org.springframework.transaction.support.AbstractPlatformTransactionManager.commit(AbstractPlatformTransactionManager.java:758)
+    at org.springframework.transaction.interceptor.TransactionAspectSupport.commitTransactionAfterReturning(TransactionAspectSupport.java:698)
+    at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:416)
+    at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:119)
+    at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184)
+    at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:728)
+    at com.example.chatlog.service.impl.VectorSearchService$$SpringCGLIB$$0.findRelevantExamples(<generated>)
+    at com.example.chatlog.service.impl.AiComparisonService.buildDynamicExamples(AiComparisonService.java:589)
+    at com.example.chatlog.service.impl.AiComparisonService.handleRequestWithComparison(AiComparisonService.java:101)
+    at com.example.chatlog.service.impl.AiServiceImpl.handleRequestWithComparison(AiServiceImpl.java:66)
+    at com.example.chatlog.controller.ChatMessagesController.sendMessageWithComparison(ChatMessagesController.java:96)
+    at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+    at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+    at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:258)
+    at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191)
+    at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118)
+    at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:991)
+    at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:896)
+    at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87)
+    at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089)
+    at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979)
+    at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014)
+    at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:914)
+    at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:590)
+    at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+    at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:195)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:110)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+    at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+    at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164)
+    at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140)
+    at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+    at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+    at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:483)
+    at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:116)
+    at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+    at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+    at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:344)
+    at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:398)
+    at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+    at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903)
+    at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1769)
+    at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+    at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1189)
+    at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:658)
+    at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
+    at java.base/java.lang.Thread.run(Thread.java:1447)
+
+▶ TIMESTAMP: 2025-11-04T14:18:17.2608117
+════════════════════════════ END ERROR DETAILS ════════════════════════════
+
+[2025-11-04 14:21:41.589] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 8447ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: ai đã vào trang website ogs.google.com
+   - timeSavedMs: 8447
+   - openaiEsData: {"took":197,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":774,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YsW9TZoBwPewX2N54N_L","_score":null,"_source":{"source":{"ip":"10.4.110.127"},"@timestamp":"2025-11-04T14:21:18.000+07:00"},"sort":[1762240878000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"i8W9TZoBwPewX2N5GcjI","_score":null,"_source":{"source":{"ip":"10.4.100.57"},"@timestamp":"2025-11-04T14:20:28.000+07:00"},"sort":[1762240828000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"pMW8TZoBwPewX2N5e7RL","_score":null,"_source":{"source":{"ip":"10.4.100.85"},"@timestamp":"2025-11-04T14:19:48.000+07:00"},"sort":[1762240788000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"p8W8TZoBwPewX2N5e7RL","_score":null,"_source":{"source":{"ip":"10.4.100.85"},"@timesta... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=17489, openai_totalMs=10872, openrouter_searchMs=639, openai_searchMs=622}
+   - openrouterEsData: {"took":197,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":774,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YsW9TZoBwPewX2N54N_L","_score":null,"_source":{"source":{"ip":"10.4.110.127"},"@timestamp":"2025-11-04T14:21:18.000+07:00"},"sort":[1762240878000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"i8W9TZoBwPewX2N5GcjI","_score":null,"_source":{"source":{"ip":"10.4.100.57"},"@timestamp":"2025-11-04T14:20:28.000+07:00"},"sort":[1762240828000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"pMW8TZoBwPewX2N5e7RL","_score":null,"_source":{"source":{"ip":"10.4.100.85"},"@timestamp":"2025-11-04T14:19:48.000+07:00"},"sort":[1762240788000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"p8W8TZoBwPewX2N5e7RL","_score":null,"_source":{"source":{"ip":"10.4.100.85"},"@timesta... (truncated)
+   - sessionId: 237
+   - totalProcessingTimeMs: 19914
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":197,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":774,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YsW9TZoBwPewX2N54N_L","_score":null,"_source":{"source":{"ip":"10.4.110.127"},"@timestamp":"2025-11-04T14:21:18.000+07:00"},"sort":[1762240878000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"i8W9TZoBwPewX2N5GcjI","_score":nul... | OpenRouter ES: {"took":197,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":774,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YsW9TZoBwPewX2N54N_L","_score":null,"_source":{"source":{"ip":"10.4.110.127"},"@timestamp":"2025-11-04T14:21:18.000+07:00"},"sort":[1762240878000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"i8... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":197,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":774,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YsW9TZoBwPewX2N54N_L","_score":null,"_source":{"source":{"ip":"10.4.110.127"},"@timestamp":"2025-11-04T14:21:18.000+07:00"},"sort":[1762240878000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"i8W9TZoBwPewX2N5GcjI","_score":null,"_source":{"source":{"ip":"10.4.100.57"},"@timestamp":"2025-11-04T14:20:28.000+07:00"},"sort":[1762240828000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"pMW8TZoBwPewX2N5e7RL","_score":null,"_source":{"source":{"ip":"10.4.100.85"},"@timestamp":"2025-11-04T14:19:48.000+07:00"},"sort":[1762240788000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"p8W8TZoBwPewX2N5e7RL","_score":null,"_source":{"source":{"ip":"10.4.100.85"},"@timestamp":"2025-11-04T14:19:48.000+07:00"},"sort":[1762240788000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"4MW6TZoBwPewX2N5on5h","_score":null,"_source":{"source":{"ip":"10.4.100.91"},"@timestamp":"2025-11-04T14:17:46.000+07:00"},"sort":[1762240666000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"z8W6TZoBwPewX2N5on5h","_score":null,"_source":{"source":{"ip":"10.4.100.91"},"@timestamp":"2025-11-04T14:17:45.000+07:00"},"sort":[1762240... (truncated)
+   OpenRouter Data: {"took":197,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":774,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YsW9TZoBwPewX2N54N_L","_score":null,"_source":{"source":{"ip":"10.4.110.127"},"@timestamp":"2025-11-04T14:21:18.000+07:00"},"sort":[1762240878000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"i8W9TZoBwPewX2N5GcjI","_score":null,"_source":{"source":{"ip":"10.4.100.57"},"@timestamp":"2025-11-04T14:20:28.000+07:00"},"sort":[1762240828000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"pMW8TZoBwPewX2N5e7RL","_score":null,"_source":{"source":{"ip":"10.4.100.85"},"@timestamp":"2025-11-04T14:19:48.000+07:00"},"sort":[1762240788000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"p8W8TZoBwPewX2N5e7RL","_score":null,"_source":{"source":{"ip":"10.4.100.85"},"@timestamp":"2025-11-04T14:19:48.000+07:00"},"sort":[1762240788000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"4MW6TZoBwPewX2N5on5h","_score":null,"_source":{"source":{"ip":"10.4.100.91"},"@timestamp":"2025-11-04T14:17:46.000+07:00"},"sort":[1762240666000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"z8W6TZoBwPewX2N5on5h","_score":null,"_source":{"source":{"ip":"10.4.100.91"},"@timestamp":"2025-11-04T14:17:45.000+07:00"},"sort":[1762240... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 17489
+   - openai_totalMs: 10872
+   - openrouter_searchMs: 639
+   - openai_searchMs: 622
+
+▶ TIMESTAMP: 2025-11-04T14:21:41.5891344
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-04 14:28:10.777] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 8351ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: ip 10.4.100.91 là user nào
+   - timeSavedMs: 8351
+   - openaiEsData: {"took":23,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"user_names":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"PhucVH01","doc_count":53778}]}}}
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=9973, openai_totalMs=9939, openrouter_searchMs=352, openai_searchMs=98}
+   - openrouterEsData: {"took":153,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"user_names":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"PhucVH01","doc_count":53778}]}}}
+   - sessionId: 237
+   - totalProcessingTimeMs: 11561
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":23,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"user_names":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"PhucVH01","doc_count":53778}]}}} | OpenRouter ES: {"took":153,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"user_names":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"PhucVH01","doc_count":53778}]}}}
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":23,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"user_names":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"PhucVH01","doc_count":53778}]}}}
+   OpenRouter Data: {"took":153,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"user_names":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"PhucVH01","doc_count":53778}]}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 9973
+   - openai_totalMs: 9939
+   - openrouter_searchMs: 352
+   - openai_searchMs: 98
+
+▶ TIMESTAMP: 2025-11-04T14:28:10.7779426
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-04 14:28:47.166] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 5894ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: PhucVH01 truy cập những trang web nào
+   - timeSavedMs: 5894
+   - openaiEsData: {"took":19,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"f8bETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:33.000+07:00"},"sort":[1762241313000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"isbETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:33.000+07:00"},"sort":[1762241313000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"oMbETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:33.000+07:00"},"sort":[1762241313000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"UsbETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:32.000+07:00"},"sort":[1762241312000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=10420, openai_totalMs=7293, openrouter_searchMs=30, openai_searchMs=61}
+   - openrouterEsData: {"took":18,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"f8bETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:33.000+07:00"},"sort":[1762241313000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"isbETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:33.000+07:00"},"sort":[1762241313000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"oMbETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:33.000+07:00"},"sort":[1762241313000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"UsbETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:32.000+07:00"},"sort":[1762241312000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11... (truncated)
+   - sessionId: 237
+   - totalProcessingTimeMs: 11819
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":19,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"f8bETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:33.000+07:00"},"sort":[1762241313000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"isbETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"20... | OpenRouter ES: {"took":18,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"f8bETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:33.000+07:00"},"sort":[1762241313000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"isbETZoBwPewX2N5f53_","_score":... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":19,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"f8bETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:33.000+07:00"},"sort":[1762241313000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"isbETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:33.000+07:00"},"sort":[1762241313000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"oMbETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:33.000+07:00"},"sort":[1762241313000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"UsbETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:32.000+07:00"},"sort":[1762241312000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"U8bETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:32.000+07:00"},"sort":[1762241312000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"xcbETZoBwPewX2N5f5v_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:29.000+07:00"},"sort":[1762241309000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"V8bETZoBwPewX2N5f5v_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:28.000+07:00"},... (truncated)
+   OpenRouter Data: {"took":18,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"f8bETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:33.000+07:00"},"sort":[1762241313000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"isbETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:33.000+07:00"},"sort":[1762241313000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"oMbETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:33.000+07:00"},"sort":[1762241313000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"UsbETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:32.000+07:00"},"sort":[1762241312000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"U8bETZoBwPewX2N5f53_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:32.000+07:00"},"sort":[1762241312000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"xcbETZoBwPewX2N5f5v_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:29.000+07:00"},"sort":[1762241309000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"V8bETZoBwPewX2N5f5v_","_score":null,"_source":{"@timestamp":"2025-11-04T14:28:28.000+07:00"},... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 10420
+   - openai_totalMs: 7293
+   - openrouter_searchMs: 30
+   - openai_searchMs: 61
+
+▶ TIMESTAMP: 2025-11-04T14:28:47.1667684
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-04 14:36:33.786] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 11660ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: hôm nay QuynhTX truy cập những tổ chức nào
+   - timeSavedMs: 11660
+   - openaiEsData: {"took":51,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"organizations":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":6685},{"key":"GOOGLE","doc_count":3080},{"key":"FACEBOOK","doc_count":1761},{"key":"VNG Corporation","doc_count":781},{"key":"AMAZON-AES","doc_count":669},{"key":"Akamai International B.V.","doc_count":445},{"key":"CMC Telecom Infrastructure Company","doc_count":429},{"key":"AKAMAI-AS","doc_count":397},{"key":"FPT Telecom Company","doc_count":348},{"key":"Kaspersky Lab Switzerland GmbH","doc_count":328},{"key":"Telegram Messenger Inc","doc_count":251},{"key":"AMAZON-02","doc_count":136},{"key":"OPERASOFTWARE","doc_count":135},{"key":"CHT Compamy Ltd","doc_count":129},{"key":"LEVEL3","doc_count":108},{"key":"MOBIFONE Corporation","doc_count":69},{"key":"FASTLY","doc_count":68... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=15526, openai_totalMs=13859, openrouter_searchMs=324, openai_searchMs=142}
+   - openrouterEsData: {"took":168,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"organizations":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":6685},{"key":"GOOGLE","doc_count":3080},{"key":"FACEBOOK","doc_count":1761},{"key":"VNG Corporation","doc_count":781},{"key":"AMAZON-AES","doc_count":669},{"key":"Akamai International B.V.","doc_count":445},{"key":"CMC Telecom Infrastructure Company","doc_count":429},{"key":"AKAMAI-AS","doc_count":397},{"key":"FPT Telecom Company","doc_count":348},{"key":"Kaspersky Lab Switzerland GmbH","doc_count":328},{"key":"Telegram Messenger Inc","doc_count":251},{"key":"AMAZON-02","doc_count":136},{"key":"OPERASOFTWARE","doc_count":135},{"key":"CHT Compamy Ltd","doc_count":129},{"key":"LEVEL3","doc_count":108},{"key":"MOBIFONE Corporation","doc_count":69},{"key":"FASTLY","doc_count":6... (truncated)
+   - sessionId: 237
+   - totalProcessingTimeMs: 17725
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":51,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"organizations":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":6685},{"key":"GOOGLE","doc_count":3080},{"key":"FACEBOOK","doc_count":1761},{"key":"VNG Corporation","doc_count":781},{"key":"AMAZON-AES","doc_count":669},{"key":"Akamai International... | OpenRouter ES: {"took":168,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"organizations":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":6685},{"key":"GOOGLE","doc_count":3080},{"key":"FACEBOOK","doc_count":1761},{"key":"VNG Corporation","doc_count":781},{"key":"AMAZON-AES","doc_count":... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":51,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"organizations":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":6685},{"key":"GOOGLE","doc_count":3080},{"key":"FACEBOOK","doc_count":1761},{"key":"VNG Corporation","doc_count":781},{"key":"AMAZON-AES","doc_count":669},{"key":"Akamai International B.V.","doc_count":445},{"key":"CMC Telecom Infrastructure Company","doc_count":429},{"key":"AKAMAI-AS","doc_count":397},{"key":"FPT Telecom Company","doc_count":348},{"key":"Kaspersky Lab Switzerland GmbH","doc_count":328},{"key":"Telegram Messenger Inc","doc_count":251},{"key":"AMAZON-02","doc_count":136},{"key":"OPERASOFTWARE","doc_count":135},{"key":"CHT Compamy Ltd","doc_count":129},{"key":"LEVEL3","doc_count":108},{"key":"MOBIFONE Corporation","doc_count":69},{"key":"FASTLY","doc_count":68},{"key":"VNPT Corp","doc_count":65},{"key":"Edgevana, Inc.","doc_count":63},{"key":"VIETNAM POSTS AND TELECOMMUNICATIONS GROUP","doc_count":56},{"key":"CLOUDFLARENET","doc_count":45},{"key":"Opera Norway AS","doc_count":45},{"key":"VNETKIWON SECURITY CO., LTD","doc_count":23},{"key":"NTT-DATA-2914","doc_count":21},{"key":"GOOGLE-CLOUD-PLATFORM","doc_count":19},{"key":"QUAD9-AS-1","doc_count":16},{"key":"ASN-APPNEX","doc_count":9},{"key":"Cloudflare London, LLC","doc_count":7},{"key":"BEDGE-CO-L... (truncated)
+   OpenRouter Data: {"took":168,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"organizations":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":6685},{"key":"GOOGLE","doc_count":3080},{"key":"FACEBOOK","doc_count":1761},{"key":"VNG Corporation","doc_count":781},{"key":"AMAZON-AES","doc_count":669},{"key":"Akamai International B.V.","doc_count":445},{"key":"CMC Telecom Infrastructure Company","doc_count":429},{"key":"AKAMAI-AS","doc_count":397},{"key":"FPT Telecom Company","doc_count":348},{"key":"Kaspersky Lab Switzerland GmbH","doc_count":328},{"key":"Telegram Messenger Inc","doc_count":251},{"key":"AMAZON-02","doc_count":136},{"key":"OPERASOFTWARE","doc_count":135},{"key":"CHT Compamy Ltd","doc_count":129},{"key":"LEVEL3","doc_count":108},{"key":"MOBIFONE Corporation","doc_count":69},{"key":"FASTLY","doc_count":68},{"key":"VNPT Corp","doc_count":65},{"key":"Edgevana, Inc.","doc_count":63},{"key":"VIETNAM POSTS AND TELECOMMUNICATIONS GROUP","doc_count":56},{"key":"CLOUDFLARENET","doc_count":45},{"key":"Opera Norway AS","doc_count":45},{"key":"VNETKIWON SECURITY CO., LTD","doc_count":23},{"key":"NTT-DATA-2914","doc_count":21},{"key":"GOOGLE-CLOUD-PLATFORM","doc_count":19},{"key":"QUAD9-AS-1","doc_count":16},{"key":"ASN-APPNEX","doc_count":9},{"key":"Cloudflare London, LLC","doc_count":7},{"key":"BEDGE-CO-... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 15526
+   - openai_totalMs: 13859
+   - openrouter_searchMs: 324
+   - openai_searchMs: 142
+
+▶ TIMESTAMP: 2025-11-04T14:36:33.7864081
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-04 14:38:13.223] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 10336ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: QuynhTX  có bao nhiêu địa chỉ ip và hãy đưa ra địa chỉ ip đó
+   - timeSavedMs: 10336
+   - openaiEsData: {"took":114,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":91293},{"key":"10.4.100.117","doc_count":51041},{"key":"10.4.100.99","doc_count":18261}]}}}
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=11899, openai_totalMs=11904, openrouter_searchMs=115, openai_searchMs=127}
+   - openrouterEsData: {"took":101,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":91293},{"key":"10.4.100.117","doc_count":51041},{"key":"10.4.100.99","doc_count":18261}]}}}
+   - sessionId: 237
+   - totalProcessingTimeMs: 13467
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":114,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":91293},{"key":"10.4.100.117","doc_count":51041},{"key":"10.4.100.99","doc_count":18261}]}}} | OpenRouter ES: {"took":101,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":91293},{"key":"10.4.100.117","doc_count":51041},{"key":"10.4.100.99","doc_count":18261}]}}}
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":114,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":91293},{"key":"10.4.100.117","doc_count":51041},{"key":"10.4.100.99","doc_count":18261}]}}}
+   OpenRouter Data: {"took":101,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":91293},{"key":"10.4.100.117","doc_count":51041},{"key":"10.4.100.99","doc_count":18261}]}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 11899
+   - openai_totalMs: 11904
+   - openrouter_searchMs: 115
+   - openai_searchMs: 127
+
+▶ TIMESTAMP: 2025-11-04T14:38:13.2233872
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-04 14:39:17.144] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 12351ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: các địa chỉ ip sau 10.4.100.110,10.4.100.117, 10.4.100.99 truy cập những trang web nào
+   - timeSavedMs: 12351
+   - openaiEsData: {"took":107,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YMfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:58.000+07:00"},"sort":[1762241938000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YcfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:58.000+07:00"},"sort":[1762241938000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"qMfOTZoBwPewX2N5Cca-","_score":null,"_source":{"url":{"domain":"array513.prod.do.dsp.mp.microsoft.com"},"@timestamp":"2025-11-04T14:38:58.000+07:00"},"sort":[1762241938000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EsfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:57.000+07:00"},"sort":[1762241937000]},... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=13760, openai_totalMs=13302, openrouter_searchMs=36, openai_searchMs=131}
+   - openrouterEsData: {"took":22,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YMfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:58.000+07:00"},"sort":[1762241938000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YcfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:58.000+07:00"},"sort":[1762241938000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"qMfOTZoBwPewX2N5Cca-","_score":null,"_source":{"url":{"domain":"array513.prod.do.dsp.mp.microsoft.com"},"@timestamp":"2025-11-04T14:38:58.000+07:00"},"sort":[1762241938000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EsfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:57.000+07:00"},"sort":[1762241937000]},{... (truncated)
+   - sessionId: 237
+   - totalProcessingTimeMs: 14711
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":107,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YMfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:58.000+07:00"},"sort":[1762241938000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YcfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2... | OpenRouter ES: {"took":22,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YMfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:58.000+07:00"},"sort":[1762241938000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YcfOTZoBwPewX2N5Cca9","_score":... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":107,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YMfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:58.000+07:00"},"sort":[1762241938000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YcfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:58.000+07:00"},"sort":[1762241938000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"qMfOTZoBwPewX2N5Cca-","_score":null,"_source":{"url":{"domain":"array513.prod.do.dsp.mp.microsoft.com"},"@timestamp":"2025-11-04T14:38:58.000+07:00"},"sort":[1762241938000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EsfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:57.000+07:00"},"sort":[1762241937000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"IMfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:57.000+07:00"},"sort":[1762241937000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"IcfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:57.000+07:00"},"sort":[1762241937000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"QsfOTZoBwPewX2N5Cca9","_score":null... (truncated)
+   OpenRouter Data: {"took":22,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YMfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:58.000+07:00"},"sort":[1762241938000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"YcfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:58.000+07:00"},"sort":[1762241938000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"qMfOTZoBwPewX2N5Cca-","_score":null,"_source":{"url":{"domain":"array513.prod.do.dsp.mp.microsoft.com"},"@timestamp":"2025-11-04T14:38:58.000+07:00"},"sort":[1762241938000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EsfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:57.000+07:00"},"sort":[1762241937000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"IMfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:57.000+07:00"},"sort":[1762241937000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"IcfOTZoBwPewX2N5Cca9","_score":null,"_source":{"@timestamp":"2025-11-04T14:38:57.000+07:00"},"sort":[1762241937000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"QsfOTZoBwPewX2N5Cca9","_score":null,... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 13760
+   - openai_totalMs: 13302
+   - openrouter_searchMs: 36
+   - openai_searchMs: 131
+
+▶ TIMESTAMP: 2025-11-04T14:39:17.1446329
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-04 14:46:16.885] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 11349ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: địa chỉ ip 10.4.100.117 truy cập vào những website nào
+   - timeSavedMs: 11349
+   - openaiEsData: {"took":104,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"JcjUTZoBwPewX2N5fquQ","_score":null,"_source":{"@timestamp":"2025-11-04T14:46:02.000+07:00"},"sort":[1762242362000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EMjUTZoBwPewX2N5fquQ","_score":null,"_source":{"url":{"domain":"dc1.ksn.kaspersky-labs.com"},"@timestamp":"2025-11-04T14:46:01.000+07:00"},"sort":[1762242361000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EcjUTZoBwPewX2N5fquQ","_score":null,"_source":{"url":{"domain":"www.facebook.com"},"@timestamp":"2025-11-04T14:46:01.000+07:00"},"sort":[1762242361000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"F8jUTZoBwPewX2N5fqmP","_score":null,"_source":{"@timestamp":"2025-11-04T14:45:57.000+07:00"}... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=13010, openai_totalMs=12995, openrouter_searchMs=80, openai_searchMs=117}
+   - openrouterEsData: {"took":68,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"JcjUTZoBwPewX2N5fquQ","_score":null,"_source":{"@timestamp":"2025-11-04T14:46:02.000+07:00"},"sort":[1762242362000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EMjUTZoBwPewX2N5fquQ","_score":null,"_source":{"url":{"domain":"dc1.ksn.kaspersky-labs.com"},"@timestamp":"2025-11-04T14:46:01.000+07:00"},"sort":[1762242361000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EcjUTZoBwPewX2N5fquQ","_score":null,"_source":{"url":{"domain":"www.facebook.com"},"@timestamp":"2025-11-04T14:46:01.000+07:00"},"sort":[1762242361000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"F8jUTZoBwPewX2N5fqmP","_score":null,"_source":{"@timestamp":"2025-11-04T14:45:57.000+07:00"},... (truncated)
+   - sessionId: 237
+   - totalProcessingTimeMs: 14656
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":104,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"JcjUTZoBwPewX2N5fquQ","_score":null,"_source":{"@timestamp":"2025-11-04T14:46:02.000+07:00"},"sort":[1762242362000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EMjUTZoBwPewX2N5fquQ","_score":null,"_source":{"url":{"domain"... | OpenRouter ES: {"took":68,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"JcjUTZoBwPewX2N5fquQ","_score":null,"_source":{"@timestamp":"2025-11-04T14:46:02.000+07:00"},"sort":[1762242362000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EMjUTZoBwPewX2N5fquQ","_score":... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":104,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"JcjUTZoBwPewX2N5fquQ","_score":null,"_source":{"@timestamp":"2025-11-04T14:46:02.000+07:00"},"sort":[1762242362000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EMjUTZoBwPewX2N5fquQ","_score":null,"_source":{"url":{"domain":"dc1.ksn.kaspersky-labs.com"},"@timestamp":"2025-11-04T14:46:01.000+07:00"},"sort":[1762242361000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EcjUTZoBwPewX2N5fquQ","_score":null,"_source":{"url":{"domain":"www.facebook.com"},"@timestamp":"2025-11-04T14:46:01.000+07:00"},"sort":[1762242361000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"F8jUTZoBwPewX2N5fqmP","_score":null,"_source":{"@timestamp":"2025-11-04T14:45:57.000+07:00"},"sort":[1762242357000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"hMjUTZoBwPewX2N5fqiP","_score":null,"_source":{"@timestamp":"2025-11-04T14:45:56.000+07:00"},"sort":[1762242356000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"GMjUTZoBwPewX2N5fqiP","_score":null,"_source":{"@timestamp":"2025-11-04T14:45:55.000+07:00"},"sort":[1762242355000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"gsjUTZoBwP... (truncated)
+   OpenRouter Data: {"took":68,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"JcjUTZoBwPewX2N5fquQ","_score":null,"_source":{"@timestamp":"2025-11-04T14:46:02.000+07:00"},"sort":[1762242362000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EMjUTZoBwPewX2N5fquQ","_score":null,"_source":{"url":{"domain":"dc1.ksn.kaspersky-labs.com"},"@timestamp":"2025-11-04T14:46:01.000+07:00"},"sort":[1762242361000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EcjUTZoBwPewX2N5fquQ","_score":null,"_source":{"url":{"domain":"www.facebook.com"},"@timestamp":"2025-11-04T14:46:01.000+07:00"},"sort":[1762242361000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"F8jUTZoBwPewX2N5fqmP","_score":null,"_source":{"@timestamp":"2025-11-04T14:45:57.000+07:00"},"sort":[1762242357000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"hMjUTZoBwPewX2N5fqiP","_score":null,"_source":{"@timestamp":"2025-11-04T14:45:56.000+07:00"},"sort":[1762242356000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"GMjUTZoBwPewX2N5fqiP","_score":null,"_source":{"@timestamp":"2025-11-04T14:45:55.000+07:00"},"sort":[1762242355000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"gsjUTZoBwPe... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 13010
+   - openai_totalMs: 12995
+   - openrouter_searchMs: 80
+   - openai_searchMs: 117
+
+▶ TIMESTAMP: 2025-11-04T14:46:16.885431
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-04 14:51:18.717] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 6787ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: tổng log hôm nay là bao nhiêu
+   - timeSavedMs: 6787
+   - openaiEsData: {"took":162,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"total_count":{"value":2607057}}}
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=11002, openai_totalMs=9455, openrouter_searchMs=336, openai_searchMs=397}
+   - openrouterEsData: {"took":160,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"total_count":{"value":2607057}}}
+   - sessionId: 237
+   - totalProcessingTimeMs: 13670
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":162,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"total_count":{"value":2607057}}} | OpenRouter ES: {"took":160,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"total_count":{"value":2607057}}}
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":162,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"total_count":{"value":2607057}}}
+   OpenRouter Data: {"took":160,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"total_count":{"value":2607057}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 11002
+   - openai_totalMs: 9455
+   - openrouter_searchMs: 336
+   - openai_searchMs: 397
+
+▶ TIMESTAMP: 2025-11-04T14:51:18.7175317
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-04 14:59:38.262] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 14541ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: hôm nay có log của tanln ko?
+   - timeSavedMs: 14541
+   - openaiEsData: {"took":136,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":6,"relation":"eq"},"max_score":0.0,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"aqetTJoBwPewX2N52afd","_score":0.0,"_source":{"agent":{"name":"hpt-logsv-srv","id":"f4af12e8-c55b-4073-8acd-2fada355eb70","ephemeral_id":"2ec7be3d-e73c-4103-9de9-4a5a94d10395","type":"filebeat","version":"8.19.3"},"log":{"level":"information","source":{"address":"10.254.254.251:14955"},"syslog":{"severity":{"code":6},"priority":190,"facility":{"code":23}}},"elastic_agent":{"id":"f4af12e8-c55b-4073-8acd-2fada355eb70","version":"8.19.3","snapshot":false},"destination":{"ip":"10.4.0.254"},"rule":{"description":"Admin login successful"},"source":{"ip":"10.6.99.78","user":{"roles":["Administrator"],"name":"tanln"}},"message":"Administrator tanln logged in successfully from https(10.6.99.78)","tags":["fortinet-fortigate","fortinet-firewall","forwarded"],"netw... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=17437, openai_totalMs=17544, openrouter_searchMs=400, openai_searchMs=329}
+   - openrouterEsData: {"took":134,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":6,"relation":"eq"},"max_score":0.0,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"aqetTJoBwPewX2N52afd","_score":0.0,"_source":{"agent":{"name":"hpt-logsv-srv","id":"f4af12e8-c55b-4073-8acd-2fada355eb70","ephemeral_id":"2ec7be3d-e73c-4103-9de9-4a5a94d10395","type":"filebeat","version":"8.19.3"},"log":{"level":"information","source":{"address":"10.254.254.251:14955"},"syslog":{"severity":{"code":6},"priority":190,"facility":{"code":23}}},"elastic_agent":{"id":"f4af12e8-c55b-4073-8acd-2fada355eb70","version":"8.19.3","snapshot":false},"destination":{"ip":"10.4.0.254"},"rule":{"description":"Admin login successful"},"source":{"ip":"10.6.99.78","user":{"roles":["Administrator"],"name":"tanln"}},"message":"Administrator tanln logged in successfully from https(10.6.99.78)","tags":["fortinet-fortigate","fortinet-firewall","forwarded"],"netw... (truncated)
+   - sessionId: 237
+   - totalProcessingTimeMs: 20440
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":136,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":6,"relation":"eq"},"max_score":0.0,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"aqetTJoBwPewX2N52afd","_score":0.0,"_source":{"agent":{"name":"hpt-logsv-srv","id":"f4af12e8-c55b-4073-8acd-2fada355eb70","ephemeral_id":"2ec7be3d-e73c-4103-9de9-4a5a94d10395","type":"filebeat","version":"8.19.3"},"log":{"level":"information","source":{"address":... | OpenRouter ES: {"took":134,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":6,"relation":"eq"},"max_score":0.0,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"aqetTJoBwPewX2N52afd","_score":0.0,"_source":{"agent":{"name":"hpt-logsv-srv","id":"f4af12e8-c55b-4073-8acd-2fada355eb70","ephemeral_id":"2ec7be3d-e73c-4103-9de9-4a5a94d10395","type":"filebeat","version":"8.19.3"},"log":{"level":"i... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":136,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":6,"relation":"eq"},"max_score":0.0,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"aqetTJoBwPewX2N52afd","_score":0.0,"_source":{"agent":{"name":"hpt-logsv-srv","id":"f4af12e8-c55b-4073-8acd-2fada355eb70","ephemeral_id":"2ec7be3d-e73c-4103-9de9-4a5a94d10395","type":"filebeat","version":"8.19.3"},"log":{"level":"information","source":{"address":"10.254.254.251:14955"},"syslog":{"severity":{"code":6},"priority":190,"facility":{"code":23}}},"elastic_agent":{"id":"f4af12e8-c55b-4073-8acd-2fada355eb70","version":"8.19.3","snapshot":false},"destination":{"ip":"10.4.0.254"},"rule":{"description":"Admin login successful"},"source":{"ip":"10.6.99.78","user":{"roles":["Administrator"],"name":"tanln"}},"message":"Administrator tanln logged in successfully from https(10.6.99.78)","tags":["fortinet-fortigate","fortinet-firewall","forwarded"],"network":{"direction":"internal"},"input":{"type":"udp"},"observer":{"product":"Fortigate","vendor":"Fortinet","name":"FTG-CNHN","serial_number":"FG121GTK25006437","type":"firewall"},"@timestamp":"2025-11-04T09:24:04.000+07:00","ecs":{"version":"8.17.0"},"related":{"ip":["10.6.99.78","10.4.0.254"],"user":["tanln"]},"data_stream":{"namespace":"default","type":"logs","dataset":"fortinet_fortigate.log"},"fortinet":{"firewall":{"method":"https","profile":"super_admin","type":"event","vd":"root","subtype... (truncated)
+   OpenRouter Data: {"took":134,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":6,"relation":"eq"},"max_score":0.0,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"aqetTJoBwPewX2N52afd","_score":0.0,"_source":{"agent":{"name":"hpt-logsv-srv","id":"f4af12e8-c55b-4073-8acd-2fada355eb70","ephemeral_id":"2ec7be3d-e73c-4103-9de9-4a5a94d10395","type":"filebeat","version":"8.19.3"},"log":{"level":"information","source":{"address":"10.254.254.251:14955"},"syslog":{"severity":{"code":6},"priority":190,"facility":{"code":23}}},"elastic_agent":{"id":"f4af12e8-c55b-4073-8acd-2fada355eb70","version":"8.19.3","snapshot":false},"destination":{"ip":"10.4.0.254"},"rule":{"description":"Admin login successful"},"source":{"ip":"10.6.99.78","user":{"roles":["Administrator"],"name":"tanln"}},"message":"Administrator tanln logged in successfully from https(10.6.99.78)","tags":["fortinet-fortigate","fortinet-firewall","forwarded"],"network":{"direction":"internal"},"input":{"type":"udp"},"observer":{"product":"Fortigate","vendor":"Fortinet","name":"FTG-CNHN","serial_number":"FG121GTK25006437","type":"firewall"},"@timestamp":"2025-11-04T09:24:04.000+07:00","ecs":{"version":"8.17.0"},"related":{"ip":["10.6.99.78","10.4.0.254"],"user":["tanln"]},"data_stream":{"namespace":"default","type":"logs","dataset":"fortinet_fortigate.log"},"fortinet":{"firewall":{"method":"https","profile":"super_admin","type":"event","vd":"root","subtype... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 17437
+   - openai_totalMs: 17544
+   - openrouter_searchMs: 400
+   - openai_searchMs: 329
+
+▶ TIMESTAMP: 2025-11-04T14:59:38.2623297
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+

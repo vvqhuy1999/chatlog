@@ -72,24 +72,42 @@ public class VectorSearchService {
         int topK = 8; // Số lượng kết quả mong muốn
         
         if (queryEmbeddingString != null && !keywords.isEmpty()) {
-            // Hybrid search: Kết hợp vector similarity + keyword matching
-            similarEmbeddings = aiEmbeddingService.hybridSearch(
-                queryEmbeddingString, 
-                keywords, 
-                topK
-            );
-            System.out.println("   ✅ Used: HYBRID SEARCH (Semantic + Keyword)");
-            resultMode = "HYBRID";
+            // Theo yêu cầu: 8 kết quả từ vector + 2 kết quả từ keyword
+            System.out.println("   ✅ Strategy: 8 vector + 2 keyword (total 10)");
+            resultMode = "VECTOR+KEYWORD";
 
-            // Debug: in ra điểm số tính toán
-            try {
-                List<java.util.Map<String, Object>> debugRows = aiEmbeddingService.hybridSearchDebug(
-                    queryEmbeddingString, keywords, topK
-                );
-                // đã in trong service; nếu cần thêm, có thể in ở đây
-            } catch (Exception e) {
-                System.out.println("   ⚠️ Debug print failed: " + e.getMessage());
+            // 8 từ vector similarity
+            List<AiEmbedding> vectorTop = aiEmbeddingService.findSimilarEmbeddings(
+                queryEmbeddingString, 8
+            );
+            // 2 từ keyword full-text
+            List<AiEmbedding> keywordTop = aiEmbeddingService.fullTextSearch(
+                keywords, 10
+            );
+
+            // Hợp nhất: ưu tiên vector, thêm 2 từ keyword không trùng id
+            java.util.LinkedHashMap<String, AiEmbedding> merged = new java.util.LinkedHashMap<>();
+            for (AiEmbedding e : vectorTop) merged.put(e.getId().toString(), e);
+            int added = 0;
+            for (AiEmbedding e : keywordTop) {
+                if (added >= 2) break;
+                String key = e.getId().toString();
+                if (!merged.containsKey(key)) {
+                    merged.put(key, e);
+                    added++;
+                }
             }
+
+            similarEmbeddings = new java.util.ArrayList<>(merged.values());
+            // Nếu < 10, bổ sung thêm từ keywordTop cho đủ (không vượt 10)
+            for (AiEmbedding e : keywordTop) {
+                if (similarEmbeddings.size() >= 10) break;
+                String key = e.getId().toString();
+                if (!merged.containsKey(key)) {
+                    similarEmbeddings.add(e);
+                }
+            }
+            System.out.println("   🧪 Vector selected: " + vectorTop.size() + ", Keyword added: " + added + ", Total: " + similarEmbeddings.size());
         } else if (queryEmbeddingString != null) {
             // Fallback: Chỉ dùng semantic search
             similarEmbeddings = aiEmbeddingService.findSimilarEmbeddings(
@@ -142,23 +160,81 @@ public class VectorSearchService {
         for (int i = 0; i < similarEmbeddings.size(); i++) {
             AiEmbedding embedding = similarEmbeddings.get(i);
             examples.append("Example ").append(i + 1).append(":\n");
-            examples.append("Question: ").append(embedding.getMetadata().get("question")).append("\n");
+            Object qMeta = embedding.getMetadata() != null ? embedding.getMetadata().get("question") : null;
+            if (qMeta != null) {
+                examples.append("Question: ").append(qMeta).append("\n");
+            }
+            // Content preview (để luôn thấy tiêu chí tìm kiếm từ kho tri thức)
+            String content = embedding.getContent();
+            if (content != null && !content.isEmpty()) {
+                String preview = content.length() > 180 ? content.substring(0, 180) + "..." : content;
+                examples.append("Content: ").append(preview).append("\n");
+            }
             
-            // Include scenario if available
+            // Include scenario
             Object scenario = embedding.getMetadata().get("scenario");
             if (scenario != null) {
                 examples.append("Scenario: ").append(scenario).append("\n");
             }
-            
-            // Include phase if available
+            // Include phase
             Object phase = embedding.getMetadata().get("phase");
             if (phase != null) {
                 examples.append("Phase: ").append(phase).append("\n");
             }
-            
-            examples.append("Query: ").append(embedding.getMetadata().get("query_dsl")).append("\n\n");
+            Object qdsl = embedding.getMetadata() != null ? embedding.getMetadata().get("query_dsl") : null;
+            if (qdsl != null) {
+                examples.append("Query: ").append(qdsl).append("\n\n");
+            } else {
+                examples.append("\n");
+            }
         }
-        
+
+        // ===== HYBRID SCORE DEBUG (optional) =====
+        if (queryEmbeddingString != null && keywords != null && !keywords.isEmpty()) {
+            try {
+                java.util.List<java.util.Map<String, Object>> dbg =
+                        aiEmbeddingService.hybridSearchDebug(queryEmbeddingString, keywords, 10);
+                if (!dbg.isEmpty()) {
+                    examples.append("===== HYBRID SCORE DEBUG =====\n\n");
+                    for (int i = 0; i < Math.min(10, dbg.size()); i++) {
+                        java.util.Map<String, Object> row = dbg.get(i);
+                        double fs = toDouble(row.get("final_score"));
+                        double ss = toDouble(row.get("similarity_score"));
+                        double ks = toDouble(row.get("keyword_score"));
+                        String title = null;
+                        Object metaObj = row.get("metadata");
+                        if (metaObj instanceof java.util.Map) {
+                            Object qq = ((java.util.Map<?, ?>) metaObj).get("question");
+                            if (qq != null) title = qq.toString();
+                        } else if (metaObj != null) {
+                            try {
+                                com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+                                java.util.Map<String, Object> pm =
+                                        om.readValue(metaObj.toString(), new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>(){});
+                                Object qq = pm.get("question");
+                                if (qq != null) title = qq.toString();
+                            } catch (Exception ignore) {
+                                // fallback to content snippet
+                            }
+                        }
+                        if (title == null) {
+                            Object raw = row.get("content");
+                            if (raw != null) {
+                                String s = raw.toString();
+                                title = s.length() > 120 ? s.substring(0, 120) + "..." : s;
+                            }
+                        }
+                        examples.append(String.format(
+                                "#%d final=%.4f (semantic=%.4f, keyword=%.4f) | %s%n",
+                                i + 1, fs, ss, ks, title != null ? title : ""));
+                    }
+                    examples.append("\n");
+                }
+            } catch (Exception ex) {
+                System.out.println("   ⚠️ Debug summary build failed: " + ex.getMessage());
+            }
+        }
+
         System.out.println("\n✅ Total: " + similarEmbeddings.size() + " examples found using HYBRID SEARCH");
         System.out.println("=".repeat(100) + "\n");
         
@@ -211,5 +287,11 @@ public class VectorSearchService {
         }
         
         return String.join(" ", keywords);
+    }
+
+    private static double toDouble(Object o) {
+        if (o == null) return 0.0;
+        if (o instanceof Number) return ((Number) o).doubleValue();
+        try { return Double.parseDouble(o.toString()); } catch (Exception e) { return 0.0; }
     }
 }

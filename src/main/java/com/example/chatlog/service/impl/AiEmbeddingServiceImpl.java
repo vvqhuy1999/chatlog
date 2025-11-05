@@ -121,9 +121,9 @@ public class AiEmbeddingServiceImpl implements AiEmbeddingService {
     public List<AiEmbedding> hybridSearch(String queryEmbedding, String searchTerm, int limit) {
         System.out.println("🔍 Hybrid search for: " + searchTerm);
         
-        // Tính toán số lượng kết quả từ mỗi phương pháp
-        int vectorLimit = Math.max(limit * 2, 20); // Lấy nhiều hơn để có pool lớn
-        int keywordLimit = Math.max(limit, 10);
+        // Pool rộng hơn để đảm bảo có kết quả keyword
+        int vectorLimit = Math.max(50, limit * 2);
+        int keywordLimit = Math.max(50, limit * 2);
         
         return aiEmbeddingRepository.hybridSearch(
             queryEmbedding, 
@@ -136,8 +136,8 @@ public class AiEmbeddingServiceImpl implements AiEmbeddingService {
 
     @Override
     public List<java.util.Map<String, Object>> hybridSearchDebug(String queryEmbedding, String searchTerm, int limit) {
-        int vectorLimit = Math.max(limit * 2, 20);
-        int keywordLimit = Math.max(limit, 10);
+        int vectorLimit = Math.max(50, limit * 2);
+        int keywordLimit = Math.max(50, limit * 2);
         List<Object[]> rows = aiEmbeddingRepository.hybridSearchDebug(
             queryEmbedding, searchTerm, vectorLimit, keywordLimit, limit
         );

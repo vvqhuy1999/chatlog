@@ -17181,6 +17181,18 @@
   },
   {
     "question": "Phân tích đầy đủ domains được truy cập từ các source IP",
+    "keywords": [
+      "phân tích IP",
+      "truy cập websites",
+      "phân tích theo IP",
+      "theo dõi truy cập IP",
+      "phân tích hành vi IP",
+      "danh sách websites",
+      "kiểm soát truy cập",
+      "phân tích lưu lượng theo IP",
+      "hành vi truy cập",
+      "phân tích lịch sử truy cập"
+    ],
     "query": {
       "query": {
         "bool": {

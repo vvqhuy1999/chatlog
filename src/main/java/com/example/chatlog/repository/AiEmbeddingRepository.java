@@ -145,10 +145,11 @@ public interface AiEmbeddingRepository extends JpaRepository<AiEmbedding, UUID> 
             COALESCE(v.created_at, k.created_at) as created_at,
             COALESCE(v.updated_at, k.updated_at) as updated_at,
             COALESCE(v.is_deleted, k.is_deleted) as is_deleted,
-            (COALESCE(v.similarity_score, 0) * 0.7 + COALESCE(k.keyword_score, 0) * 0.3) as final_score
+            (COALESCE(v.similarity_score, 0) * 0.6 + COALESCE(k.keyword_score, 0) * 0.4) as final_score,
+            COALESCE(k.keyword_score, 0) as keyword_score
         FROM vector_results v
         FULL OUTER JOIN keyword_results k ON v.id = k.id
-        ORDER BY final_score DESC
+        ORDER BY final_score DESC, keyword_score DESC
         LIMIT :limit
         """, nativeQuery = true)
     List<AiEmbedding> hybridSearch(
@@ -244,10 +245,10 @@ public interface AiEmbeddingRepository extends JpaRepository<AiEmbedding, UUID> 
             COALESCE(v.metadata, k.metadata) as metadata,
             COALESCE(v.similarity_score, 0) as similarity_score,
             COALESCE(k.keyword_score, 0) as keyword_score,
-            (COALESCE(v.similarity_score, 0) * 0.7 + COALESCE(k.keyword_score, 0) * 0.3) as final_score
+            (COALESCE(v.similarity_score, 0) * 0.6 + COALESCE(k.keyword_score, 0) * 0.4) as final_score
         FROM vector_results v
         FULL OUTER JOIN keyword_results k ON v.id = k.id
-        ORDER BY final_score DESC
+        ORDER BY final_score DESC, keyword_score DESC
         LIMIT :limit
         """, nativeQuery = true)
     List<Object[]> hybridSearchDebug(
