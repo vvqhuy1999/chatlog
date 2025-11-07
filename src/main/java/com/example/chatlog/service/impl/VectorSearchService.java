@@ -242,6 +242,106 @@ public class VectorSearchService {
     }
 
     /**
+     * Lấy HYBRID SCORE DEBUG dạng string để ghi vào log file
+     */
+    public String getHybridScoreDebugString(String userQuery) {
+        try {
+            // Tạo Query Embedding cho semantic search
+            float[] queryEmbedding = null;
+            String queryEmbeddingString = null;
+            
+            if (embeddingModel != null) {
+                try {
+                    queryEmbedding = embeddingModel.embed(userQuery);
+                    StringBuilder sb = new StringBuilder("[");
+                    for (int i = 0; i < queryEmbedding.length; i++) {
+                        if (i > 0) sb.append(",");
+                        sb.append(queryEmbedding[i]);
+                    }
+                    sb.append("]");
+                    queryEmbeddingString = sb.toString();
+                } catch (Exception e) {
+                    return ""; // Return empty if embedding fails
+                }
+            }
+            
+            // Extract keywords
+            String keywords = extractKeywords(userQuery);
+            
+            if (queryEmbeddingString != null && keywords != null && !keywords.isEmpty()) {
+                java.util.List<java.util.Map<String, Object>> dbg =
+                        aiEmbeddingService.hybridSearchDebug(queryEmbeddingString, keywords, 10);
+                if (!dbg.isEmpty()) {
+                    StringBuilder debugStr = new StringBuilder();
+                    debugStr.append("===== HYBRID SCORE DEBUG =====\n\n");
+                    for (int i = 0; i < Math.min(10, dbg.size()); i++) {
+                        java.util.Map<String, Object> m = dbg.get(i);
+                        String question = null;
+                        java.util.List<String> kwList = null;
+                        
+                        // Extract metadata
+                        Object metaObj = m.get("metadata");
+                        java.util.Map<String, Object> metadataMap = null;
+                        if (metaObj instanceof java.util.Map) {
+                            metadataMap = (java.util.Map<String, Object>) metaObj;
+                        } else if (metaObj != null) {
+                            try {
+                                com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+                                metadataMap = om.readValue(metaObj.toString(), 
+                                    new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>(){});
+                            } catch (Exception ignore) {}
+                        }
+                        
+                        // Extract question and keywords from metadata
+                        if (metadataMap != null) {
+                            Object q = metadataMap.get("question");
+                            question = q != null ? q.toString() : null;
+                            
+                            Object kwObj = metadataMap.get("keywords");
+                            if (kwObj instanceof java.util.List) {
+                                kwList = ((java.util.List<?>) kwObj).stream()
+                                    .map(Object::toString)
+                                    .map(s -> "\"" + s + "\"")
+                                    .collect(java.util.stream.Collectors.toList());
+                            }
+                        }
+                        
+                        // Format output
+                        if (kwList != null && !kwList.isEmpty()) {
+                            String kwStr = String.join(", ", kwList);
+                            String qStr = question != null ? question : "";
+                            if (qStr.length() > 100) qStr = qStr.substring(0, 100) + "...";
+                            debugStr.append(String.format(
+                                "#%d final=%.4f (semantic=%.4f, keyword=%.4f) | {\"keywords\": [%s], \"question\": \"%s\"}\n",
+                                i + 1,
+                                toDouble(m.get("final_score")),
+                                toDouble(m.get("similarity_score")),
+                                toDouble(m.get("keyword_score")),
+                                kwStr,
+                                qStr
+                            ));
+                        } else {
+                            debugStr.append(String.format(
+                                "#%d final=%.4f (semantic=%.4f, keyword=%.4f) | %s\n",
+                                i + 1,
+                                toDouble(m.get("final_score")),
+                                toDouble(m.get("similarity_score")),
+                                toDouble(m.get("keyword_score")),
+                                question != null ? (question.length() > 80 ? question.substring(0, 80) + "..." : question) : ""
+                            ));
+                        }
+                    }
+                    debugStr.append("==============================\n");
+                    return debugStr.toString();
+                }
+            }
+        } catch (Exception e) {
+            // Return empty string on error
+        }
+        return "";
+    }
+
+    /**
      * Extract keywords từ user query
      * Loại bỏ stop words và giữ lại các từ khóa quan trọng
      * Trả về chuỗi các từ khóa để tìm kiếm trong keywords array

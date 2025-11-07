@@ -4,6 +4,8 @@ import com.example.chatlog.entity.ai.AiEmbedding;
 import com.example.chatlog.repository.AiEmbeddingRepository;
 import com.example.chatlog.service.AiEmbeddingService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,7 @@ import java.util.UUID;
 @Transactional("secondaryTransactionManager")  // CHỈ ĐỊNH RÕ TRANSACTION MANAGER PHỤ
 public class AiEmbeddingServiceImpl implements AiEmbeddingService {
 
+    private static final Logger HYBRID_SCORE_LOGGER = LoggerFactory.getLogger("HYBRID_SCORE_DEBUG");
     private final AiEmbeddingRepository aiEmbeddingRepository;
 
     @Override
@@ -152,31 +155,68 @@ public class AiEmbeddingServiceImpl implements AiEmbeddingService {
             m.put("final_score", r[5]);
             out.add(m);
         }
-        // Print debug to console
-        System.out.println("\n===== HYBRID SCORE DEBUG =====");
+        // Print debug to console and log file
+        HYBRID_SCORE_LOGGER.info("\n===== HYBRID SCORE DEBUG =====");
         for (int i = 0; i < out.size(); i++) {
             java.util.Map<String, Object> m = out.get(i);
             String question = null;
-            try {
-                // metadata may be Map already from entity; from native it's JSON string
-                Object meta = m.get("metadata");
-                if (meta instanceof java.util.Map) {
-                    Object q = ((java.util.Map<?, ?>) meta).get("question");
-                    question = q != null ? q.toString() : null;
-                } else if (meta != null) {
-                    question = meta.toString();
+            java.util.List<String> kwList = null;
+            
+            // Extract metadata
+            Object metaObj = m.get("metadata");
+            java.util.Map<String, Object> metadataMap = null;
+            if (metaObj instanceof java.util.Map) {
+                metadataMap = (java.util.Map<String, Object>) metaObj;
+            } else if (metaObj != null) {
+                try {
+                    com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+                    metadataMap = om.readValue(metaObj.toString(), 
+                        new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>(){});
+                } catch (Exception ignore) {}
+            }
+            
+            // Extract question and keywords from metadata
+            if (metadataMap != null) {
+                Object q = metadataMap.get("question");
+                question = q != null ? q.toString() : null;
+                
+                Object kwObj = metadataMap.get("keywords");
+                if (kwObj instanceof java.util.List) {
+                    kwList = ((java.util.List<?>) kwObj).stream()
+                        .map(Object::toString)
+                        .map(s -> "\"" + s + "\"")
+                        .collect(java.util.stream.Collectors.toList());
                 }
-            } catch (Exception ignore) {}
-            System.out.println(String.format(
-                "#%d final=%.4f (semantic=%.4f, keyword=%.4f) | %s",
-                i + 1,
-                toDouble(m.get("final_score")),
-                toDouble(m.get("similarity_score")),
-                toDouble(m.get("keyword_score")),
-                question != null ? (question.length() > 80 ? question.substring(0, 80) + "..." : question) : ""
-            ));
+            }
+            
+            // Format output
+            String output;
+            if (kwList != null && !kwList.isEmpty()) {
+                String kwStr = String.join(", ", kwList);
+                String qStr = question != null ? question : "";
+                if (qStr.length() > 100) qStr = qStr.substring(0, 100) + "...";
+                output = String.format(
+                    "#%d final=%.4f (semantic=%.4f, keyword=%.4f) | {\"keywords\": [%s], \"question\": \"%s\"}",
+                    i + 1,
+                    toDouble(m.get("final_score")),
+                    toDouble(m.get("similarity_score")),
+                    toDouble(m.get("keyword_score")),
+                    kwStr,
+                    qStr
+                );
+            } else {
+                output = String.format(
+                    "#%d final=%.4f (semantic=%.4f, keyword=%.4f) | %s",
+                    i + 1,
+                    toDouble(m.get("final_score")),
+                    toDouble(m.get("similarity_score")),
+                    toDouble(m.get("keyword_score")),
+                    question != null ? (question.length() > 80 ? question.substring(0, 80) + "..." : question) : ""
+                );
+            }
+            HYBRID_SCORE_LOGGER.info(output);
         }
-        System.out.println("==============================\n");
+        HYBRID_SCORE_LOGGER.info("==============================\n");
         return out;
     }
 

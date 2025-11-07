@@ -1,0 +1,274 @@
+[2025-11-07 11:03:19.809] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 5223ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: tổng log hôm nay là bao nhiêu
+   - timeSavedMs: 5223
+   - openaiEsData: {"took":46,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"total_count":{"value":1107923}}}
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=7866, openai_totalMs=11054, openrouter_searchMs=439, openai_searchMs=58}
+   - openrouterEsData: {"took":35,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"total_count":{"value":1107923}}}
+   - sessionId: 238
+   - totalProcessingTimeMs: 13697
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":46,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"total_count":{"value":1107923}}} | OpenRouter ES: {"took":35,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"total_count":{"value":1107923}}}
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":46,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"total_count":{"value":1107923}}}
+   OpenRouter Data: {"took":35,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"total_count":{"value":1107923}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 7866
+   - openai_totalMs: 11054
+   - openrouter_searchMs: 439
+   - openai_searchMs: 58
+
+▶ TIMESTAMP: 2025-11-07T11:03:19.8098514
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-07 11:07:17.286] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 16170ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: hôm nay QuynhTX truy cập những website nào
+   - timeSavedMs: 16170
+   - openaiEsData: {"took":19,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":5838,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"q2R-XJoBwPewX2N54lBy","_score":null,"_source":{"destination":{"ip":"163.70.158.7"},"rule":{"name":"TO_INTERNET_SDWAN"},"source":{"user":{"name":"QuynhTX"}},"@timestamp":"2025-11-07T11:06:49.000+07:00","event":{"action":"accept"}},"sort":[1762488409000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"8WR-XJoBwPewX2N54k9y","_score":null,"_source":{"destination":{"ip":"10.0.0.2"},"rule":{"name":"AD_SERVICES"},"source":{"user":{"name":"QuynhTX"}},"@timestamp":"2025-11-07T11:06:48.000+07:00","event":{"action":"accept"}},"sort":[1762488408000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EmR-XJoBwPewX2N54lBy","_score":null,"_source":{"destination":{"ip":"10.0.0.2"},"source":{"user":{"name":"Qu... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=18021, openai_totalMs=26054, openrouter_searchMs=206, openai_searchMs=44}
+   - openrouterEsData: {"took":169,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":5838,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"q2R-XJoBwPewX2N54lBy","_score":null,"_source":{"destination":{"ip":"163.70.158.7"},"rule":{"name":"TO_INTERNET_SDWAN"},"source":{"user":{"name":"QuynhTX"}},"@timestamp":"2025-11-07T11:06:49.000+07:00","event":{"action":"accept"}},"sort":[1762488409000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"8WR-XJoBwPewX2N54k9y","_score":null,"_source":{"destination":{"ip":"10.0.0.2"},"rule":{"name":"AD_SERVICES"},"source":{"user":{"name":"QuynhTX"}},"@timestamp":"2025-11-07T11:06:48.000+07:00","event":{"action":"accept"}},"sort":[1762488408000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EmR-XJoBwPewX2N54lBy","_score":null,"_source":{"destination":{"ip":"10.0.0.2"},"source":{"user":{"name":"Q... (truncated)
+   - sessionId: 238
+   - totalProcessingTimeMs: 27905
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":19,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":5838,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"q2R-XJoBwPewX2N54lBy","_score":null,"_source":{"destination":{"ip":"163.70.158.7"},"rule":{"name":"TO_INTERNET_SDWAN"},"source":{"user":{"name":"QuynhTX"}},"@timestamp":"2025-11-07T11:06:49.000+07:00","event":{"action":"accept"}},"sort":[1762488409000]},{"_in... | OpenRouter ES: {"took":169,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":5838,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"q2R-XJoBwPewX2N54lBy","_score":null,"_source":{"destination":{"ip":"163.70.158.7"},"rule":{"name":"TO_INTERNET_SDWAN"},"source":{"user":{"name":"QuynhTX"}},"@timestamp":"2025-11-07T11:06:49.000+07:00","event":{"action":"accept... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":19,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":5838,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"q2R-XJoBwPewX2N54lBy","_score":null,"_source":{"destination":{"ip":"163.70.158.7"},"rule":{"name":"TO_INTERNET_SDWAN"},"source":{"user":{"name":"QuynhTX"}},"@timestamp":"2025-11-07T11:06:49.000+07:00","event":{"action":"accept"}},"sort":[1762488409000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"8WR-XJoBwPewX2N54k9y","_score":null,"_source":{"destination":{"ip":"10.0.0.2"},"rule":{"name":"AD_SERVICES"},"source":{"user":{"name":"QuynhTX"}},"@timestamp":"2025-11-07T11:06:48.000+07:00","event":{"action":"accept"}},"sort":[1762488408000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EmR-XJoBwPewX2N54lBy","_score":null,"_source":{"destination":{"ip":"10.0.0.2"},"source":{"user":{"name":"QuynhTX"}},"@timestamp":"2025-11-07T11:06:48.000+07:00","event":{"action":"deny"}},"sort":[1762488408000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"I2R-XJoBwPewX2N54lBy","_score":null,"_source":{"destination":{"ip":"13.219.194.17"},"rule":{"name":"TO_INTERNET_SDWAN"},"source":{"user":{"name":"QuynhTX"}},"@timestamp":"2025-11-07T11:06:48.000+07:00","event":{"action":"ip-conn"}},"sort":[1762488408000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-... (truncated)
+   OpenRouter Data: {"took":169,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":5838,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"q2R-XJoBwPewX2N54lBy","_score":null,"_source":{"destination":{"ip":"163.70.158.7"},"rule":{"name":"TO_INTERNET_SDWAN"},"source":{"user":{"name":"QuynhTX"}},"@timestamp":"2025-11-07T11:06:49.000+07:00","event":{"action":"accept"}},"sort":[1762488409000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"8WR-XJoBwPewX2N54k9y","_score":null,"_source":{"destination":{"ip":"10.0.0.2"},"rule":{"name":"AD_SERVICES"},"source":{"user":{"name":"QuynhTX"}},"@timestamp":"2025-11-07T11:06:48.000+07:00","event":{"action":"accept"}},"sort":[1762488408000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"EmR-XJoBwPewX2N54lBy","_score":null,"_source":{"destination":{"ip":"10.0.0.2"},"source":{"user":{"name":"QuynhTX"}},"@timestamp":"2025-11-07T11:06:48.000+07:00","event":{"action":"deny"}},"sort":[1762488408000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"I2R-XJoBwPewX2N54lBy","_score":null,"_source":{"destination":{"ip":"13.219.194.17"},"rule":{"name":"TO_INTERNET_SDWAN"},"source":{"user":{"name":"QuynhTX"}},"@timestamp":"2025-11-07T11:06:48.000+07:00","event":{"action":"ip-conn"}},"sort":[1762488408000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 18021
+   - openai_totalMs: 26054
+   - openrouter_searchMs: 206
+   - openai_searchMs: 44
+
+▶ TIMESTAMP: 2025-11-07T11:07:17.286717
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-07 11:10:50.166] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 7933ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: user QuynhTX có những ip nào
+   - timeSavedMs: 7933
+   - openaiEsData: {"took":9,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":15859},{"key":"10.4.100.71","doc_count":13260}]}}}
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=11100, openai_totalMs=9878, openrouter_searchMs=220, openai_searchMs=20}
+   - openrouterEsData: {"took":145,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":15859},{"key":"10.4.100.71","doc_count":13260}]}}}
+   - sessionId: 238
+   - totalProcessingTimeMs: 13045
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":9,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":15859},{"key":"10.4.100.71","doc_count":13260}]}}} | OpenRouter ES: {"took":145,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":15859},{"key":"10.4.100.71","doc_count":13260}]}}}
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":9,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":15859},{"key":"10.4.100.71","doc_count":13260}]}}}
+   OpenRouter Data: {"took":145,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":15859},{"key":"10.4.100.71","doc_count":13260}]}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 11100
+   - openai_totalMs: 9878
+   - openrouter_searchMs: 220
+   - openai_searchMs: 20
+
+▶ TIMESTAMP: 2025-11-07T11:10:50.1667139
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-07 11:11:36.973] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 9245ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: ip 10.4.100.110 hôm nay có truy cập những website nào
+   - timeSavedMs: 9245
+   - openaiEsData: {"took":18,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":8053,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"pWSDXJoBwPewX2N5CM3W","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:17.000+07:00"},"sort":[1762488677000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"sGSDXJoBwPewX2N5CM3W","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:17.000+07:00"},"sort":[1762488677000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"hWSDXJoBwPewX2N5CMzV","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:15.000+07:00"},"sort":[1762488675000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"oGSDXJoBwPewX2N5CMzV","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@time... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=10911, openai_totalMs=12454, openrouter_searchMs=41, openai_searchMs=30}
+   - openrouterEsData: {"took":28,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":8053,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"pWSDXJoBwPewX2N5CM3W","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:17.000+07:00"},"sort":[1762488677000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"sGSDXJoBwPewX2N5CM3W","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:17.000+07:00"},"sort":[1762488677000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"hWSDXJoBwPewX2N5CMzV","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:15.000+07:00"},"sort":[1762488675000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"oGSDXJoBwPewX2N5CMzV","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@time... (truncated)
+   - sessionId: 238
+   - totalProcessingTimeMs: 14120
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":18,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":8053,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"pWSDXJoBwPewX2N5CM3W","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:17.000+07:00"},"sort":[1762488677000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"sGSDXJoBwPewX2N5CM3W","_score":nul... | OpenRouter ES: {"took":28,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":8053,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"pWSDXJoBwPewX2N5CM3W","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:17.000+07:00"},"sort":[1762488677000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"sG... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":18,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":8053,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"pWSDXJoBwPewX2N5CM3W","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:17.000+07:00"},"sort":[1762488677000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"sGSDXJoBwPewX2N5CM3W","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:17.000+07:00"},"sort":[1762488677000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"hWSDXJoBwPewX2N5CMzV","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:15.000+07:00"},"sort":[1762488675000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"oGSDXJoBwPewX2N5CMzV","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:15.000+07:00"},"sort":[1762488675000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"5mSDXJoBwPewX2N5CMvV","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:13.000+07:00"},"sort":[1762488673000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"emSDXJoBwPewX2N5CMvV","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"url":{"domain":"mobile.events.data.microsoft.com"},"@ti... (truncated)
+   OpenRouter Data: {"took":28,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":8053,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"pWSDXJoBwPewX2N5CM3W","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:17.000+07:00"},"sort":[1762488677000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"sGSDXJoBwPewX2N5CM3W","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:17.000+07:00"},"sort":[1762488677000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"hWSDXJoBwPewX2N5CMzV","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:15.000+07:00"},"sort":[1762488675000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"oGSDXJoBwPewX2N5CMzV","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:15.000+07:00"},"sort":[1762488675000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"5mSDXJoBwPewX2N5CMvV","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"@timestamp":"2025-11-07T11:11:13.000+07:00"},"sort":[1762488673000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"emSDXJoBwPewX2N5CMvV","_score":null,"_source":{"source":{"ip":"10.4.100.110"},"url":{"domain":"mobile.events.data.microsoft.com"},"@ti... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 10911
+   - openai_totalMs: 12454
+   - openrouter_searchMs: 41
+   - openai_searchMs: 30
+
+▶ TIMESTAMP: 2025-11-07T11:11:36.9734581
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-07 11:13:48.866] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 12134ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: còn những ip nào truy cập đến website chat.zalo.me nữa
+   - timeSavedMs: 12134
+   - openaiEsData: {"took":66,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":61,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":11},{"key":"10.4.110.165","doc_count":11},{"key":"10.4.110.141","doc_count":7},{"key":"10.4.100.56","doc_count":6},{"key":"10.4.100.57","doc_count":5},{"key":"10.4.100.84","doc_count":5},{"key":"10.4.110.100","doc_count":5},{"key":"10.4.100.61","doc_count":4},{"key":"10.4.100.83","doc_count":4},{"key":"10.4.100.68","doc_count":3}]}}}
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=14407, openai_totalMs=13542, openrouter_searchMs=145, openai_searchMs=113}
+   - openrouterEsData: {"took":130,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":61,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":11},{"key":"10.4.110.165","doc_count":11},{"key":"10.4.110.141","doc_count":7},{"key":"10.4.100.56","doc_count":6},{"key":"10.4.100.57","doc_count":5},{"key":"10.4.100.84","doc_count":5},{"key":"10.4.110.100","doc_count":5},{"key":"10.4.100.61","doc_count":4},{"key":"10.4.100.83","doc_count":4},{"key":"10.4.100.68","doc_count":3}]}}}
+   - sessionId: 238
+   - totalProcessingTimeMs: 15815
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":66,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":61,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":11},{"key":"10.4.110.165","doc_count":11},{"key":"10.4.110.141","doc_count":7},{"key":"10.4.100.56","doc_count":6},{"key":"10.4.100.57","doc_count":5},{"key":"10.4.100.84","doc_count":5},{"key":"10.4.110.1... | OpenRouter ES: {"took":130,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":61,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":11},{"key":"10.4.110.165","doc_count":11},{"key":"10.4.110.141","doc_count":7},{"key":"10.4.100.56","doc_count":6},{"key":"10.4.100.57","doc_count":5},{"key":"10.4.100.84",... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":66,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":61,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":11},{"key":"10.4.110.165","doc_count":11},{"key":"10.4.110.141","doc_count":7},{"key":"10.4.100.56","doc_count":6},{"key":"10.4.100.57","doc_count":5},{"key":"10.4.100.84","doc_count":5},{"key":"10.4.110.100","doc_count":5},{"key":"10.4.100.61","doc_count":4},{"key":"10.4.100.83","doc_count":4},{"key":"10.4.100.68","doc_count":3}]}}}
+   OpenRouter Data: {"took":130,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":61,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"unique_ips":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"10.4.100.110","doc_count":11},{"key":"10.4.110.165","doc_count":11},{"key":"10.4.110.141","doc_count":7},{"key":"10.4.100.56","doc_count":6},{"key":"10.4.100.57","doc_count":5},{"key":"10.4.100.84","doc_count":5},{"key":"10.4.110.100","doc_count":5},{"key":"10.4.100.61","doc_count":4},{"key":"10.4.100.83","doc_count":4},{"key":"10.4.100.68","doc_count":3}]}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 14407
+   - openai_totalMs: 13542
+   - openrouter_searchMs: 145
+   - openai_searchMs: 113
+
+▶ TIMESTAMP: 2025-11-07T11:13:48.8665878
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-07 11:17:16.010] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 6318ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: website ssl.gstatic.com là của tổ chức nào
+   - timeSavedMs: 6318
+   - openaiEsData: {"took":790,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"organization":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"GOOGLE","doc_count":35460}]}}}
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=10091, openai_totalMs=10937, openrouter_searchMs=1037, openai_searchMs=867}
+   - openrouterEsData: {"took":905,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"organization":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"GOOGLE","doc_count":35460}]}}}
+   - sessionId: 238
+   - totalProcessingTimeMs: 14710
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":790,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"organization":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"GOOGLE","doc_count":35460}]}}} | OpenRouter ES: {"took":905,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"organization":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"GOOGLE","doc_count":35460}]}}}
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":790,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"organization":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"GOOGLE","doc_count":35460}]}}}
+   OpenRouter Data: {"took":905,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[]},"aggregations":{"organization":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"GOOGLE","doc_count":35460}]}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 10091
+   - openai_totalMs: 10937
+   - openrouter_searchMs: 1037
+   - openai_searchMs: 867
+
+▶ TIMESTAMP: 2025-11-07T11:17:16.010849
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-07 11:24:54.588] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 15028ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: ip 10.4.110.100 truy cập những trang website nào
+   - timeSavedMs: 15028
+   - openaiEsData: {"took":17,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"M2aPXJoBwPewX2N5EA-E","_score":null,"_source":{"url":{"domain":"optimizationguide-pa.googleapis.com"},"@timestamp":"2025-11-07T11:24:30.000+07:00"},"sort":[1762489470000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"PWaPXJoBwPewX2N5EA-E","_score":null,"_source":{"url":{"domain":"www.google.com"},"@timestamp":"2025-11-07T11:24:30.000+07:00"},"sort":[1762489470000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"WWaPXJoBwPewX2N5EA-E","_score":null,"_source":{"url":{"domain":"ssl.gstatic.com"},"@timestamp":"2025-11-07T11:24:30.000+07:00"},"sort":[1762489470000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"LWaPXJoBwPewX2N5EA6E","_score":null,"_source":{"@ti... (truncated)
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=23367, openai_totalMs=18432, openrouter_searchMs=199, openai_searchMs=30}
+   - openrouterEsData: {"took":58,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"M2aPXJoBwPewX2N5EA-E","_score":null,"_source":{"url":{"domain":"optimizationguide-pa.googleapis.com"},"@timestamp":"2025-11-07T11:24:30.000+07:00"},"sort":[1762489470000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"PWaPXJoBwPewX2N5EA-E","_score":null,"_source":{"url":{"domain":"www.google.com"},"@timestamp":"2025-11-07T11:24:30.000+07:00"},"sort":[1762489470000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"WWaPXJoBwPewX2N5EA-E","_score":null,"_source":{"url":{"domain":"ssl.gstatic.com"},"@timestamp":"2025-11-07T11:24:30.000+07:00"},"sort":[1762489470000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"LWaPXJoBwPewX2N5EA6E","_score":null,"_source":{"@ti... (truncated)
+   - sessionId: 238
+   - totalProcessingTimeMs: 26771
+   - hybridScoreDebug: ===== HYBRID SCORE DEBUG =====
+
+#1 final=0.8725 (semantic=0.8542, keyword=0.9000) | {"keywords": ["user", "website access", "unique websites", "web traffic", "user behavior", "url.domain", "cardinality"], "question": "User nào truy cập nhiều websites khác nhau nhất?"}
+#2 final=0.8720 (semantic=0.8533, keyword=0.9000) | {"keywords": ["thống kê", "tổng số", "log", "địa chỉ ip", "192.168.1.100", "tuần này", "count", "now/w", "value_count", "source.ip", "this week", "IP address", "địa chỉ", "address", "statistics", "stat", "metrics", "số liệu", "phân tích"], "question": "Thống kê tổng số log từ địa chỉ IP 192.168.1.100 trong tuần này"}
+#3 final=0.8720 (semantic=0.8533, keyword=0.9000) | {"keywords": ["user", "domain access", "website traffic", "most accessed websites", "web behavior", "url.domain", "terms"], "question": "User truy cập domain/tổ chức nào nhiều nhất (all traffic)?"}
+#4 final=0.8717 (semantic=0.8528, keyword=0.9000) | {"keywords": ["user", "người dùng", "truy cập web", "web a... (truncated)
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":17,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"M2aPXJoBwPewX2N5EA-E","_score":null,"_source":{"url":{"domain":"optimizationguide-pa.googleapis.com"},"@timestamp":"2025-11-07T11:24:30.000+07:00"},"sort":[1762489470000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"PWaPXJoB... | OpenRouter ES: {"took":58,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"M2aPXJoBwPewX2N5EA-E","_score":null,"_source":{"url":{"domain":"optimizationguide-pa.googleapis.com"},"@timestamp":"2025-11-07T11:24:30.000+07:00"},"sort":[1762489470000]},{"_index":".ds-logs-fortinet_fortigate.log-default-20... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":17,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"M2aPXJoBwPewX2N5EA-E","_score":null,"_source":{"url":{"domain":"optimizationguide-pa.googleapis.com"},"@timestamp":"2025-11-07T11:24:30.000+07:00"},"sort":[1762489470000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"PWaPXJoBwPewX2N5EA-E","_score":null,"_source":{"url":{"domain":"www.google.com"},"@timestamp":"2025-11-07T11:24:30.000+07:00"},"sort":[1762489470000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"WWaPXJoBwPewX2N5EA-E","_score":null,"_source":{"url":{"domain":"ssl.gstatic.com"},"@timestamp":"2025-11-07T11:24:30.000+07:00"},"sort":[1762489470000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"LWaPXJoBwPewX2N5EA6E","_score":null,"_source":{"@timestamp":"2025-11-07T11:24:27.000+07:00"},"sort":[1762489467000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"U2aPXJoBwPewX2N5EA6E","_score":null,"_source":{"@timestamp":"2025-11-07T11:24:27.000+07:00"},"sort":[1762489467000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"mGaOXJoBwPewX2N56gpC","_score":null,"_source":{"@timestamp":"2025-11-07T11:24:19.000+07:00"},"sort":[1762489459000]},{"_index":".ds-logs-fortinet_fortigate.log-def... (truncated)
+   OpenRouter Data: {"took":58,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":10000,"relation":"gte"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"M2aPXJoBwPewX2N5EA-E","_score":null,"_source":{"url":{"domain":"optimizationguide-pa.googleapis.com"},"@timestamp":"2025-11-07T11:24:30.000+07:00"},"sort":[1762489470000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"PWaPXJoBwPewX2N5EA-E","_score":null,"_source":{"url":{"domain":"www.google.com"},"@timestamp":"2025-11-07T11:24:30.000+07:00"},"sort":[1762489470000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"WWaPXJoBwPewX2N5EA-E","_score":null,"_source":{"url":{"domain":"ssl.gstatic.com"},"@timestamp":"2025-11-07T11:24:30.000+07:00"},"sort":[1762489470000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"LWaPXJoBwPewX2N5EA6E","_score":null,"_source":{"@timestamp":"2025-11-07T11:24:27.000+07:00"},"sort":[1762489467000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"U2aPXJoBwPewX2N5EA6E","_score":null,"_source":{"@timestamp":"2025-11-07T11:24:27.000+07:00"},"sort":[1762489467000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"mGaOXJoBwPewX2N56gpC","_score":null,"_source":{"@timestamp":"2025-11-07T11:24:19.000+07:00"},"sort":[1762489459000]},{"_index":".ds-logs-fortinet_fortigate.log-def... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 23367
+   - openai_totalMs: 18432
+   - openrouter_searchMs: 199
+   - openai_searchMs: 30
+
+▶ HYBRID SCORE DEBUG:
+===== HYBRID SCORE DEBUG =====
+   
+   #1 final=0.8725 (semantic=0.8542, keyword=0.9000) | {"keywords": ["user", "website access", "unique websites", "web traffic", "user behavior", "url.domain", "cardinality"], "question": "User nào truy cập nhiều websites khác nhau nhất?"}
+   #2 final=0.8720 (semantic=0.8533, keyword=0.9000) | {"keywords": ["thống kê", "tổng số", "log", "địa chỉ ip", "192.168.1.100", "tuần này", "count", "now/w", "value_count", "source.ip", "this week", "IP address", "địa chỉ", "address", "statistics", "stat", "metrics", "số liệu", "phân tích"], "question": "Thống kê tổng số log từ địa chỉ IP 192.168.1.100 trong tuần này"}
+   #3 final=0.8720 (semantic=0.8533, keyword=0.9000) | {"keywords": ["user", "domain access", "website traffic", "most accessed websites", "web behavior", "url.domain", "terms"], "question": "User truy cập domain/tổ chức nào nhiều nhất (all traffic)?"}
+   #4 final=0.8717 (semantic=0.8528, keyword=0.9000) | {"keywords": ["user", "người dùng", "truy cập web", "web access", "nhiều nhất", "top", "đầy đủ thông tin", "source.nat.ip", "public IP", "network.direction", "outbound", "most", "highest", "cao nhất", "maximum", "tối đa", "xếp hạng", "ranking", "network bytes", "packet size", "kích thước gói tin", "user activity", "hoạt động người dùng", "account", "tài khoản", "aggregation", "tổng hợp", "statistics", "thống kê", "grouping", "nhóm"], "question": "User truy cập web nhiều nhất với đầy đủ thông tin"}
+   #5 final=0.8699 (semantic=0.8498, keyword=0.9000) | {"keywords": ["thống kê dns", "dns statistics", "top dns servers", "máy chủ dns hàng đầu", "aggregations", "tổng hợp", "terms", "cardinality", "destination.ip", "source.ip", "query frequency", "tần suất truy vấn", "10d qua", "địa chỉ IP", "IP address", "địa chỉ", "address", "top", "most", "highest", "cao nhất", "maximum", "tối đa", "xếp hạng", "ranking", "domain name system", "tên miền", "name resolution", "phân giải tên", "statistics", "stat", "metrics", "số liệu", "phân tích", "aggregation", "thống kê", "grouping", "nhóm"], "question": "Thống kê 50 máy chủ DNS (destination.ip) được truy vấn nhiều nhất trong 10 ngày qua?"}
+   #6 final=0.8695 (semantic=0.8492, keyword=0.9000) | {"keywords": ["user", "người dùng", "truy cập web", "web access", "public IP", "IP công cộng", "source.nat.ip", "7 ngày qua", "network.protocol", "http", "https", "destination.as.organization.name", "địa chỉ IP", "IP address", "địa chỉ", "address", "7d", "tuần", "week", "7 days", "tuần qua", "last week", "network bytes", "packet size", "kích thước gói tin", "user activity", "hoạt động người dùng", "account", "tài khoản", "aggregation", "tổng hợp", "statistics", "thống kê", "grouping", "nhóm"], "question": "User truy cập web ra ngoài qua public IP trong 7 ngày qua"}
+   #7 final=0.8667 (semantic=0.8445, keyword=0.9000) | {"keywords": ["IP nguồn", "source ip", "ICMP", "bất thường", "anomaly", "packets", "gói tin", "nhiều", "> 10000", "10000", "bucket_selector", "1 giờ qua", "nguồn", "source", "địa chỉ IP nguồn", "source IP address", "src IP", "địa chỉ IP", "IP address", "địa chỉ", "address", "1h", "hour", "giờ qua", "last hour", "aggregation", "tổng hợp", "statistics", "thống kê", "grouping", "nhóm"], "question": "Trong 1 giờ qua, IP nguồn nào gửi nhiều gói ICMP bất thường (> 10.000 packets)?"}
+   #8 final=0.8658 (semantic=0.8430, keyword=0.9000) | {"keywords": ["user", "người dùng", "truy cập", "access", "nhiều domains", "unique domains", "nhiều nhất", "top", "cardinality", "user activity", "hoạt động người dùng", "account", "tài khoản", "aggregation", "tổng hợp", "statistics", "thống kê", "grouping", "nhóm"], "question": "User nào truy cập nhiều domains khác nhau nhất?"}
+   #9 final=0.8647 (semantic=0.8411, keyword=0.9000) | {"keywords": ["top 10", "quốc gia", "country", "truy cập nhiều nhất", "top destination", "destination.geo.country_name", "exists", "terms aggregation", "24h", "một ngày", "1 day", "24 hours", "ngày qua", "last day", "top", "most", "highest", "cao nhất", "maximum", "tối đa", "xếp hạng", "ranking", "nhiều nhất", "hàng đầu", "leading", "địa lý", "geography", "location", "vị trí", "aggregation", "tổng hợp", "statistics", "thống kê", "grouping", "nhóm"], "question": "Top 10 quốc gia được truy cập nhiều nhất trong 24 giờ qua"}
+   #10 final=0.8640 (semantic=0.8401, keyword=0.9000) | {"keywords": ["impossible travel", "di chuyển bất khả thi", "concurrent logins", "đăng nhập đồng thời", "geographic impossibility", "bất khả thi địa lý", "account compromise", "tài khoản bị đánh cắp", "đồng thời", "concurrent", "2 địa điểm", "two locations", "bất khả thi", "impossible", "đăng nhập", "login", "địa điểm khác nhau", "different locations", "nguyenvana", "địa chỉ IP", "IP address", "địa chỉ", "address", "authentication", "xác thực", "sign in", "truy cập", "access", "địa lý", "geography", "location", "vị trí", "country", "quốc gia", "timeline", "theo thời gian", "time series", "xu hướng", "trend", "aggregation", "tổng hợp", "statistics", "thống kê", "grouping", "nhóm"], "question": "Có IP nào đăng nhập đồng thời từ 2 địa điểm khác nhau (di chuyển bất khả thi)?"}
+   ==============================
+   
+
+▶ TIMESTAMP: 2025-11-07T11:24:54.588038
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-07 11:30:44.440] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 8752ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: website dc.services.visualstudio.com là của tổ chức nào
+   - timeSavedMs: 8752
+   - openaiEsData: {"took":229,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":497,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"organization":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":497}]}}}
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=11398, openai_totalMs=10830, openrouter_searchMs=264, openai_searchMs=390}
+   - openrouterEsData: {"took":179,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":497,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"organization":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":497}]}}}
+   - sessionId: 238
+   - totalProcessingTimeMs: 13476
+   - hybridScoreDebug: ===== HYBRID SCORE DEBUG =====
+
+#1 final=0.5451 (semantic=0.8311, keyword=0.1161) | {"keywords": ["top", "tổ chức", "organization", "truy cập nhiều nhất", "destination.as.organization.name", "network.bytes", "sum", "order", "most", "highest", "cao nhất", "maximum", "tối đa", "xếp hạng", "ranking", "nhiều nhất", "hàng đầu", "leading", "network bytes", "packet size", "kích thước gói tin", "user activity", "hoạt động người dùng", "account", "tài khoản", "aggregation", "tổng hợp", "statistics", "thống kê", "grouping", "nhóm"], "question": "Top tổ chức được truy cập nhiều nhất"}
+#2 final=0.5403 (semantic=0.8210, keyword=0.1192) | {"keywords": ["web", "thống kê", "statistics", "top tổ chức", "top organization", "nhà cung cấp dịch vụ", "service provider", "nhân viên truy cập", "employee access", "truy cập nhiều nhất", "most accessed", "destination.as.organization.name", "tổ chức đích", "internet usage", "web traffic", "outbound traffic", "network.direction", "outbound", "external", "fortinet.... (truncated)
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":229,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":497,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"organization":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":497}]}}} | OpenRouter ES: {"took":179,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":497,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"organization":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":497}]}}}
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":229,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":497,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"organization":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":497}]}}}
+   OpenRouter Data: {"took":179,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":0,"failed":0},"hits":{"total":{"value":497,"relation":"eq"},"max_score":null,"hits":[]},"aggregations":{"organization":{"doc_count_error_upper_bound":0,"sum_other_doc_count":0,"buckets":[{"key":"MICROSOFT-CORP-MSN-AS-BLOCK","doc_count":497}]}}}
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 11398
+   - openai_totalMs: 10830
+   - openrouter_searchMs: 264
+   - openai_searchMs: 390
+
+▶ HYBRID SCORE DEBUG:
+===== HYBRID SCORE DEBUG =====
+   
+   #1 final=0.5451 (semantic=0.8311, keyword=0.1161) | {"keywords": ["top", "tổ chức", "organization", "truy cập nhiều nhất", "destination.as.organization.name", "network.bytes", "sum", "order", "most", "highest", "cao nhất", "maximum", "tối đa", "xếp hạng", "ranking", "nhiều nhất", "hàng đầu", "leading", "network bytes", "packet size", "kích thước gói tin", "user activity", "hoạt động người dùng", "account", "tài khoản", "aggregation", "tổng hợp", "statistics", "thống kê", "grouping", "nhóm"], "question": "Top tổ chức được truy cập nhiều nhất"}
+   #2 final=0.5403 (semantic=0.8210, keyword=0.1192) | {"keywords": ["web", "thống kê", "statistics", "top tổ chức", "top organization", "nhà cung cấp dịch vụ", "service provider", "nhân viên truy cập", "employee access", "truy cập nhiều nhất", "most accessed", "destination.as.organization.name", "tổ chức đích", "internet usage", "web traffic", "outbound traffic", "network.direction", "outbound", "external", "fortinet.firewall.transip", "top", "most", "highest", "cao nhất", "maximum", "tối đa", "xếp hạng", "ranking", "nhiều nhất", "hàng đầu", "leading", "stat", "metrics", "số liệu", "phân tích", "địa lý", "geography", "location", "vị trí", "country", "quốc gia", "network bytes", "packet size", "kích thước gói tin", "user activity", "hoạt động người dùng", "account", "tài khoản", "aggregation", "tổng hợp", "grouping", "nhóm"], "question": "Thống kê top các tổ chức/nhà cung cấp dịch vụ được nhân viên truy cập nhiều nhất"}
+   #3 final=0.5381 (semantic=0.8045, keyword=0.1385) | {"keywords": ["nhân viên", "user", "truy cập website", "web access", "nước ngoài", "foreign website", "international", "http", "https", "destination.geo.country_name", "must_not", "Vietnam", "foreign", "quốc tế", "overseas", "external", "địa lý", "geography", "location", "vị trí", "country", "quốc gia", "user activity", "hoạt động người dùng", "account", "tài khoản"], "question": "Nhân viên truy cập website nước ngoài nào trong thời gian gần đây?"}
+   #4 final=0.5374 (semantic=0.8068, keyword=0.1333) | {"keywords": ["dns queries", "truy vấn dns", "6h qua", "máy chủ dns", "dns server", "tổ chức", "organization", "GOOGLE", "destination.as.organization.name", "term", "exact match", "domain name system", "tên miền", "name resolution", "phân giải tên"], "question": "Tìm tất cả truy vấn DNS trong 6 giờ qua được gửi đến máy chủ DNS thuộc tổ chức 'GOOGLE'."}
+   #5 final=0.5315 (semantic=0.8039, keyword=0.1227) | {"keywords": ["phân tích", "analysis", "URL", "tổ chức", "organization", "HTTP", "HTTPS", "network.protocol", "destination.as.organization.name", "network bytes", "packet size", "kích thước gói tin", "user activity", "hoạt động người dùng", "account", "tài khoản", "aggregation", "tổng hợp", "statistics", "thống kê", "grouping", "nhóm"], "question": "Phân tích theo cả URL và tổ chức (cho HTTP/HTTPS)"}
+   #6 final=0.5291 (semantic=0.8018, keyword=0.1200) | {"keywords": ["traffic", "lưu lượng", "inbound", "đi vào", "public IP", "IP công cộng", "destination.ip", "observer.ingress.interface.name", "địa chỉ IP", "IP address", "địa chỉ", "address", "vào trong", "ingress", "nhập", "incoming", "địa lý", "geography", "location", "vị trí", "country", "quốc gia", "network bytes", "packet size", "kích thước gói tin"], "question": "Traffic đi vào (inbound) đến public IP của tổ chức"}
+   #7 final=0.5286 (semantic=0.8048, keyword=0.1143) | {"keywords": ["user", "người dùng", "kết nối", "tổ chức", "organization", "nhiều nhất", "top", "7 ngày qua", "destination.as.organization.name", "7d", "tuần", "week", "7 days", "tuần qua", "last week", "most", "highest", "cao nhất", "maximum", "tối đa", "xếp hạng", "ranking", "network bytes", "packet size", "kích thước gói tin", "user activity", "hoạt động người dùng", "account", "tài khoản", "aggregation", "tổng hợp", "statistics", "thống kê", "grouping", "nhóm"], "question": "User kết nối tới tổ chức nào nhiều nhất trong 7 ngày qua"}
+   #8 final=0.5285 (semantic=0.8013, keyword=0.1192) | {"keywords": ["sự kiện nguy hiểm", "dangerous events", "tổ chức", "organization", "destination.as.organization.name", "fortinet.firewall.action", "deny", "attack", "virus", "botnet", "action", "hành động", "firewall action", "địa lý", "geography", "location", "vị trí", "country", "quốc gia", "network bytes", "packet size", "kích thước gói tin", "user activity", "hoạt động người dùng", "account", "tài khoản"], "question": "Xem các sự kiện nguy hiểm của từng tổ chức"}
+   #9 final=0.5283 (semantic=0.7971, keyword=0.1250) | {"keywords": ["chi tiết", "kết nối", "connection", "tổ chức", "organization", "destination.as.organization.name", "destination.as.number", "địa lý", "geography", "location", "vị trí", "country", "quốc gia", "network bytes", "packet size", "kích thước gói tin", "user activity", "hoạt động người dùng", "account", "tài khoản"], "question": "Chi tiết kết nối tới từng tổ chức"}
+   #10 final=0.5273 (semantic=0.8006, keyword=0.1172) | {"keywords": ["ma trận rủi ro", "risk matrix", "tổ chức", "organization", "người dùng", "user", "destination.as.organization.name", "source.user.name", "risk", "nguy hiểm", "danger", "threat", "mối đe dọa", "위험", "rủi ro cao", "high risk", "action", "hành động", "firewall action", "user activity", "hoạt động người dùng", "account", "tài khoản", "aggregation", "tổng hợp", "statistics", "thống kê", "grouping", "nhóm"], "question": "Ma trận rủi ro theo tổ chức và người dùng"}
+   ==============================
+   
+
+▶ TIMESTAMP: 2025-11-07T11:30:44.440358
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+

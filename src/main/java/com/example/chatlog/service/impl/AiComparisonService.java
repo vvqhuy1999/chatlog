@@ -265,6 +265,16 @@ public class AiComparisonService {
                 }
             } catch (Exception ignore) {}
 
+            // Thêm HYBRID SCORE DEBUG vào log
+            try {
+                String hybridScoreDebug = vectorSearchService.getHybridScoreDebugString(chatRequest.message());
+                if (hybridScoreDebug != null && !hybridScoreDebug.isEmpty()) {
+                    successContext.put("hybridScoreDebug", hybridScoreDebug);
+                }
+            } catch (Exception e) {
+                // Ignore nếu không lấy được debug info
+            }
+
             LogUtils.logDetailedSuccess(
                 "AiComparisonService", 
                 String.format("Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm %dms)", calculateTimeSaved(openaiResult, openrouterResult, totalProcessingTime)), 

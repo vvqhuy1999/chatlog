@@ -33,24 +33,57 @@ public class SecondaryDataSourceConfig {
     }
 
     @Bean
+    @ConfigurationProperties("spring.secondary-datasource.hikari") // ĐỌC TỪ YAML
+    public HikariConfig secondaryHikariConfig() {
+        return new HikariConfig();
+    }
+
+    @Bean
     public DataSource secondaryDataSource() {
         DataSourceProperties properties = secondaryDataSourceProperties();
-        HikariConfig config = new HikariConfig();
+
+        // Validate credentials
+        if (properties.getUsername() == null || properties.getUsername().isEmpty() ||
+            properties.getUsername().startsWith("${")) {
+            throw new IllegalStateException(
+                "SECONDARY_DATASOURCE_USERNAME environment variable is not set. " +
+                    "Please set it to your Supabase username (format: postgres.[project-ref-id]). " +
+                    "Example: postgres.wdxshprlefoixyyuxcwl"
+            );
+        }
+        if (properties.getPassword() == null || properties.getPassword().isEmpty() ||
+            properties.getPassword().startsWith("${")) {
+            throw new IllegalStateException(
+                "SECONDARY_DATASOURCE_PASSWORD environment variable is not set. " +
+                    "Please set it to your Supabase password"
+            );
+        }
+
+        // Validate Supabase username format
+        String username = properties.getUsername();
+        if (!username.startsWith("postgres.")) {
+            throw new IllegalStateException(
+                String.format(
+                    "Invalid Supabase username format: '%s'. " +
+                        "Supabase usernames must be in the format: postgres.[project-ref-id]. " +
+                        "Example: postgres.wdxshprlefoixyyuxcwl. " +
+                        "You can find your project reference ID in your Supabase project settings.",
+                    username
+                )
+            );
+        }
+
+        // SỬ DỤNG CONFIG TỪ YAML
+        HikariConfig config = secondaryHikariConfig();
         config.setJdbcUrl(properties.getUrl());
         config.setUsername(properties.getUsername());
         config.setPassword(properties.getPassword());
-        config.setMaximumPoolSize(10);
-        config.setMinimumIdle(3);
-        config.setConnectionTimeout(30000);
-        config.setIdleTimeout(600000);
-        config.setMaxLifetime(1800000);
-        config.setAutoCommit(true);
-        
+
         // Fix prepared statement "already exists" error
         config.addDataSourceProperty("cachePrepStmts", "false");
         config.addDataSourceProperty("prepStmtCacheSize", "0");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "0");
-        
+
         return new HikariDataSource(config);
     }
 
@@ -58,18 +91,18 @@ public class SecondaryDataSourceConfig {
     public LocalContainerEntityManagerFactoryBean secondaryEntityManagerFactory() {
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(secondaryDataSource());
-        
+
         // Chỉ scan package entity.ai cho AiEmbedding
         em.setPackagesToScan("com.example.chatlog.entity.ai");
-        
+
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
-        vendorAdapter.setShowSql(true);  // Enable to see SQL queries
-        vendorAdapter.setGenerateDdl(true);  // Enable DDL for Supabase (has pgvector)
+        vendorAdapter.setShowSql(true);
+        vendorAdapter.setGenerateDdl(true);
         em.setJpaVendorAdapter(vendorAdapter);
 
         java.util.Map<String, Object> properties = new java.util.HashMap<>();
         properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
-        properties.put("hibernate.ddl-auto", "update");  // Enable DDL update for Secondary DB (Supabase with pgvector)
+        properties.put("hibernate.ddl-auto", "update");
         properties.put("hibernate.format_sql", "true");
         properties.put("hibernate.jdbc.batch_size", "20");
         properties.put("hibernate.jdbc.fetch_size", "50");

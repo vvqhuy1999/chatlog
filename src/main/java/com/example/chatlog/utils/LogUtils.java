@@ -274,6 +274,15 @@ public class LogUtils {
             }
         }
         
+        // Phần HYBRID SCORE DEBUG nếu có
+        if (context != null) {
+            String hybridScoreDebug = (String) context.get("hybridScoreDebug");
+            if (hybridScoreDebug != null && !hybridScoreDebug.isEmpty()) {
+                logEntry.append("\n\n▶ HYBRID SCORE DEBUG:");
+                logEntry.append("\n").append(hybridScoreDebug.replace("\n", "\n   "));
+            }
+        }
+        
         // Thời gian xảy ra
         logEntry.append("\n\n▶ TIMESTAMP: ").append(now.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
         

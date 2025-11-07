@@ -36,17 +36,22 @@ public class PrimaryDataSourceConfig {
 
     @Bean
     @Primary
+    @ConfigurationProperties("spring.datasource.hikari") // ĐỌC TỪ YAML
+    public HikariConfig primaryHikariConfig() {
+        return new HikariConfig();
+    }
+
+    @Bean
+    @Primary
     public DataSource primaryDataSource() {
         DataSourceProperties properties = primaryDataSourceProperties();
-        HikariConfig config = new HikariConfig();
+
+        // SỬ DỤNG CONFIG TỪ YAML
+        HikariConfig config = primaryHikariConfig();
         config.setJdbcUrl(properties.getUrl());
         config.setUsername(properties.getUsername());
         config.setPassword(properties.getPassword());
-        config.setMaximumPoolSize(10);
-        config.setMinimumIdle(3);
-        config.setConnectionTimeout(30000);
-        config.setIdleTimeout(600000);
-        config.setMaxLifetime(1800000);
+
         return new HikariDataSource(config);
     }
 
@@ -55,10 +60,10 @@ public class PrimaryDataSourceConfig {
     public LocalContainerEntityManagerFactoryBean primaryEntityManagerFactory() {
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(primaryDataSource());
-        
+
         // CHỈ scan package chat entities
         em.setPackagesToScan("com.example.chatlog.entity.chat");
-        
+
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         vendorAdapter.setShowSql(true);
         vendorAdapter.setGenerateDdl(true);
@@ -66,7 +71,7 @@ public class PrimaryDataSourceConfig {
 
         java.util.Map<String, Object> properties = new java.util.HashMap<>();
         properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
-        properties.put("hibernate.ddl-auto", "update"); // Enable DDL for Primary DB (chat tables)
+        properties.put("hibernate.ddl-auto", "update");
         properties.put("hibernate.format_sql", "true");
         properties.put("hibernate.jdbc.batch_size", "20");
         properties.put("hibernate.jdbc.fetch_size", "50");
