@@ -230,3 +230,127 @@
 ▶ TIMESTAMP: 2025-11-10T15:29:34.0921528
 ════════════════════════════ END SUCCESS DETAILS ════════════════════════════
 
+[2025-11-10 15:50:30.093] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 15375ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: có ai chỉnh sửa  trong hệ thống trong 7 ngày qua không
+   - timeSavedMs: 15375
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=24583, openai_totalMs=26425, openrouter_searchMs=614, openai_searchMs=622}
+   - sessionId: 252
+   - totalProcessingTimeMs: 35633
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":218,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":7,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"iXQ4XZoBwPewX2N5OS2p","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 13","observer":{"name":"FTG-CNHN","serial_number":"FG121GTK25006437"},"@timestamp":"2025-11-07T14:29:06.000+07:00","fortinet":{"firewall":{"cfgattr... | OpenRouter ES: {"took":218,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":7,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"iXQ4XZoBwPewX2N5OS2p","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 13","observer":{"name":"FTG-CNHN","serial_number":"FG121GTK25006437"},"@timestamp":"2025-11-07T14:29:06.000+07:00",... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":218,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":7,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"iXQ4XZoBwPewX2N5OS2p","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 13","observer":{"name":"FTG-CNHN","serial_number":"FG121GTK25006437"},"@timestamp":"2025-11-07T14:29:06.000+07:00","fortinet":{"firewall":{"cfgattr":"srcaddr[HPTVIETNAM CNHN_Wire_NV address->HPTVIETNAM CNHN_Wire_NV address]dstaddr[hpt-files-srv hpt-dfs-srv->hpt-files-srv hpt-dfs-srv]service[SMB SAMBA->SMB SAMBA ALL_ICMP]","cfgobj":"13","ui":"GUI(10.6.99.78)","action":"Edit","cfgpath":"firewall.policy"}}},"sort":[1762500546000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"61gfXJoBwPewX2N5FHHp","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 25","observer":{"name":"FTG-CNHN","serial_number":"FG121GTK25006437"},"@timestamp":"2025-11-07T09:22:03.000+07:00","fortinet":{"firewall":{"cfgattr":"srcaddr[all->CNHN_Wire_NV address HPTVIETNAM]","cfgobj":"25","ui":"GUI(10.6.99.78)","action":"Edit","cfgpath":"firewall.policy"}}},"sort":[1762482123000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"jVgdXJoBwPewX2N5tUAm","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 11","observer":{"name":"FTG-... (truncated)
+   OpenRouter Data: {"took":218,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":7,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"iXQ4XZoBwPewX2N5OS2p","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 13","observer":{"name":"FTG-CNHN","serial_number":"FG121GTK25006437"},"@timestamp":"2025-11-07T14:29:06.000+07:00","fortinet":{"firewall":{"cfgattr":"srcaddr[HPTVIETNAM CNHN_Wire_NV address->HPTVIETNAM CNHN_Wire_NV address]dstaddr[hpt-files-srv hpt-dfs-srv->hpt-files-srv hpt-dfs-srv]service[SMB SAMBA->SMB SAMBA ALL_ICMP]","cfgobj":"13","ui":"GUI(10.6.99.78)","action":"Edit","cfgpath":"firewall.policy"}}},"sort":[1762500546000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"61gfXJoBwPewX2N5FHHp","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 25","observer":{"name":"FTG-CNHN","serial_number":"FG121GTK25006437"},"@timestamp":"2025-11-07T09:22:03.000+07:00","fortinet":{"firewall":{"cfgattr":"srcaddr[all->CNHN_Wire_NV address HPTVIETNAM]","cfgobj":"25","ui":"GUI(10.6.99.78)","action":"Edit","cfgpath":"firewall.policy"}}},"sort":[1762482123000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"jVgdXJoBwPewX2N5tUAm","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 11","observer":{"name":"FTG-... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 24583
+   - openai_totalMs: 26425
+   - openrouter_searchMs: 614
+   - openai_searchMs: 622
+
+▶ DYNAMIC EXAMPLES (Vector Search):
+RELEVANT EXAMPLES FROM KNOWLEDGE BASE
+   Mode: VECTOR
+   
+   Example 1:
+   Question: Ai đã chỉnh sửa cấu hình firewall trong 7 ngày qua?
+   Content: Ai đã chỉnh sửa cấu hình firewall trong 7 ngày qua?
+   Query: {"size":100,"sort":[{"@timestamp":"desc"}],"_source":["@timestamp","source.user.name","message","observer.name","observer.serial_number","fortinet.firewall.action","fortinet.firewall.cfgattr","fortinet.firewall.cfgobj","fortinet.firewall.cfgpath","fortinet.firewall.ui"],"query":{"bool":{"filter":[{"term":{"fortinet.firewall.action":"Edit"}},{"range":{"@timestamp":{"gte":"now-7d"}}}]}}}
+   
+   Example 2:
+   Question: Ai đã thêm sửa xóa cấu hình gì trên thiết bị nào trong 30 ngày qua?
+   Content: Ai đã thêm sửa xóa cấu hình gì trên thiết bị nào trong 30 ngày qua?
+   Query: {"size":100,"sort":[{"@timestamp":"desc"}],"_source":["@timestamp","source.user.name","message","observer.name","observer.serial_number","fortinet.firewall.action","fortinet.firewall.cfgattr","fortinet.firewall.cfgobj","fortinet.firewall.cfgpath","fortinet.firewall.ui"],"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"now-30d"}}},{"terms":{"fortinet.firewall.action":["Edit","Add","Delete"]}}]}}}
+   
+   Example 3:
+   Question: Các lần chuyển đổi transport tự động trong 7 ngày qua
+   Content: Các lần chuyển đổi transport tự động trong 7 ngày qua
+   Query: {"size":50,"sort":[{"@timestamp":"desc"}],"query":{"bool":{"filter":[{"term":{"fortinet.firewall.action":"auto_transport_switch"}},{"range":{"@timestamp":{"gte":"now-7d"}}}]}}}
+   
+   Example 4:
+   Question: Ai đã chỉnh sửa firewall policy trong 30 ngày qua?
+   Content: Ai đã chỉnh sửa firewall policy trong 30 ngày qua?
+   Query: {"size":100,"sort":[{"@timestamp":"desc"}],"_source":["@timestamp","message","fortinet.firewall.action","fortinet.firewall.cfgpath","fortinet.firewall.cfgobj","fortinet.firewall.cfgattr","source.user.name","observer.name","observer.serial_number","fortinet.firewall.ui"],"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"now-30d"}}}],"must":[{"match_phrase":{"fortinet.firewall.cfgpath":"firewall.policy"}},{"match_phrase":{"fortinet.firewall.action":"Edit"}}]}}}
+   
+   Example 5:
+   Question: Lịch sử đăng xuất trong 7 ngày qua
+   Content: Lịch sử đăng xuất trong 7 ngày qua
+   Query: {"size":100,"sort":[{"@timestamp":"desc"}],"_source":["@timestamp","source.user.name","fortinet.firewall.ui"],"query":{"bool":{"filter":[{"term":{"fortinet.firewall.action":"logout"}},{"range":{"@timestamp":{"gte":"now-7d"}}}]}}}
+   
+   Example 6:
+   Question: Thống kê ai thêm/sửa/xóa cấu hình nhiều nhất trong 30 ngày qua?
+   Content: Thống kê ai thêm/sửa/xóa cấu hình nhiều nhất trong 30 ngày qua?
+   Query: {"size":0,"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"now-30d"}}},{"terms":{"fortinet.firewall.action":["Edit","Add","Delete"]}}]}},"aggs":{"by_user":{"terms":{"field":"source.user.name","size":20},"aggs":{"by_action":{"terms":{"field":"fortinet.firewall.action","size":3}},"recent_changes":{"top_hits":{"size":5,"sort":[{"@timestamp":"desc"}],"_source":["@timestamp","message","fort...
+   (truncated - see full output in console)
+
+▶ TIMESTAMP: 2025-11-10T15:50:30.0934315
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-10 15:51:59.297] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 28369ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: hãy nói chi tiết về chỉnh sửa
+   - timeSavedMs: 28369
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=39009, openai_totalMs=32630, openrouter_searchMs=20, openai_searchMs=19}
+   - sessionId: 252
+   - totalProcessingTimeMs: 43270
+
+▶ ES DATA PREVIEW:
+   OpenAI ES: {"took":6,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":7,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"iXQ4XZoBwPewX2N5OS2p","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 13","observer":{"name":"FTG-CNHN","serial_number":"FG121GTK25006437"},"@timestamp":"2025-11-07T14:29:06.000+07:00","fortinet":{"firewall":{"cfgattr":... | OpenRouter ES: {"took":6,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":7,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"iXQ4XZoBwPewX2N5OS2p","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 13","observer":{"name":"FTG-CNHN","serial_number":"FG121GTK25006437"},"@timestamp":"2025-11-07T14:29:06.000+07:00","f... (preview truncated)
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: {"took":6,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":7,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"iXQ4XZoBwPewX2N5OS2p","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 13","observer":{"name":"FTG-CNHN","serial_number":"FG121GTK25006437"},"@timestamp":"2025-11-07T14:29:06.000+07:00","fortinet":{"firewall":{"cfgattr":"srcaddr[HPTVIETNAM CNHN_Wire_NV address->HPTVIETNAM CNHN_Wire_NV address]dstaddr[hpt-files-srv hpt-dfs-srv->hpt-files-srv hpt-dfs-srv]service[SMB SAMBA->SMB SAMBA ALL_ICMP]","cfgobj":"13","ui":"GUI(10.6.99.78)","action":"Edit","cfgpath":"firewall.policy"}}},"sort":[1762500546000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"61gfXJoBwPewX2N5FHHp","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 25","observer":{"name":"FTG-CNHN","serial_number":"FG121GTK25006437"},"@timestamp":"2025-11-07T09:22:03.000+07:00","fortinet":{"firewall":{"cfgattr":"srcaddr[all->CNHN_Wire_NV address HPTVIETNAM]","cfgobj":"25","ui":"GUI(10.6.99.78)","action":"Edit","cfgpath":"firewall.policy"}}},"sort":[1762482123000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"jVgdXJoBwPewX2N5tUAm","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 11","observer":{"name":"FTG-CN... (truncated)
+   OpenRouter Data: {"took":6,"timed_out":false,"_shards":{"total":21,"successful":21,"skipped":20,"failed":0},"hits":{"total":{"value":7,"relation":"eq"},"max_score":null,"hits":[{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"iXQ4XZoBwPewX2N5OS2p","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 13","observer":{"name":"FTG-CNHN","serial_number":"FG121GTK25006437"},"@timestamp":"2025-11-07T14:29:06.000+07:00","fortinet":{"firewall":{"cfgattr":"srcaddr[HPTVIETNAM CNHN_Wire_NV address->HPTVIETNAM CNHN_Wire_NV address]dstaddr[hpt-files-srv hpt-dfs-srv->hpt-files-srv hpt-dfs-srv]service[SMB SAMBA->SMB SAMBA ALL_ICMP]","cfgobj":"13","ui":"GUI(10.6.99.78)","action":"Edit","cfgpath":"firewall.policy"}}},"sort":[1762500546000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"61gfXJoBwPewX2N5FHHp","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 25","observer":{"name":"FTG-CNHN","serial_number":"FG121GTK25006437"},"@timestamp":"2025-11-07T09:22:03.000+07:00","fortinet":{"firewall":{"cfgattr":"srcaddr[all->CNHN_Wire_NV address HPTVIETNAM]","cfgobj":"25","ui":"GUI(10.6.99.78)","action":"Edit","cfgpath":"firewall.policy"}}},"sort":[1762482123000]},{"_index":".ds-logs-fortinet_fortigate.log-default-2025.11.01-000003","_id":"jVgdXJoBwPewX2N5tUAm","_score":null,"_source":{"source":{"user":{"name":"tanln"}},"message":"Edit firewall.policy 11","observer":{"name":"FTG-CN... (truncated)
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 39009
+   - openai_totalMs: 32630
+   - openrouter_searchMs: 20
+   - openai_searchMs: 19
+
+▶ DYNAMIC EXAMPLES (Vector Search):
+RELEVANT EXAMPLES FROM KNOWLEDGE BASE
+   Mode: VECTOR
+   
+   Example 1:
+   Question: Tìm xem user nào chỉnh sửa trong CNHN_ZONE
+   Content: Tìm xem user nào chỉnh sửa trong CNHN_ZONE
+   Query: {"size":200,"sort":[{"@timestamp":"asc"}],"_source":["@timestamp","source.user.name","source.ip","message","fortinet.firewall.cfgattr"],"query":{"bool":{"filter":[{"exists":{"field":"fortinet.firewall.cfgattr"}},{"match":{"message":"CNHN_ZONE"}}]}}}
+   
+   Example 2:
+   Question: Ai đã chỉnh sửa cấu hình firewall trong 7 ngày qua?
+   Content: Ai đã chỉnh sửa cấu hình firewall trong 7 ngày qua?
+   Query: {"size":100,"sort":[{"@timestamp":"desc"}],"_source":["@timestamp","source.user.name","message","observer.name","observer.serial_number","fortinet.firewall.action","fortinet.firewall.cfgattr","fortinet.firewall.cfgobj","fortinet.firewall.cfgpath","fortinet.firewall.ui"],"query":{"bool":{"filter":[{"term":{"fortinet.firewall.action":"Edit"}},{"range":{"@timestamp":{"gte":"now-7d"}}}]}}}
+   
+   Example 3:
+   Question: Ai đã chỉnh sửa firewall policy trong 30 ngày qua?
+   Content: Ai đã chỉnh sửa firewall policy trong 30 ngày qua?
+   Query: {"size":100,"sort":[{"@timestamp":"desc"}],"_source":["@timestamp","message","fortinet.firewall.action","fortinet.firewall.cfgpath","fortinet.firewall.cfgobj","fortinet.firewall.cfgattr","source.user.name","observer.name","observer.serial_number","fortinet.firewall.ui"],"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"now-30d"}}}],"must":[{"match_phrase":{"fortinet.firewall.cfgpath":"firewall.policy"}},{"match_phrase":{"fortinet.firewall.action":"Edit"}}]}}}
+   
+   Example 4:
+   Question: User tanln đã thêm/sửa/xóa gì trong 30 ngày qua?
+   Content: User tanln đã thêm/sửa/xóa gì trong 30 ngày qua?
+   Query: {"size":100,"sort":[{"@timestamp":"desc"}],"_source":["@timestamp","source.user.name","message","observer.name","observer.serial_number","fortinet.firewall.action","fortinet.firewall.cfgattr","fortinet.firewall.cfgobj","fortinet.firewall.cfgpath","fortinet.firewall.ui"],"query":{"bool":{"must":[{"match_phrase":{"source.user.name":"tanln"}}],"filter":[{"range":{"@timestamp":{"gte":"now-30d"}}},{"terms":{"fortinet.firewall.action":["Edit","Add","Delete"]}}]}}}
+   
+   Example 5:
+   Question: Ai đã thêm sửa xóa cấu hình gì trên thiết bị nào trong 30 ngày qua?
+   Content: Ai đã thêm sửa xóa cấu hình gì trên thiết bị nào trong 30 ngày qua?
+   Query: {"size":100,"sort":[{"@timestamp":"desc"}],"_source":["@timestamp","source.user.name","message","observer.name","observer.serial_number","fortinet.firewall.action","fortinet.firewall.cfgattr","fortinet.firewall.cfgobj","fortinet.firewall.cfgpath","fortinet.firewall.ui"],"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"now-30d"}}},{"terms":{"fortinet.firewall.action":["Edit","Add","Delete"]}}]}}}
+   
+   Example 6:
+   Question: Thay đổi trạng thái interface trong tháng này
+   Content: Thay đổi trạng thái interface trong tháng này
+   Query: {"size":50,"sort":[{"@timestamp":"desc"}],"query":{"bool":{"filter":[{"term":{"fortinet.firewall.action":"interface-stat-...
+   (truncated - see full output in console)
+
+▶ TIMESTAMP: 2025-11-10T15:51:59.2979655
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
