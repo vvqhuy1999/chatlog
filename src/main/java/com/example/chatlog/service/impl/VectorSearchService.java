@@ -23,13 +23,22 @@ public class VectorSearchService {
     private AiEmbeddingService aiEmbeddingService;
 
     /**
-     * HYBRID SEARCH: Kết hợp Semantic + Keyword matching
-     * Formula: Final Score = (Semantic Score × 0.7) + (Keyword Score × 0.3)
+     * VECTOR SEARCH: Tìm kiếm semantic similarity thuần túy
      */
     public String findRelevantExamples(String userQuery) {
         System.out.println("\n" + "=".repeat(100));
-        System.out.println("🔍 HYBRID SEARCH - SEMANTIC + KEYWORD MATCHING");
+        System.out.println("🔍 VECTOR SEMANTIC SEARCH");
         System.out.println("=".repeat(100));
+        
+        // Check database stats first
+        long totalEmbeddings = aiEmbeddingService.countAllNotDeleted();
+        System.out.println("\n📊 DATABASE STATS:");
+        System.out.println("   Total embeddings in database: " + totalEmbeddings);
+        
+        if (totalEmbeddings == 0) {
+            System.out.println("   ⚠️ WARNING: No embeddings found in database!");
+            System.out.println("   Please run the embedding import process first.");
+        }
         
         System.out.println("\n📝 QUERY: \"" + userQuery + "\"");
         
@@ -58,72 +67,26 @@ public class VectorSearchService {
             }
         }
         
-        // BƯỚC 2: Extract keywords từ user query
-        System.out.println("\n🔍 STEP 2: Extracting Keywords from Query");
-        String keywords = extractKeywords(userQuery);
-        System.out.println("   ✅ Extracted keywords: \"" + keywords + "\"");
-        System.out.println("   📝 Keywords will be searched in: metadata->keywords array, question, and content");
-        
-        // BƯỚC 3: Hybrid Search
-        System.out.println("\n🎯 STEP 3: Hybrid Search (70% Semantic + 30% Keyword)");
+        // BƯỚC 2: Vector Search
+        System.out.println("\n🎯 STEP 2: Vector Semantic Search");
         
         List<AiEmbedding> similarEmbeddings;
-        String resultMode = "";
-        int topK = 8; // Số lượng kết quả mong muốn
+        String resultMode = "VECTOR";
+        int topK = 10; // Lấy 10 kết quả tốt nhất
         
-        if (queryEmbeddingString != null && !keywords.isEmpty()) {
-            // Theo yêu cầu: 8 kết quả từ vector + 2 kết quả từ keyword
-            System.out.println("   ✅ Strategy: 8 vector + 2 keyword (total 10)");
-            resultMode = "VECTOR+KEYWORD";
+        if (queryEmbeddingString != null) {
+            // Lấy 10 kết quả tốt nhất từ vector similarity search
+            System.out.println("   ✅ Strategy: Pure vector search for top 10 most relevant examples");
 
-            // 8 từ vector similarity
-            List<AiEmbedding> vectorTop = aiEmbeddingService.findSimilarEmbeddings(
-                queryEmbeddingString, 8
-            );
-            // 2 từ keyword full-text
-            List<AiEmbedding> keywordTop = aiEmbeddingService.fullTextSearch(
-                keywords, 10
-            );
-
-            // Hợp nhất: ưu tiên vector, thêm 2 từ keyword không trùng id
-            java.util.LinkedHashMap<String, AiEmbedding> merged = new java.util.LinkedHashMap<>();
-            for (AiEmbedding e : vectorTop) merged.put(e.getId().toString(), e);
-            int added = 0;
-            for (AiEmbedding e : keywordTop) {
-                if (added >= 2) break;
-                String key = e.getId().toString();
-                if (!merged.containsKey(key)) {
-                    merged.put(key, e);
-                    added++;
-                }
-            }
-
-            similarEmbeddings = new java.util.ArrayList<>(merged.values());
-            // Nếu < 10, bổ sung thêm từ keywordTop cho đủ (không vượt 10)
-            for (AiEmbedding e : keywordTop) {
-                if (similarEmbeddings.size() >= 10) break;
-                String key = e.getId().toString();
-                if (!merged.containsKey(key)) {
-                    similarEmbeddings.add(e);
-                }
-            }
-            System.out.println("   🧪 Vector selected: " + vectorTop.size() + ", Keyword added: " + added + ", Total: " + similarEmbeddings.size());
-        } else if (queryEmbeddingString != null) {
-            // Fallback: Chỉ dùng semantic search
             similarEmbeddings = aiEmbeddingService.findSimilarEmbeddings(
-                queryEmbeddingString, 
-                topK
+                queryEmbeddingString, topK
             );
-            System.out.println("   ⚠️ Fallback: SEMANTIC SEARCH only");
-            resultMode = "SEMANTIC";
-        } else if (!keywords.isEmpty()) {
-            // Fallback: Chỉ dùng keyword search
-            similarEmbeddings = aiEmbeddingService.fullTextSearch(keywords, topK);
-            System.out.println("   ⚠️ Fallback: KEYWORD SEARCH only");
-            resultMode = "KEYWORD";
+            
+            System.out.println("   📊 Vector results: " + similarEmbeddings.size());
+            System.out.println("   🧪 Final result: " + similarEmbeddings.size() + " examples");
         } else {
             similarEmbeddings = List.of();
-            System.out.println("   ❌ No search method available");
+            System.out.println("   ❌ No embedding model available");
             resultMode = "NONE";
         }
         
@@ -134,8 +97,8 @@ public class VectorSearchService {
             return "⚠️ Không tìm thấy ví dụ tương đồng.";
         }
         
-        // BƯỚC 4: Convert và hiển thị kết quả
-        System.out.println("\n📊 STEP 4: Results Analysis");
+        // BƯỚC 3: Convert và hiển thị kết quả
+        System.out.println("\n📊 STEP 3: Results Analysis");
         System.out.println("-".repeat(100));
         
         for (int i = 0; i < similarEmbeddings.size(); i++) {
@@ -147,7 +110,7 @@ public class VectorSearchService {
             if (scenario != null) {
                 System.out.println("   📁 Scenario: " + scenario);
             }
-            System.out.println("   🎯 Matched by: Hybrid Score (Semantic + Keyword)");
+            System.out.println("   🎯 Matched by: Vector Similarity Score");
         }
         
         System.out.println("\n" + "-".repeat(100));
@@ -189,209 +152,10 @@ public class VectorSearchService {
             }
         }
 
-        // ===== HYBRID SCORE DEBUG (optional) =====
-        if (queryEmbeddingString != null && keywords != null && !keywords.isEmpty()) {
-            try {
-                java.util.List<java.util.Map<String, Object>> dbg =
-                        aiEmbeddingService.hybridSearchDebug(queryEmbeddingString, keywords, 10);
-                if (!dbg.isEmpty()) {
-                    examples.append("===== HYBRID SCORE DEBUG =====\n\n");
-                    for (int i = 0; i < Math.min(10, dbg.size()); i++) {
-                        java.util.Map<String, Object> row = dbg.get(i);
-                        double fs = toDouble(row.get("final_score"));
-                        double ss = toDouble(row.get("similarity_score"));
-                        double ks = toDouble(row.get("keyword_score"));
-                        String title = null;
-                        Object metaObj = row.get("metadata");
-                        if (metaObj instanceof java.util.Map) {
-                            Object qq = ((java.util.Map<?, ?>) metaObj).get("question");
-                            if (qq != null) title = qq.toString();
-                        } else if (metaObj != null) {
-                            try {
-                                com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
-                                java.util.Map<String, Object> pm =
-                                        om.readValue(metaObj.toString(), new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>(){});
-                                Object qq = pm.get("question");
-                                if (qq != null) title = qq.toString();
-                            } catch (Exception ignore) {
-                                // fallback to content snippet
-                            }
-                        }
-                        if (title == null) {
-                            Object raw = row.get("content");
-                            if (raw != null) {
-                                String s = raw.toString();
-                                title = s.length() > 120 ? s.substring(0, 120) + "..." : s;
-                            }
-                        }
-                        examples.append(String.format(
-                                "#%d final=%.4f (semantic=%.4f, keyword=%.4f) | %s%n",
-                                i + 1, fs, ss, ks, title != null ? title : ""));
-                    }
-                    examples.append("\n");
-                }
-            } catch (Exception ex) {
-                System.out.println("   ⚠️ Debug summary build failed: " + ex.getMessage());
-            }
-        }
-
-        System.out.println("\n✅ Total: " + similarEmbeddings.size() + " examples found using HYBRID SEARCH");
+        System.out.println("\n✅ Total: " + similarEmbeddings.size() + " examples found using VECTOR SEARCH");
         System.out.println("=".repeat(100) + "\n");
         
         return examples.toString();
     }
 
-    /**
-     * Lấy HYBRID SCORE DEBUG dạng string để ghi vào log file
-     */
-    public String getHybridScoreDebugString(String userQuery) {
-        try {
-            // Tạo Query Embedding cho semantic search
-            float[] queryEmbedding = null;
-            String queryEmbeddingString = null;
-            
-            if (embeddingModel != null) {
-                try {
-                    queryEmbedding = embeddingModel.embed(userQuery);
-                    StringBuilder sb = new StringBuilder("[");
-                    for (int i = 0; i < queryEmbedding.length; i++) {
-                        if (i > 0) sb.append(",");
-                        sb.append(queryEmbedding[i]);
-                    }
-                    sb.append("]");
-                    queryEmbeddingString = sb.toString();
-                } catch (Exception e) {
-                    return ""; // Return empty if embedding fails
-                }
-            }
-            
-            // Extract keywords
-            String keywords = extractKeywords(userQuery);
-            
-            if (queryEmbeddingString != null && keywords != null && !keywords.isEmpty()) {
-                java.util.List<java.util.Map<String, Object>> dbg =
-                        aiEmbeddingService.hybridSearchDebug(queryEmbeddingString, keywords, 10);
-                if (!dbg.isEmpty()) {
-                    StringBuilder debugStr = new StringBuilder();
-                    debugStr.append("===== HYBRID SCORE DEBUG =====\n\n");
-                    for (int i = 0; i < Math.min(10, dbg.size()); i++) {
-                        java.util.Map<String, Object> m = dbg.get(i);
-                        String question = null;
-                        java.util.List<String> kwList = null;
-                        
-                        // Extract metadata
-                        Object metaObj = m.get("metadata");
-                        java.util.Map<String, Object> metadataMap = null;
-                        if (metaObj instanceof java.util.Map) {
-                            metadataMap = (java.util.Map<String, Object>) metaObj;
-                        } else if (metaObj != null) {
-                            try {
-                                com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
-                                metadataMap = om.readValue(metaObj.toString(), 
-                                    new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>(){});
-                            } catch (Exception ignore) {}
-                        }
-                        
-                        // Extract question and keywords from metadata
-                        if (metadataMap != null) {
-                            Object q = metadataMap.get("question");
-                            question = q != null ? q.toString() : null;
-                            
-                            Object kwObj = metadataMap.get("keywords");
-                            if (kwObj instanceof java.util.List) {
-                                kwList = ((java.util.List<?>) kwObj).stream()
-                                    .map(Object::toString)
-                                    .map(s -> "\"" + s + "\"")
-                                    .collect(java.util.stream.Collectors.toList());
-                            }
-                        }
-                        
-                        // Format output
-                        if (kwList != null && !kwList.isEmpty()) {
-                            String kwStr = String.join(", ", kwList);
-                            String qStr = question != null ? question : "";
-                            if (qStr.length() > 100) qStr = qStr.substring(0, 100) + "...";
-                            debugStr.append(String.format(
-                                "#%d final=%.4f (semantic=%.4f, keyword=%.4f) | {\"keywords\": [%s], \"question\": \"%s\"}\n",
-                                i + 1,
-                                toDouble(m.get("final_score")),
-                                toDouble(m.get("similarity_score")),
-                                toDouble(m.get("keyword_score")),
-                                kwStr,
-                                qStr
-                            ));
-                        } else {
-                            debugStr.append(String.format(
-                                "#%d final=%.4f (semantic=%.4f, keyword=%.4f) | %s\n",
-                                i + 1,
-                                toDouble(m.get("final_score")),
-                                toDouble(m.get("similarity_score")),
-                                toDouble(m.get("keyword_score")),
-                                question != null ? (question.length() > 80 ? question.substring(0, 80) + "..." : question) : ""
-                            ));
-                        }
-                    }
-                    debugStr.append("==============================\n");
-                    return debugStr.toString();
-                }
-            }
-        } catch (Exception e) {
-            // Return empty string on error
-        }
-        return "";
-    }
-
-    /**
-     * Extract keywords từ user query
-     * Loại bỏ stop words và giữ lại các từ khóa quan trọng
-     * Trả về chuỗi các từ khóa để tìm kiếm trong keywords array
-     */
-    private String extractKeywords(String query) {
-        // Stop words tiếng Việt và tiếng Anh
-        List<String> stopWords = Arrays.asList(
-            "là", "của", "và", "có", "trong", "từ", "được", "cho", "để", "này", "đó",
-            "the", "is", "are", "in", "on", "at", "to", "for", "of", "a", "an",
-            "what", "which", "who", "when", "where", "why", "how",
-            "gì", "nào", "ai", "khi", "ở", "đâu", "tại", "sao", "như", "thế", "nào",
-            "bao", "nhiêu", "của", "với", "về"
-        );
-        
-        // Lowercase và tách từ
-        String[] words = query.toLowerCase()
-            .replaceAll("[^a-z0-9\\sáàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđ]", " ")
-            .split("\\s+");
-        
-        // Filter stop words và từ ngắn, giữ lại các từ quan trọng
-        List<String> keywords = Arrays.stream(words)
-            .filter(word -> word.length() > 2)
-            .filter(word -> !stopWords.contains(word))
-            .distinct()
-            .collect(Collectors.toList());
-        
-        // Nếu có ít từ, thêm các từ ghép phổ biến
-        if (keywords.size() <= 2 && query.length() > 10) {
-            // Thêm các cụm từ phổ biến từ query gốc
-            String lower = query.toLowerCase();
-            if (lower.contains("truy cập") || lower.contains("truy cập")) {
-                keywords.add("truy cập");
-            }
-            if (lower.contains("website") || lower.contains("trang web")) {
-                keywords.add("website");
-            }
-            if (lower.contains("ip") || lower.contains("địa chỉ")) {
-                keywords.add("ip");
-            }
-            if (lower.contains("user") || lower.contains("người dùng")) {
-                keywords.add("user");
-            }
-        }
-        
-        return String.join(" ", keywords);
-    }
-
-    private static double toDouble(Object o) {
-        if (o == null) return 0.0;
-        if (o instanceof Number) return ((Number) o).doubleValue();
-        try { return Double.parseDouble(o.toString()); } catch (Exception e) { return 0.0; }
-    }
 }

@@ -623,7 +623,7 @@ public class SchemaHint {
       - elastic_agent.snapshot (boolean, whether elastic agent is snapshot)
       - elastic_agent.version (keyword, elastic agent version)
       - event (object, event information)
-      - event.action (keyword, e.g., "login", "logout", "accept", "deny", "close", "server-rst", "client-rst", "dns", "timeout", "ssl-anomaly", "logged-on", "signature", "logged-off", "ssh_login", "Health Check")
+      - event.action (Edit, Delete, Add ...)
       - event.agent_id_status (keyword, agent ID status)
       - event.category (keyword, event category group)
       - event.code (keyword, event code)
@@ -889,6 +889,65 @@ public class SchemaHint {
         - "admin", "ad", "administrator" → ALWAYS use "Administrator" (capitalized)
         - For source.user.roles field, normalize to standard format: "Administrator"
         - Example: {"term": {"source.user.roles": "Administrator"}} not "admin"
+        """;
+  }
+
+  /**
+   * Quy tắc viết hoa cho fortinet.firewall.action
+   */
+  public static String getFortinetActionRules() {
+    return """
+        === FORTINET ACTION CAPITALIZATION RULES (CRITICAL) ===
+        
+        When using field: fortinet.firewall.action
+        
+        🔤 CAPITALIZATION RULES - MUST FOLLOW EXACTLY:
+        
+        ✅ CAPITALIZE FIRST LETTER (chữ cái đầu viết hoa):
+           - "Edit"   (NOT "edit", "EDIT", "eDit")
+           - "Add"    (NOT "add", "ADD", "aDD")
+           - "Delete" (NOT "delete", "DELETE", "dELETE")
+           - "Move"   (NOT "move", "MOVE", "mOVE")
+        
+        ✅ ALL LOWERCASE (viết thường hoàn toàn):
+           - "allow"  (NOT "Allow", "ALLOW")
+           - "deny"   (NOT "Deny", "DENY")
+           - "accept" (NOT "Accept", "ACCEPT")
+           - "reject" (NOT "Reject", "REJECT")
+           - "close"  (NOT "Close", "CLOSE")
+           - "timeout" (NOT "Timeout", "TIMEOUT")
+           - "ipsec"  (NOT "Ipsec", "IPSEC")
+           - All other actions → lowercase
+        
+        📝 CORRECT QUERY EXAMPLES:
+        ✅ {"term": {"fortinet.firewall.action": "Edit"}}     // Configuration change
+        ✅ {"term": {"fortinet.firewall.action": "Add"}}      // Add new config
+        ✅ {"term": {"fortinet.firewall.action": "Delete"}}   // Remove config
+        ✅ {"term": {"fortinet.firewall.action": "Move"}}     // Move config
+        ✅ {"term": {"fortinet.firewall.action": "allow"}}    // Firewall allow traffic
+        ✅ {"term": {"fortinet.firewall.action": "deny"}}     // Firewall deny traffic
+        
+        ❌ INCORRECT QUERY EXAMPLES:
+        ❌ {"term": {"fortinet.firewall.action": "edit"}}     // Wrong: must be "Edit"
+        ❌ {"term": {"fortinet.firewall.action": "EDIT"}}     // Wrong: must be "Edit"
+        ❌ {"term": {"fortinet.firewall.action": "Allow"}}    // Wrong: must be "allow"
+        ❌ {"term": {"fortinet.firewall.action": "ALLOW"}}    // Wrong: must be "allow"
+        
+        🎯 USER INTENT MAPPING (Vietnamese → English):
+        - "sửa", "chỉnh sửa", "thay đổi config" → "Edit"
+        - "thêm", "tạo mới", "add config" → "Add"
+        - "xóa", "gỡ bỏ", "delete config" → "Delete"
+        - "di chuyển", "move config" → "Move"
+        - "cho phép", "thông qua", "allow traffic" → "allow"
+        - "chặn", "từ chối", "block traffic" → "deny"
+        
+        ⚠️ VALIDATION BEFORE GENERATING QUERY:
+        1. Check if action is in ["Edit", "Add", "Delete", "Move"]
+           → YES: Use capitalized first letter
+           → NO: Use all lowercase
+        2. NEVER use all uppercase (EDIT, ALLOW, DENY)
+        3. NEVER mix cases (eDit, aLLow)
+        
         """;
   }
 

@@ -35,9 +35,10 @@ public class AiResponseService {
      * @param chatRequest Yêu cầu gốc từ user
      * @param content Dữ liệu từ Elasticsearch
      * @param query Query Elasticsearch đã sử dụng
+     * @param temperature Temperature cho AI model (0.3 cho OpenAI, 0.7 cho OpenRouter)
      * @return Phản hồi từ AI
      */
-    public String getAiResponseForComparison(String conversationId, ChatRequest chatRequest, String content, String query) {
+    public String getAiResponseForComparison(String conversationId, ChatRequest chatRequest, String content, String query, double temperature) {
         // Lấy thời gian thực của máy
         LocalDateTime currentTime = LocalDateTime.now();
         String currentDate = currentTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -295,7 +296,7 @@ public class AiResponseService {
         // Gọi AI với conversation ID tùy chỉnh để tránh memory contamination
         return chatClient
             .prompt(prompt)
-            .options(ChatOptions.builder().temperature(0.3D).build())
+            .options(ChatOptions.builder().temperature(temperature).build())
             .advisors(advisorSpec -> advisorSpec.param(
                 ChatMemory.CONVERSATION_ID, conversationId
             ))

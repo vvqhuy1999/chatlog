@@ -1146,128 +1146,65 @@
     }
   },
   {
-    "question": "Trong 7 ngày qua có thay đổi nào về rule firewall không?",
-    "keywords": [
-      "thay đổi",
-      "change",
-      "cấu hình",
-      "configuration",
-      "rule",
-      "firewall",
-      "7 ngày qua",
-      "7d",
-      "tuần",
-      "week",
-      "7 days",
-      "tuần qua",
-      "last week",
-      "quy tắc",
-      "policy",
-      "chính sách",
-      "luật",
-      "regulation",
-      "user activity",
-      "hoạt động người dùng",
-      "account",
-      "tài khoản"
-    ],
-    "scenario": "Policy management - Analyze firewall policies to optimize rules, improve security, and reduce complexity",
-    "query": {
-      "size": 50,
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "event.action",
-        "rule.name",
-        "rule.ruleset",
-        "fortinet.firewall.cfgattr"
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "event.type": "configuration"
-              }
-            },
-            {
-              "term": {
-                "rule.ruleset": "firewall"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-7d"
-                }
-              }
-            }
-          ]
-        }
-      }
-    }
-  },
-  {
-    "question": "Ai đã thay đổi cấu hình hệ thống trong 24 giờ qua?",
+    "question": "Ai đã chỉnh sửa firewall policy trong 30 ngày qua?",
     "keywords": [
       "ai",
+      "who",
       "user",
+      "chỉnh sửa",
+      "Edit",
       "thay đổi",
       "change",
-      "cấu hình",
-      "configuration",
-      "hệ thống",
-      "24 giờ qua",
-      "24h",
-      "một ngày",
-      "1 day",
-      "24 hours",
-      "ngày qua",
-      "last day",
-      "user activity",
-      "hoạt động người dùng",
-      "account",
-      "tài khoản",
-      "aggregation",
-      "tổng hợp",
-      "statistics",
-      "thống kê",
-      "grouping",
-      "nhóm"
+      "modify",
+      "firewall policy",
+      "chính sách firewall",
+      "policy",
+      "30 ngày",
+      "30 days",
+      "tháng qua",
+      "last month",
+      "một tháng",
+      "1 month",
+      "firewall rules",
+      "quy tắc tường lửa",
+      "security policy",
+      "chính sách bảo mật",
+      "configuration change",
+      "thay đổi cấu hình",
+      "audit",
+      "kiểm toán",
+      "log",
+      "nhật ký",
+      "chi tiết",
+      "details",
+      "history",
+      "lịch sử"
     ],
     "scenario": "Network security - Monitor and analyze firewall logs for security threats, compliance, and operational insights",
     "query": {
-      "size": 0,
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "_source": [
+        "@timestamp",
+        "message",
+        "fortinet.firewall.action",
+        "fortinet.firewall.cfgpath",
+        "fortinet.firewall.cfgobj",
+        "fortinet.firewall.cfgattr",
+        "source.user.name",
+        "observer.name",
+        "observer.serial_number",
+        "fortinet.firewall.ui"
+      ],
       "query": {
         "bool": {
           "filter": [
-            {
-              "term": {
-                "event.type": "configuration"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
+            { "range": { "@timestamp": { "gte": "now-30d" } } }
+          ],
+          "must": [
+            { "match_phrase": { "fortinet.firewall.cfgpath": "firewall.policy" }},
+            { "match_phrase": { "fortinet.firewall.action": "Edit" }}
           ]
-        }
-      },
-      "aggs": {
-        "by_user": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 50
-          }
         }
       }
     }
@@ -1341,82 +1278,6 @@
             {
               "term": {
                 "source.geo.country_name": "Vietnam"
-              }
-            }
-          ]
-        }
-      }
-    }
-  },
-  {
-    "question": "Trong 24 giờ qua có ai bật/tắt tính năng IPS hoặc AV không?",
-    "keywords": [
-      "bật",
-      "tắt",
-      "enable",
-      "disable",
-      "tính năng",
-      "feature",
-      "IPS",
-      "AV",
-      "Antivirus",
-      "địa chỉ IP",
-      "IP address",
-      "địa chỉ",
-      "address",
-      "24h",
-      "một ngày",
-      "1 day",
-      "24 hours",
-      "ngày qua",
-      "last day",
-      "intrusion prevention",
-      "phòng chống xâm nhập",
-      "security",
-      "bảo mật",
-      "threat prevention",
-      "user activity",
-      "hoạt động người dùng",
-      "account",
-      "tài khoản"
-    ],
-    "scenario": "Threat detection - Monitor intrusion prevention system events to detect and respond to security threats",
-    "query": {
-      "size": 50,
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "event.action",
-        "rule.category",
-        "fortinet.firewall.cfgattr"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "event.type": "configuration"
-              }
-            },
-            {
-              "terms": {
-                "rule.category": [
-                  "IPS",
-                  "Antivirus"
-                ]
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
               }
             }
           ]
@@ -1583,147 +1444,6 @@
               }
             }
           }
-        }
-      }
-    }
-  },
-  {
-    "question": "Ai đã thay đổi policy shaping trong 7 ngày qua?",
-    "keywords": [
-      "ai",
-      "user",
-      "thay đổi",
-      "change",
-      "policy shaping",
-      "7 ngày qua",
-      "7d",
-      "tuần",
-      "week",
-      "7 days",
-      "tuần qua",
-      "last week",
-      "chính sách",
-      "rule",
-      "quy tắc",
-      "firewall rule",
-      "quy định",
-      "user activity",
-      "hoạt động người dùng",
-      "account",
-      "tài khoản",
-      "aggregation",
-      "tổng hợp",
-      "statistics",
-      "thống kê",
-      "grouping",
-      "nhóm"
-    ],
-    "scenario": "Policy management - Analyze firewall policies to optimize rules, improve security, and reduce complexity",
-    "query": {
-      "size": 0,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "event.type": "configuration"
-              }
-            },
-            {
-              "exists": {
-                "field": "fortinet.firewall.shapingpolicyname"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-7d"
-                }
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_user": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 50
-          }
-        }
-      }
-    }
-  },
-  {
-    "question": "Có thay đổi nào trong cấu hình interface WAN trong 24 giờ qua không?",
-    "keywords": [
-      "thay đổi",
-      "change",
-      "cấu hình",
-      "configuration",
-      "interface",
-      "WAN",
-      "24 giờ qua",
-      "24h",
-      "một ngày",
-      "1 day",
-      "24 hours",
-      "ngày qua",
-      "last day",
-      "wide area network",
-      "mạng diện rộng",
-      "internet",
-      "external",
-      "user activity",
-      "hoạt động người dùng",
-      "account",
-      "tài khoản"
-    ],
-    "scenario": "Network monitoring - Analyze traffic by interface to optimize routing and identify network bottlenecks",
-    "query": {
-      "size": 50,
-      "_source": [
-        "@timestamp",
-        "source.user.name",
-        "source.ip",
-        "observer.ingress.interface.name",
-        "observer.egress.interface.name",
-        "fortinet.firewall.cfgattr"
-      ],
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "term": {
-                "event.type": "configuration"
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-24h"
-                }
-              }
-            }
-          ],
-          "should": [
-            {
-              "wildcard": {
-                "observer.ingress.interface.name": "*wan*"
-              }
-            },
-            {
-              "wildcard": {
-                "observer.egress.interface.name": "*wan*"
-              }
-            }
-          ],
-          "minimum_should_match": 1
         }
       }
     }
@@ -6708,7 +6428,7 @@
       "user",
       "người dùng",
       "chỉnh sửa",
-      "edit",
+      "Edit",
       "modify",
       "cấu hình",
       "CNHN_ZONE",
@@ -12623,160 +12343,6 @@
     }
   },
   {
-    "question": "Tỉ lệ operations thủ công vs tự động?",
-    "keywords": [
-      "manual operations",
-      "hoạt động thủ công",
-      "thủ công",
-      "manual",
-      "automation ratio",
-      "tỉ lệ tự động",
-      "operational efficiency",
-      "hiệu quả vận hành",
-      "process automation",
-      "tự động hóa quy trình",
-      "digital operations",
-      "vận hành số",
-      "tỉ lệ",
-      "ratio",
-      "operations",
-      "vận hành",
-      "tự động",
-      "automation",
-      "vs",
-      "so với",
-      "outcome",
-      "kết quả",
-      "result",
-      "status",
-      "trạng thái",
-      "user activity",
-      "hoạt động người dùng",
-      "account",
-      "tài khoản",
-      "timeline",
-      "theo thời gian",
-      "time series",
-      "xu hướng",
-      "trend"
-    ],
-    "scenario": "Network security - Monitor and analyze firewall logs for security threats, compliance, and operational insights",
-    "query": {
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-60d"
-                }
-              }
-            },
-            {
-              "term": {
-                "event.type": "configuration"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "automation_metrics": {
-          "filters": {
-            "filters": {
-              "manual_operations": {
-                "bool": {
-                  "must_not": [
-                    {
-                      "wildcard": {
-                        "source.user.name": "*system*"
-                      }
-                    },
-                    {
-                      "wildcard": {
-                        "source.user.name": "*service*"
-                      }
-                    },
-                    {
-                      "wildcard": {
-                        "source.user.name": "*auto*"
-                      }
-                    }
-                  ]
-                }
-              },
-              "automated_operations": {
-                "bool": {
-                  "should": [
-                    {
-                      "wildcard": {
-                        "source.user.name": "*system*"
-                      }
-                    },
-                    {
-                      "wildcard": {
-                        "source.user.name": "*service*"
-                      }
-                    },
-                    {
-                      "wildcard": {
-                        "source.user.name": "*auto*"
-                      }
-                    }
-                  ],
-                  "minimum_should_match": 1
-                }
-              }
-            }
-          },
-          "aggs": {
-            "operation_timeline": {
-              "date_histogram": {
-                "field": "@timestamp",
-                "calendar_interval": "1w"
-              },
-              "aggs": {
-                "operation_count": {
-                  "value_count": {
-                    "field": "@timestamp"
-                  }
-                },
-                "error_rate": {
-                  "filter": {
-                    "term": {
-                      "event.outcome": "failure"
-                    }
-                  },
-                  "aggs": {
-                    "error_count": {
-                      "value_count": {
-                        "field": "@timestamp"
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            "total_operations": {
-              "sum_bucket": {
-                "buckets_path": "operation_timeline>operation_count"
-              }
-            },
-            "automation_ratio": {
-              "bucket_script": {
-                "buckets_path": {
-                  "automated": "_count",
-                  "total": "total_operations"
-                },
-                "script": "params.total > 0 ? (params.automated / params.total) * 100 : 0"
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-  {
     "question": "Báo cáo truy cập dữ liệu nhạy cảm theo quy định GDPR: Ai đã truy cập thông tin từ EU trong 90 ngày qua?",
     "keywords": [
       "GDPR compliance",
@@ -17286,6 +16852,866 @@
       ],
       "size": 10,
       "_source": ["@timestamp", "url.domain"]
+    }
+  },
+  {
+    "question": "Hiển thị các kết nối được chấp nhận trong 24 giờ qua",
+    "keywords": ["accept", "cho phép", "allowed", "permitted", "kết nối thành công", "traffic allowed", "24h", "ngày qua"],
+    "scenario": "Network security - Monitor allowed traffic and connections",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "accept" }},
+            { "range": { "@timestamp": { "gte": "now-24h" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các kết nối bị chặn trong 1 giờ qua",
+    "keywords": ["deny", "block", "chặn", "từ chối", "bị chặn", "blocked traffic", "rejected", "1h", "giờ qua"],
+    "scenario": "Network security - Monitor blocked connections and potential threats",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "deny" }},
+            { "range": { "@timestamp": { "gte": "now-1h" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Danh sách các truy cập bị chặn hôm nay",
+    "keywords": ["blocked", "bị chặn", "bị ngăn chặn", "security block", "threat blocked", "hôm nay", "today"],
+    "scenario": "Network security - Monitor security blocks",
+    "query": {
+      "size": 50,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "blocked" }},
+            { "range": { "@timestamp": { "gte": "now/d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các gói tin bị drop trong 6 giờ qua",
+    "keywords": ["dropped", "drop", "bỏ qua", "loại bỏ", "packet drop", "6h", "6 giờ"],
+    "scenario": "Network security - Monitor dropped packets",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "dropped" }},
+            { "range": { "@timestamp": { "gte": "now-6h" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các kết nối đã đóng trong 2 giờ qua",
+    "keywords": ["close", "closed", "đóng", "kết thúc", "connection closed", "session ended", "2h"],
+    "scenario": "Network monitoring - Track closed connections",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "close" }},
+            { "range": { "@timestamp": { "gte": "now-2h" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Kết nối bị reset từ phía client trong ngày",
+    "keywords": ["client-rst", "client reset", "reset từ client", "connection reset", "TCP reset", "ngày hôm nay"],
+    "scenario": "Network troubleshooting - Monitor client-side connection resets",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "client-rst" }},
+            { "range": { "@timestamp": { "gte": "now/d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Kết nối bị reset từ phía server trong 12 giờ qua",
+    "keywords": ["server-rst", "server reset", "reset từ server", "backend reset", "12h", "12 giờ"],
+    "scenario": "Network troubleshooting - Monitor server-side connection resets",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "server-rst" }},
+            { "range": { "@timestamp": { "gte": "now-12h" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các kết nối bị timeout trong 24 giờ qua",
+    "keywords": ["timeout", "hết thời gian", "time out", "session timeout", "connection timeout", "24h"],
+    "scenario": "Network troubleshooting - Monitor connection timeouts",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "timeout" }},
+            { "range": { "@timestamp": { "gte": "now-24h" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các kết nối mới được thiết lập hôm nay",
+    "keywords": ["connect", "connection", "kết nối", "new connection", "established", "hôm nay"],
+    "scenario": "Network monitoring - Track new connections",
+    "query": {
+      "size": 50,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "connect" }},
+            { "range": { "@timestamp": { "gte": "now/d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các phiên bị ngắt kết nối trong 4 giờ qua",
+    "keywords": ["disconnect", "disconnected", "ngắt kết nối", "session disconnect", "4h", "4 giờ"],
+    "scenario": "Network monitoring - Track disconnections",
+    "query": {
+      "size": 50,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "disconnect" }},
+            { "range": { "@timestamp": { "gte": "now-4h" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Ai đã chỉnh sửa cấu hình firewall trong 7 ngày qua?",
+    "keywords": ["Edit", "chỉnh sửa", "modify", "sửa đổi", "configuration change", "7 ngày", "tuần qua"],
+    "scenario": "Audit - Track configuration edits",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "_source": [
+        "@timestamp",
+        "source.user.name",
+        "message",
+        "observer.name",
+        "observer.serial_number",
+        "fortinet.firewall.action",
+        "fortinet.firewall.cfgattr",
+        "fortinet.firewall.cfgobj",
+        "fortinet.firewall.cfgpath",
+        "fortinet.firewall.ui"
+      ],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "Edit" }},
+            { "range": { "@timestamp": { "gte": "now-7d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Danh sách cấu hình mới được thêm vào trong tháng này",
+    "keywords": ["add", "thêm", "thêm mới", "new", "create", "tạo mới", "tháng này", "this month"],
+    "scenario": "Audit - Track new configurations",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "_source": [
+        "@timestamp",
+        "source.user.name",
+        "message",
+        "observer.name",
+        "observer.serial_number",
+        "fortinet.firewall.action",
+        "fortinet.firewall.cfgattr",
+        "fortinet.firewall.cfgobj",
+        "fortinet.firewall.cfgpath",
+        "fortinet.firewall.ui"
+      ],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "Add" }},
+            { "range": { "@timestamp": { "gte": "now/M" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Cấu hình nào đã bị xóa trong 30 ngày qua?",
+    "keywords": ["delete", "xóa", "remove", "gỡ bỏ", "deleted configuration", "30 ngày", "tháng qua"],
+    "scenario": "Audit - Track deleted configurations",
+    "query": {
+      "size": 50,
+      "sort": [{ "@timestamp": "desc" }],
+      "_source": [
+        "@timestamp",
+        "source.user.name",
+        "message",
+        "observer.name",
+        "observer.serial_number",
+        "fortinet.firewall.action",
+        "fortinet.firewall.cfgattr",
+        "fortinet.firewall.cfgobj",
+        "fortinet.firewall.cfgpath",
+        "fortinet.firewall.ui"
+      ],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "Delete" }},
+            { "range": { "@timestamp": { "gte": "now-30d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các cập nhật hệ thống trong tuần này",
+    "keywords": ["update", "cập nhật", "upgrade", "nâng cấp", "system update", "tuần này", "this week"],
+    "scenario": "System maintenance - Track updates",
+    "query": {
+      "size": 50,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "update" }},
+            { "range": { "@timestamp": { "gte": "now-7d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các thay đổi vị trí cấu hình trong 14 ngày qua",
+    "keywords": ["move", "di chuyển", "reorder", "sắp xếp lại", "position change", "14 ngày", "2 tuần"],
+    "scenario": "Audit - Track configuration moves",
+    "query": {
+      "size": 50,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "Move" }},
+            { "range": { "@timestamp": { "gte": "now-14d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Ai đã đăng nhập vào firewall hôm nay?",
+    "keywords": ["login", "đăng nhập", "sign in", "authentication", "user login", "hôm nay", "today"],
+    "scenario": "Security audit - Track user logins",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "_source": [
+        "@timestamp",
+        "source.user.name",
+        "message",
+        "observer.name",
+        "observer.serial_number",
+        "fortinet.firewall.action",
+        "fortinet.firewall.cfgattr",
+        "fortinet.firewall.cfgobj",
+        "fortinet.firewall.cfgpath",
+        "fortinet.firewall.ui"
+      ],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "login" }},
+            { "range": { "@timestamp": { "gte": "now/d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Lịch sử đăng xuất trong 7 ngày qua",
+    "keywords": ["logout", "đăng xuất", "sign out", "logoff", "user logout", "7 ngày", "tuần qua"],
+    "scenario": "Security audit - Track user logouts",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "_source": ["@timestamp", "source.user.name", "fortinet.firewall.ui"],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "logout" }},
+            { "range": { "@timestamp": { "gte": "now-7d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các mối đe dọa được phát hiện trong 24 giờ qua",
+    "keywords": ["detected", "phát hiện", "found", "threat detected", "malware detected", "24h", "ngày qua"],
+    "scenario": "Security monitoring - Track detected threats",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "detected" }},
+            { "range": { "@timestamp": { "gte": "now-24h" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Traffic bypass inspection trong ngày",
+    "keywords": ["bypass", "bỏ qua", "skip inspection", "inspection bypass", "ngày hôm nay"],
+    "scenario": "Security monitoring - Track bypassed inspections",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "bypass" }},
+            { "range": { "@timestamp": { "gte": "now/d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Truy vấn DNS trong 1 giờ qua",
+    "keywords": ["dns", "DNS query", "domain lookup", "name resolution", "truy vấn DNS", "1h", "giờ qua"],
+    "scenario": "Network monitoring - Track DNS queries",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "dns" }},
+            { "range": { "@timestamp": { "gte": "now-1h" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các kết nối IP trong 6 giờ qua",
+    "keywords": ["ip-conn", "ip connection", "kết nối IP", "layer 3", "6h", "6 giờ"],
+    "scenario": "Network monitoring - Track IP connections",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "ip-conn" }},
+            { "range": { "@timestamp": { "gte": "now-6h" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Traffic passthrough trong 12 giờ qua",
+    "keywords": ["passthrough", "pass through", "thông qua", "forward", "12h", "12 giờ"],
+    "scenario": "Network monitoring - Track passthrough traffic",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "passthrough" }},
+            { "range": { "@timestamp": { "gte": "now-12h" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các phiên negotiate trong ngày",
+    "keywords": ["negotiate", "negotiation", "thương lượng", "protocol negotiation", "ngày hôm nay"],
+    "scenario": "Network monitoring - Track protocol negotiations",
+    "query": {
+      "size": 50,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "negotiate" }},
+            { "range": { "@timestamp": { "gte": "now/d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các kết nối được permit hôm nay",
+    "keywords": ["permit", "permitted", "cho phép", "allowed", "granted", "hôm nay"],
+    "scenario": "Network security - Monitor permitted connections",
+    "query": {
+      "size": 50,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "permit" }},
+            { "range": { "@timestamp": { "gte": "now/d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Log thông tin hệ thống trong 24 giờ qua",
+    "keywords": ["info", "information", "thông tin", "system info", "informational", "24h"],
+    "scenario": "System monitoring - Track informational logs",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "info" }},
+            { "range": { "@timestamp": { "gte": "now-24h" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các lỗi hệ thống trong tuần này",
+    "keywords": ["error", "lỗi", "failure", "failed", "system error", "tuần này", "this week"],
+    "scenario": "System troubleshooting - Track errors",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "error" }},
+            { "range": { "@timestamp": { "gte": "now/w" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Thống kê hiệu suất firewall hôm nay",
+    "keywords": ["perf-stats", "performance", "hiệu suất", "stats", "statistics", "hôm nay"],
+    "scenario": "Performance monitoring - Track performance statistics",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "perf-stats" }},
+            { "range": { "@timestamp": { "gte": "now/d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các lần chuyển đổi transport tự động trong 7 ngày qua",
+    "keywords": ["auto_transport_switch", "transport switch", "chuyển đổi tự động", "automatic switch", "7 ngày"],
+    "scenario": "Network monitoring - Track automatic transport switches",
+    "query": {
+      "size": 50,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "auto_transport_switch" }},
+            { "range": { "@timestamp": { "gte": "now-7d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Thay đổi trạng thái interface trong tháng này",
+    "keywords": ["interface-stat-change", "interface status", "trạng thái interface", "port change", "tháng này"],
+    "scenario": "Network monitoring - Track interface status changes",
+    "query": {
+      "size": 50,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "interface-stat-change" }},
+            { "range": { "@timestamp": { "gte": "now-30d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Lịch sử roll log trong 30 ngày qua",
+    "keywords": ["roll-log", "log rotation", "xoay vòng log", "log rollover", "30 ngày"],
+    "scenario": "System maintenance - Track log rotations",
+    "query": {
+      "size": 50,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "roll-log" }},
+            { "range": { "@timestamp": { "gte": "now-30d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các hoạt động trim disk trong tháng này",
+    "keywords": ["trim-disk", "disk trim", "dọn dẹp đĩa", "disk cleanup", "tháng này"],
+    "scenario": "System maintenance - Track disk trim operations",
+    "query": {
+      "size": 50,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "trim-disk" }},
+            { "range": { "@timestamp": { "gte": "now/M" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Các lần reseeding hệ thống trong 14 ngày qua",
+    "keywords": ["reseeding", "reseed", "khởi tạo lại", "reinitialize", "14 ngày"],
+    "scenario": "System maintenance - Track reseeding operations",
+    "query": {
+      "size": 50,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "reseeding" }},
+            { "range": { "@timestamp": { "gte": "now-14d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Lịch sử download trong tuần này",
+    "keywords": ["download", "tải xuống", "file download", "configuration download", "tuần này"],
+    "scenario": "System monitoring - Track downloads",
+    "query": {
+      "size": 50,
+      "sort": [{ "@timestamp": "desc" }],
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "download" }},
+            { "range": { "@timestamp": { "gte": "now-7d" }}}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Top 10 hành động phổ biến nhất trong 24 giờ qua",
+    "keywords": ["top actions", "most common", "phổ biến nhất", "thống kê", "statistics", "24h"],
+    "scenario": "Analytics - Track most common actions",
+    "query": {
+      "size": 0,
+      "query": {
+        "range": { "@timestamp": { "gte": "now-24h" }}
+      },
+      "aggs": {
+        "top_actions": {
+          "terms": {
+            "field": "fortinet.firewall.action",
+            "size": 10
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Top IP bị chặn nhiều nhất hôm nay",
+    "keywords": ["top blocked IP", "most denied", "bị chặn nhiều nhất", "deny by IP", "hôm nay"],
+    "scenario": "Security analytics - Identify most blocked IPs",
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            { "term": { "fortinet.firewall.action": "deny" }},
+            { "range": { "@timestamp": { "gte": "now/d" }}}
+          ]
+        }
+      },
+      "aggs": {
+        "top_blocked_ips": {
+          "terms": {
+            "field": "source.ip",
+            "size": 20
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Ai đã thêm sửa xóa cấu hình gì trên thiết bị nào trong 30 ngày qua?",
+    "keywords": [
+      "thêm sửa xóa",
+      "Add Edit Delete",
+      "configuration changes",
+      "thiết bị",
+      "device",
+      "observer",
+      "giao diện",
+      "UI",
+      "GUI CLI",
+      "30 ngày"
+    ],
+    "scenario": "Audit - Track all configuration changes with device and interface info",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "_source": [
+        "@timestamp",
+        "source.user.name",
+        "message",
+        "observer.name",
+        "observer.serial_number",
+        "fortinet.firewall.action",
+        "fortinet.firewall.cfgattr",
+        "fortinet.firewall.cfgobj",
+        "fortinet.firewall.cfgpath",
+        "fortinet.firewall.ui"
+      ],
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-30d" } } },
+            { "terms": { "fortinet.firewall.action": ["Edit", "Add", "Delete"] } }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Ai đã thêm/sửa/xóa firewall policy trong 30 ngày qua?",
+    "keywords": [
+      "thêm sửa xóa policy",
+      "add edit delete policy",
+      "firewall policy changes",
+      "thay đổi policy",
+      "policy modifications",
+      "30 ngày"
+    ],
+    "scenario": "Audit - Track firewall policy changes only",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "_source": [
+        "@timestamp",
+        "source.user.name",
+        "message",
+        "observer.name",
+        "observer.serial_number",
+        "fortinet.firewall.action",
+        "fortinet.firewall.cfgattr",
+        "fortinet.firewall.cfgobj",
+        "fortinet.firewall.cfgpath",
+        "fortinet.firewall.ui"
+      ],
+      "query": {
+        "bool": {
+          "must": [
+            { "match_phrase": { "fortinet.firewall.cfgpath": "firewall.policy" }}
+          ],
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-30d" } } },
+            { "terms": { "fortinet.firewall.action": ["Edit", "Add", "Delete"] } }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Thống kê ai thêm/sửa/xóa cấu hình nhiều nhất trong 30 ngày qua?",
+    "keywords": [
+      "thống kê user",
+      "user statistics",
+      "ai sửa nhiều nhất",
+      "most active user",
+      "configuration changes by user",
+      "top users",
+      "aggregation",
+      "30 ngày"
+    ],
+    "scenario": "Analytics - User activity statistics for configuration changes",
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-30d" } } },
+            { "terms": { "fortinet.firewall.action": ["Edit", "Add", "Delete"] } }
+          ]
+        }
+      },
+      "aggs": {
+        "by_user": {
+          "terms": {
+            "field": "source.user.name",
+            "size": 20
+          },
+          "aggs": {
+            "by_action": {
+              "terms": {
+                "field": "fortinet.firewall.action",
+                "size": 3
+              }
+            },
+            "recent_changes": {
+              "top_hits": {
+                "size": 5,
+                "sort": [{ "@timestamp": "desc" }],
+                "_source": ["@timestamp", "message", "fortinet.firewall.cfgpath"]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "Có bao nhiêu lần thêm/sửa/xóa trong 30 ngày qua?",
+    "keywords": [
+      "đếm số lần thay đổi",
+      "count changes",
+      "statistics by action",
+      "thống kê theo action",
+      "add edit delete count",
+      "số lượng thay đổi",
+      "30 ngày"
+    ],
+    "scenario": "Analytics - Count configuration changes by action type",
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-30d" } } },
+            { "terms": { "fortinet.firewall.action": ["Edit", "Add", "Delete"] } }
+          ]
+        }
+      },
+      "aggs": {
+        "by_action": {
+          "terms": {
+            "field": "fortinet.firewall.action",
+            "size": 3
+          },
+          "aggs": {
+            "by_cfgpath": {
+              "terms": {
+                "field": "fortinet.firewall.cfgpath",
+                "size": 10
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "question": "User tanln đã thêm/sửa/xóa gì trong 30 ngày qua?",
+    "keywords": [
+      "user specific",
+      "tanln changes",
+      "thay đổi của user",
+      "user activity",
+      "hoạt động user",
+      "specific user audit",
+      "30 ngày"
+    ],
+    "scenario": "Audit - Track specific user's configuration changes",
+    "query": {
+      "size": 100,
+      "sort": [{ "@timestamp": "desc" }],
+      "_source": [
+        "@timestamp",
+        "source.user.name",
+        "message",
+        "observer.name",
+        "observer.serial_number",
+        "fortinet.firewall.action",
+        "fortinet.firewall.cfgattr",
+        "fortinet.firewall.cfgobj",
+        "fortinet.firewall.cfgpath",
+        "fortinet.firewall.ui"
+      ],
+      "query": {
+        "bool": {
+          "must": [
+            { "match_phrase": { "source.user.name": "tanln" }}
+          ],
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-30d" } } },
+            { "terms": { "fortinet.firewall.action": ["Edit", "Add", "Delete"] } }
+          ]
+        }
+      }
     }
   }
 ]

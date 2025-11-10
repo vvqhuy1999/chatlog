@@ -18,7 +18,7 @@ import java.util.UUID;
 @Transactional("secondaryTransactionManager")  // CHỈ ĐỊNH RÕ TRANSACTION MANAGER PHỤ
 public class AiEmbeddingServiceImpl implements AiEmbeddingService {
 
-    private static final Logger HYBRID_SCORE_LOGGER = LoggerFactory.getLogger("HYBRID_SCORE_DEBUG");
+    private static final Logger VECTOR_SEARCH_LOGGER = LoggerFactory.getLogger("VECTOR_SEARCH_DEBUG");
     private final AiEmbeddingRepository aiEmbeddingRepository;
 
     @Override
@@ -65,38 +65,65 @@ public class AiEmbeddingServiceImpl implements AiEmbeddingService {
     }
 
     @Override
-    public AiEmbedding findByContent(String content) {
-        return aiEmbeddingRepository.findByContentAndNotDeleted(content).orElse(null);
-    }
-
-    @Override
-    public List<AiEmbedding> getAllNotDeleted() {
-        return aiEmbeddingRepository.findAllNotDeleted();
-    }
-
-    @Override
     public List<AiEmbedding> findSimilarEmbeddings(String queryEmbedding, int limit) {
-        return aiEmbeddingRepository.findSimilarEmbeddings(queryEmbedding, limit);
-    }
-
-    @Override
-    public void softDeleteEmbedding(UUID id) {
-        aiEmbeddingRepository.findById(id).ifPresent(embedding -> {
-            embedding.setIsDeleted(1);
-            aiEmbeddingRepository.save(embedding);
-        });
-    }
-
-    @Override
-    public void deleteBySourceFile(String sourceFile) {
-        List<AiEmbedding> embeddings = aiEmbeddingRepository.findBySourceFile(sourceFile);
-        embeddings.forEach(embedding -> embedding.setIsDeleted(1));
-        aiEmbeddingRepository.saveAll(embeddings);
-    }
-
-    @Override
-    public List<AiEmbedding> getBySourceFile(String sourceFile) {
-        return aiEmbeddingRepository.findBySourceFile(sourceFile);
+        // Log the SQL query
+        String sqlQuery = String.format(
+            "SELECT * FROM ai_embedding WHERE is_deleted = 0 ORDER BY embedding <=> CAST('%s' AS vector) LIMIT %d",
+            queryEmbedding.length() > 100 ? queryEmbedding.substring(0, 100) + "..." : queryEmbedding,
+            limit
+        );
+        
+        VECTOR_SEARCH_LOGGER.info("\n" + "=".repeat(120));
+        VECTOR_SEARCH_LOGGER.info("🔍 VECTOR SEARCH QUERY");
+        VECTOR_SEARCH_LOGGER.info("=".repeat(120));
+        VECTOR_SEARCH_LOGGER.info("📊 SQL Query:");
+        VECTOR_SEARCH_LOGGER.info("   {}", sqlQuery);
+        VECTOR_SEARCH_LOGGER.info("   Embedding dimensions: {} characters", queryEmbedding.length());
+        VECTOR_SEARCH_LOGGER.info("   Requested limit: {}", limit);
+        
+        List<AiEmbedding> results = aiEmbeddingRepository.findSimilarEmbeddings(queryEmbedding, limit);
+        
+        VECTOR_SEARCH_LOGGER.info("\n✅ Results returned: {}", results.size());
+        
+        // Log vector search results
+        if (!results.isEmpty()) {
+            VECTOR_SEARCH_LOGGER.info("\n📋 DETAILED RESULTS:");
+            VECTOR_SEARCH_LOGGER.info("-".repeat(120));
+            
+            for (int i = 0; i < results.size(); i++) {
+                AiEmbedding emb = results.get(i);
+                String question = null;
+                String sourceFile = null;
+                
+                if (emb.getMetadata() != null) {
+                    Object q = emb.getMetadata().get("question");
+                    question = q != null ? q.toString() : null;
+                    Object sf = emb.getMetadata().get("source_file");
+                    sourceFile = sf != null ? sf.toString() : null;
+                }
+                
+                String questionDisplay = question != null ? 
+                    (question.length() > 80 ? question.substring(0, 80) + "..." : question) : 
+                    "N/A";
+                
+                VECTOR_SEARCH_LOGGER.info("#{} | {} | Source: {}", 
+                    i + 1, 
+                    questionDisplay,
+                    sourceFile != null ? sourceFile : "N/A"
+                );
+            }
+            
+            VECTOR_SEARCH_LOGGER.info("-".repeat(120));
+        } else {
+            VECTOR_SEARCH_LOGGER.warn("\n⚠️ No results found!");
+            VECTOR_SEARCH_LOGGER.warn("   - Check if ai_embedding table has data");
+            VECTOR_SEARCH_LOGGER.warn("   - Check if is_deleted = 0");
+            VECTOR_SEARCH_LOGGER.warn("   - Check if embedding model is working correctly");
+        }
+        
+        VECTOR_SEARCH_LOGGER.info("=".repeat(120) + "\n");
+        
+        return results;
     }
 
     @Override
@@ -112,117 +139,5 @@ public class AiEmbeddingServiceImpl implements AiEmbeddingService {
     @Override
     public long countBySourceFile(String sourceFile) {
         return aiEmbeddingRepository.countBySourceFile(sourceFile);
-    }
-
-    @Override
-    public List<AiEmbedding> fullTextSearch(String searchTerm, int limit) {
-        System.out.println("🔍 Full-text search for: " + searchTerm);
-        return aiEmbeddingRepository.fullTextSearch(searchTerm, limit);
-    }
-
-    @Override
-    public List<AiEmbedding> hybridSearch(String queryEmbedding, String searchTerm, int limit) {
-        System.out.println("🔍 Hybrid search for: " + searchTerm);
-        
-        // Pool rộng hơn để đảm bảo có kết quả keyword
-        int vectorLimit = Math.max(50, limit * 2);
-        int keywordLimit = Math.max(50, limit * 2);
-        
-        return aiEmbeddingRepository.hybridSearch(
-            queryEmbedding, 
-            searchTerm, 
-            vectorLimit, 
-            keywordLimit, 
-            limit
-        );
-    }
-
-    @Override
-    public List<java.util.Map<String, Object>> hybridSearchDebug(String queryEmbedding, String searchTerm, int limit) {
-        int vectorLimit = Math.max(50, limit * 2);
-        int keywordLimit = Math.max(50, limit * 2);
-        List<Object[]> rows = aiEmbeddingRepository.hybridSearchDebug(
-            queryEmbedding, searchTerm, vectorLimit, keywordLimit, limit
-        );
-        java.util.List<java.util.Map<String, Object>> out = new java.util.ArrayList<>();
-        for (Object[] r : rows) {
-            java.util.Map<String, Object> m = new java.util.HashMap<>();
-            m.put("id", r[0]);
-            m.put("content", r[1]);
-            m.put("metadata", r[2]);
-            m.put("similarity_score", r[3]);
-            m.put("keyword_score", r[4]);
-            m.put("final_score", r[5]);
-            out.add(m);
-        }
-        // Print debug to console and log file
-        HYBRID_SCORE_LOGGER.info("\n===== HYBRID SCORE DEBUG =====");
-        for (int i = 0; i < out.size(); i++) {
-            java.util.Map<String, Object> m = out.get(i);
-            String question = null;
-            java.util.List<String> kwList = null;
-            
-            // Extract metadata
-            Object metaObj = m.get("metadata");
-            java.util.Map<String, Object> metadataMap = null;
-            if (metaObj instanceof java.util.Map) {
-                metadataMap = (java.util.Map<String, Object>) metaObj;
-            } else if (metaObj != null) {
-                try {
-                    com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
-                    metadataMap = om.readValue(metaObj.toString(), 
-                        new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>(){});
-                } catch (Exception ignore) {}
-            }
-            
-            // Extract question and keywords from metadata
-            if (metadataMap != null) {
-                Object q = metadataMap.get("question");
-                question = q != null ? q.toString() : null;
-                
-                Object kwObj = metadataMap.get("keywords");
-                if (kwObj instanceof java.util.List) {
-                    kwList = ((java.util.List<?>) kwObj).stream()
-                        .map(Object::toString)
-                        .map(s -> "\"" + s + "\"")
-                        .collect(java.util.stream.Collectors.toList());
-                }
-            }
-            
-            // Format output
-            String output;
-            if (kwList != null && !kwList.isEmpty()) {
-                String kwStr = String.join(", ", kwList);
-                String qStr = question != null ? question : "";
-                if (qStr.length() > 100) qStr = qStr.substring(0, 100) + "...";
-                output = String.format(
-                    "#%d final=%.4f (semantic=%.4f, keyword=%.4f) | {\"keywords\": [%s], \"question\": \"%s\"}",
-                    i + 1,
-                    toDouble(m.get("final_score")),
-                    toDouble(m.get("similarity_score")),
-                    toDouble(m.get("keyword_score")),
-                    kwStr,
-                    qStr
-                );
-            } else {
-                output = String.format(
-                    "#%d final=%.4f (semantic=%.4f, keyword=%.4f) | %s",
-                    i + 1,
-                    toDouble(m.get("final_score")),
-                    toDouble(m.get("similarity_score")),
-                    toDouble(m.get("keyword_score")),
-                    question != null ? (question.length() > 80 ? question.substring(0, 80) + "..." : question) : ""
-                );
-            }
-            HYBRID_SCORE_LOGGER.info(output);
-        }
-        HYBRID_SCORE_LOGGER.info("==============================\n");
-        return out;
-    }
-
-    private static double toDouble(Object o) {
-        if (o == null) return 0.0;
-        if (o instanceof Number) return ((Number) o).doubleValue();
-        try { return Double.parseDouble(o.toString()); } catch (Exception e) { return 0.0; }
     }
 }

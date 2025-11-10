@@ -50,6 +50,9 @@ public class QueryPromptTemplate {
             EXAMPLE LOG STRUCTURE
             {exampleLog}
             
+            FORTINET ACTION RULES
+            {fortinetActionRules}
+            
             USER QUERY: {userQuery}
             
             DYNAMIC EXAMPLES FROM KNOWLEDGE BASE
@@ -255,18 +258,21 @@ public class QueryPromptTemplate {
      * @param schemaInfo Thông tin schema
      * @param roleNormalizationRules Quy tắc chuẩn hóa vai trò
      * @param exampleLog Ví dụ cấu trúc log thực tế
+     * @param fortinetActionRules Quy tắc viết hoa cho fortinet.firewall.action
      * @param dynamicExamples Các ví dụ động từ knowledge base
      * @return Prompt đã được tạo với các placeholder đã được thay thế
      */
     public static String createQueryGenerationPrompt(String userQuery, String dateContext,
                                                     String schemaInfo, String roleNormalizationRules, 
-                                                    String exampleLog, String dynamicExamples) {
+                                                    String exampleLog, String fortinetActionRules,
+                                                    String dynamicExamples) {
         Map<String, Object> params = new HashMap<>();
         params.put("userQuery", userQuery);
         params.put("dateContext", dateContext);
         params.put("schemaInfo", schemaInfo);
         params.put("roleNormalizationRules", roleNormalizationRules);
         params.put("exampleLog", exampleLog);
+        params.put("fortinetActionRules", fortinetActionRules);
         params.put("dynamic_examples", dynamicExamples);
         
         return formatTemplate(QUERY_GENERATION_TEMPLATE, params);

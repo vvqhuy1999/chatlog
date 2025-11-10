@@ -99,9 +99,11 @@ public class AiComparisonService {
             // --- BƯỚC 1: Chuẩn bị prompt (shared) ---
             String fullSchema = SchemaHint.getSchemaHint();
             String dynamicExamples = buildDynamicExamples(chatRequest.message());
+            System.out.println("dynamicExamples : " + dynamicExamples);
             
             String userQueryForPrompt = chatRequest.message();
-            if (userQueryForPrompt.toLowerCase().contains("admin") || 
+            if (userQueryForPrompt.toLowerCase().contains("admin") ||
+                userQueryForPrompt.toLowerCase().contains("ad") ||
                 userQueryForPrompt.toLowerCase().contains("administrator")) {
                 userQueryForPrompt = userQueryForPrompt.replaceAll("(?i)\\badmin\\b", "Administrator")
                                                       .replaceAll("(?i)\\bad\\b", "Administrator")
@@ -114,6 +116,7 @@ public class AiComparisonService {
                 fullSchema,
                 SchemaHint.getRoleNormalizationRules(),
                 SchemaHint.examplelog(),
+                SchemaHint.getFortinetActionRules(),
                 dynamicExamples
             );
             
@@ -124,7 +127,7 @@ public class AiComparisonService {
                 )
             );
 
-//            System.out.println("prompt: " + prompt);
+            // System.out.println("prompt: " + prompt);
             
             // --- BƯỚC 2: PARALLEL EXECUTION - OpenAI và OpenRouter đồng thời ---
             System.out.println("[AiComparisonService] 🚀 Bắt đầu xử lý SONG SONG OpenAI và OpenRouter...");
@@ -265,14 +268,9 @@ public class AiComparisonService {
                 }
             } catch (Exception ignore) {}
 
-            // Thêm HYBRID SCORE DEBUG vào log
-            try {
-                String hybridScoreDebug = vectorSearchService.getHybridScoreDebugString(chatRequest.message());
-                if (hybridScoreDebug != null && !hybridScoreDebug.isEmpty()) {
-                    successContext.put("hybridScoreDebug", hybridScoreDebug);
-                }
-            } catch (Exception e) {
-                // Ignore nếu không lấy được debug info
+            // Thêm dynamic examples vào log
+            if (dynamicExamples != null && !dynamicExamples.isEmpty()) {
+                successContext.put("dynamicExamples", dynamicExamples);
             }
 
             LogUtils.logDetailedSuccess(
@@ -392,10 +390,10 @@ public class AiComparisonService {
             ));
             result.put("search_time_ms", searchEndTime - searchStartTime);
             
-            // Generate response
+            // Generate response với temperature 0.3 cho OpenAI
             long responseStartTime = System.currentTimeMillis();
             String openaiResponse = aiResponseService.getAiResponseForComparison(
-                sessionId + "_openai", chatRequest, content, finalQueryOpenAI
+                sessionId + "_openai", chatRequest, content, finalQueryOpenAI, 0.3D
             );
 //            System.out.println("openaiResponse: " + openaiResponse);
             long responseEndTime = System.currentTimeMillis();
@@ -512,10 +510,10 @@ public class AiComparisonService {
             ));
             result.put("search_time_ms", searchEndTime - searchStartTime);
             
-            // Generate response
+            // Generate response với temperature 0.7 cho OpenRouter
             long responseStartTime = System.currentTimeMillis();
             String openrouterResponse = aiResponseService.getAiResponseForComparison(
-                sessionId + "_openrouter", chatRequest, content, finalQueryOpenRouter
+                sessionId + "_openrouter", chatRequest, content, finalQueryOpenRouter, 0.7D
             );
 //          System.out.println("openrouterResponse: " + openrouterResponse);
             long responseEndTime = System.currentTimeMillis();

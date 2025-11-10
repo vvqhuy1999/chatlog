@@ -13,6 +13,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import javax.sql.DataSource;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Configuration
 @EnableJpaRepositories(
@@ -25,6 +27,11 @@ import com.zaxxer.hikari.HikariDataSource;
     transactionManagerRef = "secondaryTransactionManager"
 )
 public class SecondaryDataSourceConfig {
+
+    private static final Logger logger = LoggerFactory.getLogger(SecondaryDataSourceConfig.class);
+    private static final int MAX_RETRY_ATTEMPTS = 5;
+    private static final long INITIAL_RETRY_DELAY_MS = 5000; // 5 seconds
+    private static final long MAX_RETRY_DELAY_MS = 30000; // 30 seconds
 
     @Bean
     @ConfigurationProperties("spring.secondary-datasource")
@@ -41,6 +48,58 @@ public class SecondaryDataSourceConfig {
     @Bean
     public DataSource secondaryDataSource() {
         DataSourceProperties properties = secondaryDataSourceProperties();
+        
+        // Retry logic for connection limit errors
+        Exception lastException = null;
+        for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+            try {
+                return createDataSource(properties);
+            } catch (Exception e) {
+                lastException = e;
+                String errorMessage = e.getMessage() != null ? e.getMessage() : "";
+                
+                if (errorMessage.contains("Max client connections reached")) {
+                    if (attempt < MAX_RETRY_ATTEMPTS) {
+                        // Exponential backoff: 5s, 10s, 20s, 30s, 30s
+                        long delay = Math.min(INITIAL_RETRY_DELAY_MS * (1L << (attempt - 1)), MAX_RETRY_DELAY_MS);
+                        logger.warn(
+                            "Max connections reached. Retry attempt {}/{} in {} seconds... " +
+                            "Waiting for idle connections to timeout. " +
+                            "Please check Supabase dashboard if this persists.",
+                            attempt, MAX_RETRY_ATTEMPTS, delay / 1000
+                        );
+                        try {
+                            Thread.sleep(delay);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException("Interrupted while waiting for connection", ie);
+                        }
+                        continue;
+                    } else {
+                        logger.error(
+                            "Failed to create datasource after {} attempts. " +
+                            "Max connections reached. Please:\n" +
+                            "1. Wait 2-5 minutes for idle connections to timeout\n" +
+                            "2. Check Supabase dashboard → Database → Connection Pooling\n" +
+                            "3. Close idle connections manually if needed\n" +
+                            "4. Ensure no other application instances are running",
+                            MAX_RETRY_ATTEMPTS
+                        );
+                        throw new IllegalStateException(
+                            "Cannot establish connection to Supabase after " + MAX_RETRY_ATTEMPTS + " attempts. " +
+                            "Max client connections reached. Please wait a few minutes for connections to timeout " +
+                            "or check Supabase dashboard to close idle connections.", e);
+                    }
+                }
+                // For other errors, throw immediately
+                throw e;
+            }
+        }
+        
+        throw new IllegalStateException("Failed to create datasource after retries", lastException);
+    }
+    
+    private DataSource createDataSource(DataSourceProperties properties) {
 
         // Validate credentials
         if (properties.getUsername() == null || properties.getUsername().isEmpty() ||
@@ -83,6 +142,18 @@ public class SecondaryDataSourceConfig {
         config.addDataSourceProperty("cachePrepStmts", "false");
         config.addDataSourceProperty("prepStmtCacheSize", "0");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "0");
+
+        // Additional Supabase connection pooler optimizations
+        config.addDataSourceProperty("socketTimeout", "30");
+        config.addDataSourceProperty("loginTimeout", "10");
+        config.addDataSourceProperty("tcpKeepAlive", "true");
+        
+        // Ensure connections are properly validated before use
+        config.setConnectionTestQuery("SELECT 1");
+        config.setValidationTimeout(5000);
+        
+        // Register MBeans for monitoring (can disable if not needed)
+        config.setRegisterMbeans(false);
 
         return new HikariDataSource(config);
     }

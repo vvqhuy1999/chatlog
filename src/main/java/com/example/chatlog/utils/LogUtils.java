@@ -212,8 +212,9 @@ public class LogUtils {
         if (context != null && !context.isEmpty()) {
             for (Map.Entry<String, Object> entry : context.entrySet()) {
                 String key = entry.getKey();
-                // Bỏ qua esPreview vì nó được xử lý riêng ở phần ES DATA PREVIEW
-                if ("esPreview".equals(key)) {
+                // Bỏ qua các field được xử lý riêng
+                if ("esPreview".equals(key) || "dynamicExamples".equals(key) || 
+                    "openaiEsData".equals(key) || "openrouterEsData".equals(key)) {
                     continue;
                 }
                 logEntry.append("\n   - ").append(key).append(": ");
@@ -274,12 +275,17 @@ public class LogUtils {
             }
         }
         
-        // Phần HYBRID SCORE DEBUG nếu có
+        // Phần DYNAMIC EXAMPLES (Vector Search Results) nếu có
         if (context != null) {
-            String hybridScoreDebug = (String) context.get("hybridScoreDebug");
-            if (hybridScoreDebug != null && !hybridScoreDebug.isEmpty()) {
-                logEntry.append("\n\n▶ HYBRID SCORE DEBUG:");
-                logEntry.append("\n").append(hybridScoreDebug.replace("\n", "\n   "));
+            String dynamicExamples = (String) context.get("dynamicExamples");
+            if (dynamicExamples != null && !dynamicExamples.isEmpty()) {
+                logEntry.append("\n\n▶ DYNAMIC EXAMPLES (Vector Search):");
+                // Giới hạn độ dài nếu quá dài
+                String examplesDisplay = dynamicExamples;
+                if (examplesDisplay.length() > 3000) {
+                    examplesDisplay = examplesDisplay.substring(0, 3000) + "...\n(truncated - see full output in console)";
+                }
+                logEntry.append("\n").append(examplesDisplay.replace("\n", "\n   "));
             }
         }
         

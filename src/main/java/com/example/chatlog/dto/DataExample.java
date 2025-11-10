@@ -1,8 +1,10 @@
 // src/main/java/com/example/chatlog/dto/DataExample.java
 package com.example.chatlog.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DataExample {
     private String question;
     private String[] keywords;
