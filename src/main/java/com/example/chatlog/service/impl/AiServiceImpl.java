@@ -1,10 +1,8 @@
 package com.example.chatlog.service.impl;
 
 import com.example.chatlog.dto.ChatRequest;
-import com.example.chatlog.dto.RequestBody;
 import com.example.chatlog.service.AiService;
 import com.example.chatlog.service.LogApiService;
-import com.example.chatlog.service.ModelConfigService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -13,48 +11,19 @@ import org.springframework.ai.chat.memory.repository.jdbc.JdbcChatMemoryReposito
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.multipart.MultipartFile;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+
 import java.util.Map;
 
 @Service
 public class AiServiceImpl implements AiService {
-  // Lưu trữ thông tin mapping của Elasticsearch index để tránh gọi lại nhiều lần
-  private static String fieldLog;
+
 
   // Client để giao tiếp với AI model (Spring AI)
   private final ChatClient chatClient;
 
   @Autowired
-  private LogApiService logApiService;
-  
-  @Autowired
-  private ModelConfigService modelConfigService;
-  
-  @Autowired
-  @Qualifier("openRouterChatClient")
-  private RestClient openRouterClient;
-  
-  // Các service mới được tách ra
-  @Autowired
-  private AiQueryService aiQueryService;
-  
-  @Autowired
   private AiComparisonService aiComparisonService;
-  
-  
-  @Autowired
-  private AiResponseService aiResponseService;
-
-  @Autowired
-  private QueryOptimizationService queryOptimizationService;
-  
-  @Autowired
-  private PerformanceMonitoringService performanceMonitoringService;
-
 
 
   /**
@@ -80,7 +49,7 @@ public class AiServiceImpl implements AiService {
 
   /**
    * Xử lý yêu cầu của người dùng trong chế độ so sánh, sử dụng cả OpenAI và OpenRouter
-   * Có tích hợp performance monitoring và optimization
+   * 🚀 SỬ DỤNG PARALLEL PROCESSING - OpenAI và OpenRouter chạy đồng thời
    * @param sessionId ID phiên chat để duy trì ngữ cảnh
    * @param chatRequest Yêu cầu từ người dùng
    * @return Kết quả so sánh giữa hai provider với metrics chi tiết
@@ -91,19 +60,20 @@ public class AiServiceImpl implements AiService {
     boolean success = false;
     
     try {
-      System.out.println("[AiServiceImpl] 🔄 Bắt đầu chế độ so sánh với optimization...");
+      System.out.println("[AiServiceImpl] 🚀 Bắt đầu chế độ so sánh với PARALLEL PROCESSING...");
       
-      // Gọi comparison service với đầy đủ tính năng mới
+      // ✅ SỬ DỤNG PARALLEL VERSION - OpenAI và OpenRouter chạy đồng thời
       Map<String, Object> result = aiComparisonService.handleRequestWithComparison(sessionId, chatRequest);
       
       // Thêm performance metadata vào kết quả
       long totalResponseTime = System.currentTimeMillis() - startTime;
       result.put("total_processing_time_ms", totalResponseTime);
       result.put("optimization_applied", true);
+      result.put("parallel_processing", true);
       
       success = true;
       
-      System.out.println("[AiServiceImpl] ✅ Comparison mode completed successfully in " + totalResponseTime + "ms");
+      System.out.println("[AiServiceImpl] ✅ Comparison mode (PARALLEL) completed successfully in " + totalResponseTime + "ms");
       return result;
       
     } catch (Exception e) {
@@ -119,10 +89,6 @@ public class AiServiceImpl implements AiService {
       
       return errorResult;
       
-    } finally {
-      // Ghi nhận performance metrics cho comparison mode
-      long responseTime = System.currentTimeMillis() - startTime;
-      performanceMonitoringService.recordRequest("handleRequestWithComparison", responseTime, success);
     }
   }
 

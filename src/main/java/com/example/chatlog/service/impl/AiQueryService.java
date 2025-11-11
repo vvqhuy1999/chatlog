@@ -26,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 /**
  * Service xử lý chuyển đổi query của người dùng sang Elasticsearch DSL
@@ -37,163 +38,28 @@ public class AiQueryService {
     @Autowired
     private LogApiService logApiService;
     
+    // ✅ Inject KnowledgeBaseIndexingService thay vì load lại file
+    @Autowired
+    private KnowledgeBaseIndexingService knowledgeBaseIndexingService;
+    
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper;
-    private List<DataExample> exampleLibrary;
     
     @Autowired
     public AiQueryService(ChatClient.Builder builder) {
         this.chatClient = builder.build();
         this.objectMapper = new ObjectMapper();
-        loadExampleLibrary();
     }
-    
+
     /**
-     * Load the example library from fortigate_queries_full.json
+     * Get the example library from KnowledgeBaseIndexingService
      */
-    private void loadExampleLibrary() {
-        try {
-            ClassPathResource resource = new ClassPathResource("fortigate_queries_full.json");
-            InputStream inputStream = resource.getInputStream();
-            this.exampleLibrary = objectMapper.readValue(inputStream, new TypeReference<List<DataExample>>() {});
-            System.out.println("[AiQueryService] ✅ Loaded " + exampleLibrary.size() + " examples from fortigate_queries_full.json");
-        } catch (IOException e) {
-            System.err.println("[AiQueryService] ❌ Failed to load example library: " + e.getMessage());
-            this.exampleLibrary = new ArrayList<>();
-        }
+    public List<DataExample> getExampleLibrary() {
+        return knowledgeBaseIndexingService.getExampleLibrary();
     }
     
-    /**
-     * Find relevant examples based on user query keywords
-     */
-    private List<DataExample> findRelevantExamples(String userQuery) {
-        System.out.println("\n🔍 ===== QUERY MATCHING PROCESS =====");
-        System.out.println("📝 User Query: \"" + userQuery + "\"");
-        
-        if (exampleLibrary == null || exampleLibrary.isEmpty()) {
-            System.out.println("❌ Knowledge base is empty or not loaded");
-            return new ArrayList<>();
-        }
-        
-        System.out.println("📚 Knowledge base contains " + exampleLibrary.size() + " examples");
-        
-        // Step 1: Extract keywords
-        String queryLower = userQuery.toLowerCase();
-        List<String> queryWords = Arrays.stream(queryLower.split("\\s+"))
-                .filter(word -> word.length() > 2) // Filter out short words
-                .collect(Collectors.toList());
-        
-        System.out.println("🔤 Step 1 - Extracted keywords: " + queryWords);
-        
-        // Step 2: Find matching examples with detailed logging
-        List<DataExample> matchingExamples = new ArrayList<>();
-        Map<DataExample, Integer> exampleScores = new HashMap<>();
-        
-        System.out.println("\n🔍 Step 2 - Searching through knowledge base:");
-        for (int i = 0; i < exampleLibrary.size(); i++) {
-            DataExample example = exampleLibrary.get(i);
-            if (example.getKeywords() == null) continue;
-            
-            int score = 0;
-            List<String> matchedKeywords = new ArrayList<>();
-            
-            System.out.printf("  📋 Example %d: %s\n", i + 1, 
-                example.getQuestion().substring(0, Math.min(60, example.getQuestion().length())) + "...");
-            System.out.printf("     Keywords: %s\n", String.join(", ", example.getKeywords()));
-            
-            // Calculate score for this example
-            for (String keyword : example.getKeywords()) {
-                for (String queryWord : queryWords) {
-                    boolean isMatch = keyword.toLowerCase().contains(queryWord) || 
-                                    queryWord.contains(keyword.toLowerCase());
-                    if (isMatch) {
-                        score++;
-                        matchedKeywords.add(keyword);
-                        System.out.printf("     ✅ Match: '%s' ↔ '%s'\n", queryWord, keyword);
-                    }
-                }
-            }
-            
-            if (score > 0) {
-                matchingExamples.add(example);
-                exampleScores.put(example, score);
-                System.out.printf("     🎯 Total Score: %d | Matched: %s\n", 
-                    score, String.join(", ", matchedKeywords));
-            } else {
-                System.out.printf("     ❌ No matches found\n");
-            }
-            System.out.println();
-        }
-        
-        System.out.println("📊 Step 3 - Sorting by relevance score:");
-        
-        // Step 3: Sort by score
-        List<DataExample> sortedExamples = matchingExamples.stream()
-                .sorted((e1, e2) -> {
-                    int score1 = exampleScores.get(e1);
-                    int score2 = exampleScores.get(e2);
-//                    System.out.printf("  🔄 Comparing: Score %d vs %d\n", score1, score2);
-                    return Integer.compare(score2, score1); // Descending order
-                })
-                .limit(5) // Return top 5 most relevant examples
-                .collect(Collectors.toList());
-        
-        System.out.println("\n🎯 Step 4 - Final Results (Top " + sortedExamples.size() + "):");
-        for (int i = 0; i < sortedExamples.size(); i++) {
-            DataExample example = sortedExamples.get(i);
-            int score = exampleScores.get(example);
-            System.out.printf("  %d. Score: %d | %s\n", 
-                i + 1, score, example.getQuestion());
-            System.out.printf("     Keywords: %s\n", 
-                String.join(", ", example.getKeywords()));
-        }
-        
-        System.out.println("✅ Query matching process completed\n");
-        return sortedExamples;
-    }
-    
-    /**
-     * Build dynamic examples string for the prompt
-     */
-    private String buildDynamicExamples(String userQuery) {
-        System.out.println("\n📝 ===== BUILDING DYNAMIC EXAMPLES =====");
-        System.out.println("🔍 Finding relevant examples for: \"" + userQuery + "\"");
-        
-        List<DataExample> relevantExamples = findRelevantExamples(userQuery);
-        
-        if (relevantExamples.isEmpty()) {
-            System.out.println("⚠️ No relevant examples found, using fallback message");
-            return "No specific examples found for this query type.";
-        }
-        
-        System.out.println("🔨 Building dynamic examples string for AI prompt:");
-        System.out.println("   - Found " + relevantExamples.size() + " relevant examples");
-        
-        StringBuilder examples = new StringBuilder();
-        examples.append("RELEVANT EXAMPLES FROM KNOWLEDGE BASE:\n\n");
-        
-        for (int i = 0; i < relevantExamples.size(); i++) {
-            DataExample example = relevantExamples.get(i);
-            System.out.printf("   📄 Adding Example %d: %s\n", 
-                i + 1, example.getQuestion().substring(0, Math.min(50, example.getQuestion().length())) + "...");
-            System.out.printf("      Keywords: %s\n", String.join(", ", example.getKeywords()));
-            
-            examples.append("Example ").append(i + 1).append(":\n");
-            examples.append("Question: ").append(example.getQuestion()).append("\n");
-            examples.append("Keywords: ").append(String.join(", ", example.getKeywords())).append("\n");
-            examples.append("Query: ").append(example.getQuery().toPrettyString()).append("\n\n");
-        }
-        
-        String result = examples.toString();
-        System.out.println("✅ Dynamic examples built successfully");
-        System.out.println("📏 Total length: " + result.length() + " characters");
-        System.out.println("📋 Preview (first 300 chars):");
-        System.out.println("   " + result.substring(0, Math.min(300, result.length())) + "...");
-        System.out.println("🎯 ===== DYNAMIC EXAMPLES COMPLETED =====\n");
-        
-        return result;
-    }
-    
+
+
     /**
      * Tạo chuỗi thông tin ngày tháng cho system message với các biểu thức thời gian tương đối của Elasticsearch
      */
@@ -227,135 +93,18 @@ public class AiQueryService {
     }
     
     /**
-     * Tạo Elasticsearch query từ yêu cầu của người dùng
-     * @param sessionId ID phiên chat
-     * @param chatRequest Yêu cầu từ người dùng
-     * @return RequestBody chứa query Elasticsearch
-     */
-    public RequestBody generateElasticsearchQuery(Long sessionId, ChatRequest chatRequest) {
-        LocalDateTime now = LocalDateTime.now();
-        String dateContext = generateDateContext(now);
-        
-        // Build dynamic examples from knowledge base
-        String dynamicExamples = buildDynamicExamples(chatRequest.message());
-        
-        // Use simplified QueryPromptTemplate with dynamic examples
-        String queryPrompt = com.example.chatlog.utils.QueryPromptTemplate.createQueryGenerationPrompt(
-            chatRequest.message(),
-            dateContext,
-            SchemaHint.getSchemaHint(),
-            SchemaHint.getRoleNormalizationRules(),
-            dynamicExamples
-        );
-        SystemMessage systemMessage = new SystemMessage(queryPrompt);
-        
-        List<String> schemaHints = SchemaHint.allSchemas();
-        String schemaContext = String.join("\n\n", schemaHints);
-        UserMessage schemaMsg = new UserMessage("Available schema hints:\n" + schemaContext);
-        UserMessage sampleLogMsg = new UserMessage("SAMPLE LOG (for inference):\n" + SchemaHint.examplelog());
-        UserMessage userMessage = new UserMessage(chatRequest.message());
-        
-        Prompt prompt = new Prompt(List.of(systemMessage, schemaMsg, sampleLogMsg, userMessage));
-        System.out.println("Prompt very long: " + prompt);
-        
-        ChatOptions chatOptions = ChatOptions.builder()
-            .temperature(0.0D)
-            .build();
-        
-        try {
-            String queryConversationId = sessionId + "_query_generation";
-            
-            System.out.println("[AiQueryService] 🤖 Đang gọi AI để tạo Elasticsearch query...");
-            
-            // Get raw response from AI
-            String rawResponse = chatClient
-                .prompt(prompt)
-                .options(chatOptions)
-                .advisors(advisorSpec -> advisorSpec.param(
-                    ChatMemory.CONVERSATION_ID, queryConversationId
-                ))
-                .call()
-                .content();
-            
-            System.out.println("[AiQueryService] Raw AI response: " + rawResponse);
-            
-            // Clean the response
-            String cleanedResponse = rawResponse.trim();
-            
-            // Remove markdown code blocks if present
-            if (cleanedResponse.startsWith("```json")) {
-                cleanedResponse = cleanedResponse.substring(7);
-            }
-            if (cleanedResponse.startsWith("```")) {
-                cleanedResponse = cleanedResponse.substring(3);
-            }
-            if (cleanedResponse.endsWith("```")) {
-                cleanedResponse = cleanedResponse.substring(0, cleanedResponse.length() - 3);
-            }
-            cleanedResponse = cleanedResponse.trim();
-            
-            System.out.println("[AiQueryService] Cleaned response: " + cleanedResponse);
-            
-            // Validate JSON syntax
-            try {
-                new ObjectMapper().readTree(cleanedResponse);
-                System.out.println("[AiQueryService] ✅ Valid JSON syntax");
-            } catch (Exception jsonException) {
-                System.out.println("[AiQueryService] ❌ Invalid JSON: " + jsonException.getMessage());
-                throw new RuntimeException("AI returned invalid JSON: " + cleanedResponse, jsonException);
-            }
-            
-            // Create RequestBody with the cleaned JSON
-            RequestBody requestBody = new RequestBody();
-            requestBody.setQuery(1); // Always set to 1 for search
-            requestBody.setBody(cleanedResponse);
-            
-            System.out.println("[AiQueryService] ✅ Generated valid query: " + cleanedResponse);
-            return requestBody;
-            
-        } catch (Exception e) {
-            System.out.println("[AiQueryService] ❌ ERROR: Failed to generate query: " + e.getMessage());
-            throw new RuntimeException("Failed to generate Elasticsearch query", e);
-        }
-    }
-    
-    /**
-     * Kiểm tra và sửa định dạng phần thân (body) JSON của truy vấn
-     */
-    public String checkBodyFormat(RequestBody requestBody) {
-        try {
-            JsonNode jsonNode = new ObjectMapper().readTree(requestBody.getBody());
-            
-            // Validate that it's a proper Elasticsearch query
-            if (!jsonNode.has("query") && !jsonNode.has("aggs")) {
-                System.out.println("[AiQueryService] ERROR: Missing 'query' or 'aggs' field!");
-                return "❌ AI model trả về query không hợp lệ. Cần có 'query' hoặc 'aggs' field.";
-            }
-            
-        } catch (Exception e) {
-            System.out.println("[AiQueryService] ERROR: Invalid JSON format from AI!");
-            System.out.println("[AiQueryService] Expected: JSON object with 'query' or 'aggs' field");
-            System.out.println("[AiQueryService] Received: " + requestBody.getBody());
-            System.out.println("[AiQueryService] Error details: " + e.getMessage());
-            return "❌ AI model trả về format không đúng. Cần JSON query (một object duy nhất), nhận được: " + requestBody.getBody();
-        }
-        
-        return null;
-    }
-    
-    /**
      * Thực hiện tìm kiếm Elasticsearch với retry logic
      */
     public String[] getLogData(RequestBody requestBody, ChatRequest chatRequest) {
         String query = requestBody.getBody();
-        
+
         // First try to fix common query structure issues
         String fixedQuery = fixQueryStructure(query);
         if (!fixedQuery.equals(query)) {
             System.out.println("[AiQueryService] 🔧 Query structure was automatically fixed");
             query = fixedQuery;
         }
-        
+
         // Validate query syntax before sending to Elasticsearch
         String validationError = validateQuerySyntax(query);
         if (validationError != null) {
@@ -368,34 +117,73 @@ public class AiQueryService {
                 query
             };
         }
-        
+
         try {
             System.out.println("[AiQueryService] Sending query to Elasticsearch: " + query);
-            String content = logApiService.search("logs-fortinet_fortigate.log-default*", query);
-            System.out.println("[AiQueryService] Elasticsearch response received successfully");
+            String content = logApiService.search("logs-*", query);
+            // System.out.println("[AiQueryService] Elasticsearch response received successfully");
+            
+            // 🔍 DEBUG: Kiểm tra response có phải empty hay error không
+            if (content == null || content.trim().isEmpty()) {
+                System.out.println("[AiQueryService] ⚠️ WARNING: Elasticsearch returned EMPTY response!");
+                return new String[]{
+                    "⚠️ Elasticsearch trả về response rỗng (empty)\n\nKiểm tra lại query hoặc dữ liệu trong Elasticsearch.",
+                    query
+                };
+            }
+            
+            // Kiểm tra xem response có chứa error không
+            if (content.contains("\"error\"") || content.contains("error_type")) {
+                System.out.println("[AiQueryService] ⚠️ WARNING: Elasticsearch returned ERROR in response!");
+                System.out.println("[AiQueryService] Response: " + content.substring(0, Math.min(200, content.length())));
+                return new String[]{
+                    "❌ Elasticsearch trả về lỗi:\n\n" + content,
+                    query
+                };
+            }
+            
+            // ✅ Kiểm tra xem có hits hoặc aggregations không
+            // CHỈ check hits empty NẾU KHÔNG CÓ aggregations (vì size:0 query sẽ có aggs thay vì hits)
+            boolean hasAggregations = content.contains("\"aggregations\"") || content.contains("\"aggs\"");
+            boolean hitsEmpty = content.contains("\"hits\":[]") || content.contains("\"hits\": []");
+
+            // Log trạng thái để debug
+            System.out.println("[AiQueryService] hasAggregations=" + hasAggregations + ", hitsEmpty=" + hitsEmpty);
+
+            if (hitsEmpty && !hasAggregations) {
+                System.out.println("[AiQueryService] ℹ️ INFO: Elasticsearch returned 0 results (no hits and no aggregations)");
+                return new String[]{
+                    "ℹ️ Không tìm thấy kết quả (0 hits) từ Elasticsearch.",
+                    query
+                };
+            }
+
+            
+            System.out.println("[AiQueryService] ✅ Valid response received with data");
             return new String[]{content, query};
+
         } catch (Exception e) {
             System.out.println("[AiQueryService] ERROR: Log API returned an error! " + e.getMessage());
-            
+
             // Parse error details từ Elasticsearch
             String errorDetails = extractElasticsearchError(e.getMessage());
             System.out.println("[AiQueryService] Parsed error details: " + errorDetails);
-            
+
             // Nếu là lỗi 400 Bad Request, thử sửa query bằng AI và retry một lần
             if (e.getMessage().contains("400") || e.getMessage().contains("Bad Request") ||
                 e.getMessage().contains("parsing_exception") || e.getMessage().contains("illegal_argument_exception")) {
-                
+
                 System.out.println("[AiQueryService] 🔄 Đang thử sửa query với AI và retry...");
-                
+
                 try {
                     // Lấy field mapping và tạo comparison prompt với error details
-                    String allFields = logApiService.getAllField("logs-fortinet_fortigate.log-default*");
+                    String allFields = logApiService.getAllField("logs-*");
                     String prevQuery = requestBody.getBody();
                     String userMess = chatRequest.message();
-                    
+
                      // Cải thiện prompt với error details cụ thể
                      String systemPrompt =
-                         com.example.chatlog.utils.PromptTemplate.getComparisonPrompt(
+                         com.example.chatlog.utils.QueryPromptTemplate.getComparisonPrompt(
                              allFields, prevQuery, userMess, generateDateContext(LocalDateTime.now())
                          )
                          + "\n\nROLE: You are an expert Elasticsearch DSL fixer.\n"
@@ -431,16 +219,16 @@ public class AiQueryService {
                          new SystemMessage(systemPrompt),
                          new UserMessage(userPrompt)
                      );
-                    
-                    
+
+
                     ChatOptions retryChatOptions = ChatOptions.builder()
                         .temperature(0.3D)
                         .build();
-                    
+
                     // Gọi AI để tạo query mới với isolate memory
                     String retryConversationId = "retry_" + System.currentTimeMillis();
                     String newQuery;
-                    
+
                     try {
                         // First try to get as RequestBody (normal flow)
                         RequestBody newRequestBody = chatClient.prompt(comparePrompt)
@@ -450,7 +238,7 @@ public class AiQueryService {
                             ))
                             .call()
                             .entity(new ParameterizedTypeReference<>() {});
-                        
+
                         // Đảm bảo query luôn là 1
                         if (newRequestBody.getQuery() != 1) {
                             newRequestBody.setQuery(1);
@@ -458,7 +246,7 @@ public class AiQueryService {
                         newQuery = newRequestBody.getBody();
                     } catch (Exception parseException) {
                         System.out.println("[AiQueryService] Failed to parse as RequestBody, trying raw JSON: " + parseException.getMessage());
-                        
+
                         // If RequestBody parsing fails, try to get raw JSON response
                         String rawResponse = chatClient.prompt(comparePrompt)
                             .options(retryChatOptions)
@@ -467,10 +255,10 @@ public class AiQueryService {
                             ))
                             .call()
                             .content();
-                        
+
                         // Clean and validate the raw JSON response
                         newQuery = rawResponse.trim();
-                        
+
                         // Remove any markdown code blocks if present
                         if (newQuery.startsWith("```json")) {
                             newQuery = newQuery.substring(7);
@@ -479,7 +267,7 @@ public class AiQueryService {
                             newQuery = newQuery.substring(0, newQuery.length() - 3);
                         }
                         newQuery = newQuery.trim();
-                        
+
                         // Validate that it's valid JSON
                         try {
                             new ObjectMapper().readTree(newQuery);
@@ -490,7 +278,7 @@ public class AiQueryService {
                         }
                      }
                      System.out.println("[AiQueryService] 🔧 Generated new query with error fix: " + newQuery);
-                     
+
                      // Validate syntax của query mới trước khi sử dụng
                      String newQueryValidationError = validateQuerySyntax(newQuery);
                      if (newQueryValidationError != null) {
@@ -504,7 +292,7 @@ public class AiQueryService {
                              query
                          };
                      }
-                     
+
                      // Kiểm tra xem query mới có khác query cũ không
                      if (newQuery.equals(prevQuery)) {
                          System.out.println("[AiQueryService] WARNING: New query is identical to failed query");
@@ -516,16 +304,16 @@ public class AiQueryService {
                              query
                          };
                      }
-                    
+
                     // Retry với query mới
                     System.out.println("[AiQueryService] 🔄 Đang thử lại với query đã sửa...");
-                    String retryContent = logApiService.search("logs-fortinet_fortigate.log-default*", newQuery);
+                    String retryContent = logApiService.search("logs-*", newQuery);
                     System.out.println("[AiQueryService] ✅ Retry successful with corrected query");
                     return new String[]{retryContent, newQuery};
-                    
+
                 } catch (Exception retryE) {
                     System.out.println("[AiQueryService] Retry also failed: " + retryE.getMessage());
-                    
+
                     // Determine if it's a parsing error or Elasticsearch error
                     String retryErrorDetails;
                     if (retryE.getMessage().contains("Cannot deserialize") || retryE.getMessage().contains("MismatchedInputException")) {
@@ -533,7 +321,7 @@ public class AiQueryService {
                     } else {
                         retryErrorDetails = extractElasticsearchError(retryE.getMessage());
                     }
-                    
+
                     return new String[]{
                         "❌ **Elasticsearch Error (After Retry)**\n\n" +
                             "Query ban đầu lỗi và query được sửa cũng không thành công.\n\n" +
@@ -544,7 +332,7 @@ public class AiQueryService {
                     };
                 }
             }
-            
+
             // Với các lỗi khác (không phải 400), trả lỗi trực tiếp
             return new String[]{
                 "❌ **Elasticsearch Error**\n\n" +
@@ -555,42 +343,9 @@ public class AiQueryService {
             };
         }
     }
-    
-    /**
-     * Kiểm tra xem kết quả từ Elasticsearch có rỗng không
-     */
-    public boolean isEmptyElasticsearchResult(String elasticsearchResponse) {
-        try {
-            JsonNode jsonNode = new ObjectMapper().readTree(elasticsearchResponse);
-            
-            boolean hasHits = false;
-            if (jsonNode.has("hits")) {
-                JsonNode hitsNode = jsonNode.get("hits");
-                if (hitsNode.has("total")) {
-                    JsonNode totalNode = hitsNode.get("total");
-                    if (totalNode.has("value") && totalNode.get("value").asLong() > 0) {
-                        hasHits = true;
-                    }
-                }
-                if (!hasHits && hitsNode.has("hits")) {
-                    JsonNode hitsArrayNode = hitsNode.get("hits");
-                    if (hitsArrayNode.isArray() && hitsArrayNode.size() > 0) {
-                        hasHits = true;
-                    }
-                }
-            }
-            
-            boolean hasAggregations = jsonNode.has("aggregations");
-            
-            // No-data ONLY when there are no hits AND no aggregations at all
-            return !hasHits && !hasAggregations;
-            
-        } catch (Exception e) {
-            System.out.println("[AiQueryService] Error parsing Elasticsearch response for empty check: " + e.getMessage());
-            return false; // If parse fails, do not block; let AI format
-        }
-    }
-    
+
+
+
     /**
      * Parse error message từ Elasticsearch để lấy thông tin chi tiết
      */
@@ -666,6 +421,13 @@ public class AiQueryService {
                             return "Bool should must be an array";
                         }
                     }
+                    
+                    if (boolNode.has("must_not")) {
+                        JsonNode mustNotNode = boolNode.get("must_not");
+                        if (!mustNotNode.isArray()) {
+                            return "Bool must_not must be an array";
+                        }
+                    }
                 }
             }
             
@@ -693,120 +455,133 @@ public class AiQueryService {
     }
     
     /**
-     * Attempt to fix common Elasticsearch query structure issues
+     * Attempt to fix query structure issues
      */
     private String fixQueryStructure(String query) {
         try {
+            // First try to heal basic JSON issues
+            String healedQuery = healJsonString(query);
+            
             ObjectMapper mapper = new ObjectMapper();
-            JsonNode jsonNode = mapper.readTree(query);
+            JsonNode jsonNode = mapper.readTree(healedQuery);
             
-            // Fix: Ensure bool must/should/filter are arrays
-            if (jsonNode.has("query") && jsonNode.get("query").has("bool")) {
-                JsonNode boolNode = jsonNode.get("query").get("bool");
-                ObjectNode fixedBoolNode = boolNode.deepCopy();
-                boolean needsFix = false;
-                
-                // Fix must field - should be array
-                if (boolNode.has("must") && !boolNode.get("must").isArray()) {
-                    ObjectNode mustArray = mapper.createObjectNode();
-                    mustArray.set("0", boolNode.get("must"));
-                    fixedBoolNode.set("must", mustArray);
-                    needsFix = true;
-                }
-                
-                // Fix should field - should be array
-                if (boolNode.has("should") && !boolNode.get("should").isArray()) {
-                    ObjectNode shouldArray = mapper.createObjectNode();
-                    shouldArray.set("0", boolNode.get("should"));
-                    fixedBoolNode.set("should", shouldArray);
-                    needsFix = true;
-                }
-                
-                if (needsFix) {
-                    ObjectNode fixedQuery = jsonNode.deepCopy();
-                    ObjectNode fixedQueryNode = fixedQuery.get("query").deepCopy();
-                    fixedQueryNode.set("bool", fixedBoolNode);
-                    fixedQuery.set("query", fixedQueryNode);
-                    
-                    String fixedQueryString = mapper.writeValueAsString(fixedQuery);
-                    System.out.println("[AiQueryService] Fixed query structure - converted must/should to arrays");
-                    return fixedQueryString;
-                }
+            // Fix: Ensure bool must/should/filter/must_not are arrays (recursively)
+            JsonNode fixedNode = fixNestedBoolClauses(jsonNode, mapper);
+            
+            String fixedQueryString = mapper.writeValueAsString(fixedNode);
+            if (!fixedQueryString.equals(healedQuery)) {
+                System.out.println("[AiQueryService] ✅ Fixed query structure - converted bool clauses to arrays");
+                System.out.println("[AiQueryService] 📝 Original length: " + query.length() + ", Fixed length: " + fixedQueryString.length());
             }
-            
-            // Fix: Move aggs from inside query to root level
-            if (jsonNode.has("query")) {
-                JsonNode queryNode = jsonNode.get("query");
-                
-                if (queryNode.has("aggs")) {
-                    JsonNode aggsNode = queryNode.get("aggs");
-                    
-                    // Create a new root object with aggs moved out
-                    ObjectNode fixedQuery = mapper.createObjectNode();
-                    ObjectNode newQueryNode = queryNode.deepCopy();
-                    newQueryNode.remove("aggs");
-                    fixedQuery.set("query", newQueryNode);
-                    fixedQuery.set("aggs", aggsNode);
-                    
-                    // Copy other root-level fields
-                    jsonNode.fieldNames().forEachRemaining(fieldName -> {
-                        if (!fieldName.equals("query") && !fieldName.equals("aggs")) {
-                            fixedQuery.set(fieldName, jsonNode.get(fieldName));
-                        }
-                    });
-                    
-                    String fixedQueryString = mapper.writeValueAsString(fixedQuery);
-                    System.out.println("[AiQueryService] Fixed query structure - moved aggs to root level");
-                    return fixedQueryString;
-                }
-            }
-            
-            return query; // No fixes needed
+            return fixedQueryString;
             
         } catch (Exception e) {
-            System.out.println("[AiQueryService] Failed to fix query structure: " + e.getMessage());
+            System.out.println("[AiQueryService] ❌ Failed to fix query structure: " + e.getMessage());
+            System.out.println("[AiQueryService] 📝 Query length: " + query.length());
             return query; // Return original query if fix fails
         }
     }
     
     /**
-     * Create and validate an Elasticsearch DSL query
+     * Attempt to heal basic JSON string issues
      */
-    public Map<String, Object> createAndValidateQuery(String queryBody) {
-        Map<String, Object> result = new HashMap<>();
-        
-        try {
-            // First try to fix common structure issues
-            String fixedQuery = fixQueryStructure(queryBody);
-            
-            // Validate the query syntax
-            String validationError = validateQuerySyntax(fixedQuery);
-            
-            if (validationError != null) {
-                result.put("success", false);
-                result.put("error", validationError);
-                result.put("query", queryBody);
-                result.put("fixed_query", fixedQuery);
-                return result;
-            }
-            
-            // Format the query for better readability
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode jsonNode = mapper.readTree(fixedQuery);
-            String formattedQuery = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonNode);
-            
-            result.put("success", true);
-            result.put("query", fixedQuery);
-            result.put("formatted_query", formattedQuery);
-            result.put("validation_message", "Query syntax is valid");
-            result.put("was_fixed", !fixedQuery.equals(queryBody));
-            
-        } catch (Exception e) {
-            result.put("success", false);
-            result.put("error", "Failed to process query: " + e.getMessage());
-            result.put("query", queryBody);
+    private String healJsonString(String json) {
+        if (json == null || json.isEmpty()) {
+            return json;
         }
         
-        return result;
+        // Count braces to find imbalances
+        int openBraces = 0;
+        int closeBraces = 0;
+        int openBrackets = 0;
+        int closeBrackets = 0;
+        
+        for (char c : json.toCharArray()) {
+            if (c == '{') openBraces++;
+            else if (c == '}') closeBraces++;
+            else if (c == '[') openBrackets++;
+            else if (c == ']') closeBrackets++;
+        }
+        
+        String healed = json;
+        
+        // Add missing closing braces
+        for (int i = 0; i < (openBraces - closeBraces); i++) {
+            healed += "}";
+        }
+        
+        // Add missing closing brackets
+        for (int i = 0; i < (openBrackets - closeBrackets); i++) {
+            healed += "]";
+        }
+        
+        if (!healed.equals(json)) {
+            System.out.println("[AiQueryService] 🔨 Healed JSON - Added " + (openBraces - closeBraces) + " braces and " + (openBrackets - closeBrackets) + " brackets");
+        }
+        
+        return healed;
     }
+    
+    /**
+     * Recursively fix nested bool clauses to ensure must/should/filter/must_not are arrays
+     */
+    private JsonNode fixNestedBoolClauses(JsonNode node, ObjectMapper mapper) {
+        if (node == null || node.isNull()) {
+            return node;
+        }
+        
+        if (node.isArray()) {
+            ArrayNode arrayNode = mapper.createArrayNode();
+            for (JsonNode item : node) {
+                arrayNode.add(fixNestedBoolClauses(item, mapper));
+            }
+            return arrayNode;
+        }
+        
+        if (node.isObject()) {
+            ObjectNode objectNode = mapper.createObjectNode();
+            
+            node.fields().forEachRemaining(entry -> {
+                String fieldName = entry.getKey();
+                JsonNode fieldValue = entry.getValue();
+                
+                // If this is a bool clause, fix it
+                if ("bool".equals(fieldName) && fieldValue.isObject()) {
+                    ObjectNode boolObject = mapper.createObjectNode();
+                    fieldValue.fields().forEachRemaining(boolEntry -> {
+                        String boolKey = boolEntry.getKey();
+                        JsonNode boolValue = boolEntry.getValue();
+                        
+                        if (("must".equals(boolKey) || "should".equals(boolKey) || 
+                             "filter".equals(boolKey) || "must_not".equals(boolKey))) {
+                            // These fields must be arrays
+                            if (boolValue.isArray()) {
+                                ArrayNode fixedArray = mapper.createArrayNode();
+                                for (JsonNode item : boolValue) {
+                                    fixedArray.add(fixNestedBoolClauses(item, mapper));
+                                }
+                                boolObject.set(boolKey, fixedArray);
+                            } else {
+                                // Convert to array
+                                ArrayNode arrayNode = mapper.createArrayNode();
+                                arrayNode.add(fixNestedBoolClauses(boolValue, mapper));
+                                boolObject.set(boolKey, arrayNode);
+                            }
+                        } else {
+                            boolObject.set(boolKey, fixNestedBoolClauses(boolValue, mapper));
+                        }
+                    });
+                    objectNode.set("bool", boolObject);
+                } else {
+                    objectNode.set(fieldName, fixNestedBoolClauses(fieldValue, mapper));
+                }
+            });
+            
+            return objectNode;
+        }
+        
+        return node;
+    }
+    
+
 }

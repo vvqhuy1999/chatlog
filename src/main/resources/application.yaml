@@ -3,27 +3,66 @@ server:
   port: 8080
 
 spring:
+  # Primary DataSource - Chat Database (Localhost)
   datasource:
     url: jdbc:postgresql://localhost:5432/chatlog
-    username: postgres
-    password: 123456
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 300000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+      pool-name: PrimaryHikariPool
+
+  # Secondary DataSource - Embedding Database (Supabase)
+  secondary-datasource:
+    url: jdbc:postgresql://aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0
+    username: ${SECONDARY_DATASOURCE_USERNAME}
+    password: ${SECONDARY_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 2
+      minimum-idle: 0
+      idle-timeout: 120000
+      connection-timeout: 30000
+      max-lifetime: 600000
+      leak-detection-threshold: 60000
+      connection-test-query: SELECT 1
+      validation-timeout: 5000
+      pool-name: SecondaryHikariPool
+      register-mbeans: false
+
   jpa:
     show-sql: true
     open-in-view: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 20
+          fetch_size: 50
+        cache:
+          use_second_level_cache: true
+          use_query_cache: true
     defer-datasource-initialization: true
 
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
+      embedding:
+        options:
+          model: text-embedding-3-small
       chat:
         options:
           model: gpt-4o-mini
+          temperature: 0.0
 
     openrouter:
       api-key: ${OPENROUTER_API_KEY}
@@ -31,7 +70,7 @@ spring:
       referer: ${OPENROUTER_REFERER:https://localhost:8080}
       chat:
         options:
-          model: x-ai/grok-4-fast:free
+          model: x-ai/grok-4-fast
           temperature: 0.5
           top-p: 1.0
           max-tokens: 4000
@@ -48,32 +87,14 @@ spring:
       max-interval: 5000
       multiplier: 2.0
 
+  cache:
+    type: simple
+    cache-names: elasticsearch_queries,ai_responses,schema_mappings,query_patterns,session_contexts,enhanced_examples,query_analysis
+
 elastic:
   api:
     key: ${ELASTIC_API_KEY}
     url: ${ELASTIC_URL}
-
-  datasource:
-    hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      idle-timeout: 300000
-      connection-timeout: 30000
-      leak-detection-threshold: 60000
-  
-  cache:
-    type: simple
-    cache-names: elasticsearch_queries,ai_responses,schema_mappings,query_patterns,session_contexts
-    
-  jpa:
-    properties:
-      hibernate:
-        jdbc:
-          batch_size: 20
-          fetch_size: 50
-        cache:
-          use_second_level_cache: true
-          use_query_cache: true
 
 # Monitoring configuration
 management:
@@ -93,5 +114,7 @@ management:
 logging:
   level:
     com.example.chatlog: INFO
+    com.example.chatlog.service.impl.VectorSearchService: DEBUG
     org.springframework.ai: WARN
     org.hibernate.SQL: ERROR
+    com.zaxxer.hikari: DEBUG

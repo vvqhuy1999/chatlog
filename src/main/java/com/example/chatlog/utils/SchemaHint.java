@@ -6,13 +6,7 @@ public class SchemaHint {
 
   /**
    * Schema hint chính cho Fortinet integration theo ECS fields
-   * Tương đương với SCHEMA_HINT trong Python
    */
-  /**
-   * Schema hint chính cho Fortinet integration theo ECS fields
-   * Tương đương với SCHEMA_HINT trong Python
-   */
-
   public static String getSchemaHint() {
     return """
       // Index pattern: {index}.
@@ -629,7 +623,7 @@ public class SchemaHint {
       - elastic_agent.snapshot (boolean, whether elastic agent is snapshot)
       - elastic_agent.version (keyword, elastic agent version)
       - event (object, event information)
-      - event.action (keyword, e.g., "login", "logout", "accept", "deny", "close", "server-rst", "client-rst", "dns", "timeout", "ssl-anomaly", "logged-on", "signature", "logged-off", "ssh_login", "Health Check")
+      - event.action (Edit, Delete, Add ...)
       - event.agent_id_status (keyword, agent ID status)
       - event.category (keyword, event category group)
       - event.code (keyword, event code)
@@ -709,7 +703,7 @@ public class SchemaHint {
       - destination.as (object, destination autonomous system information)
       - destination.as.number (long, destination ASN number)
       - destination.as.organization (object, destination AS organization)
-      - destination.as.organization.name (keyword, external organization name, e.g., "Google LLC", "Amazon.com", "Microsoft Corporation")
+      - destination.as.organization.name (keyword, external organization name, e.g.)
       - destination.as.organization.name.text (text, destination AS organization name as text field)
       - destination.bytes (long, bytes sent to destination)
       - destination.domain (keyword, destination domain/hostname)
@@ -887,93 +881,6 @@ public class SchemaHint {
 
 
   /**
-   * Chuẩn hóa roles thành format chuẩn
-   * Ví dụ: admin, ad, Admin, administrator -> Administrator
-   */
-  public static String normalizeRole(String role) {
-    if (role == null || role.trim().isEmpty()) {
-      return role;
-    }
-
-    String normalized = role.trim().toLowerCase();
-
-    // Chuẩn hóa các biến thể của Administrator
-    switch (normalized) {
-      case "admin":
-      case "ad":
-      case "administrator":
-        return "Administrator";
-      default:
-        // Giữ nguyên format gốc nhưng chuẩn hóa chữ hoa đầu
-        return role.trim().substring(0, 1).toUpperCase() +
-            role.trim().substring(1).toLowerCase();
-    }
-  }
-
-  /**
-   * Trả về danh sách schema hints (chỉ có một schema duy nhất)
-   */
-  public static List<String> allSchemas() {
-    return List.of(getCategoryGuides());
-  }
-
-  /**
-   * Hướng dẫn ngắn gọn theo 8 category (mục tiêu: ngắn, dễ dùng trong prompt)
-   */
-  public static String getCategoryGuides() {
-    return """
-      SCHEMA CATEGORIES GUIDE (use exact field names):
-
-      1) APPLICATION/URL/DNS/HTTP/TLS
-         - Purpose: app-level questions (domains, URLs, TLS details)
-         - Key: url.*, dns.question.*, http.request.*, tls.*
-         - Examples: top domains, TLS versions, HTTP methods
-
-      2) DEVICE/HOST/CONTAINER/CLOUD
-         - Purpose: asset identity and platform
-         - Key: host.*, container.*, cloud.*, observer.*
-         - Examples: by host.name, cloud.instance.id, observer.name
-
-      3) FORTINET/FIREWALL METADATA
-         - Purpose: FortiGate-specific context (policy, action, IPS)
-         - Key: fortinet.firewall.* (action, policyid, ruleid, attack, crlevel)
-         - Examples: filter by action deny/allow, policyid, top attacks
-
-      4) LOG/EVENT/RULE METADATA
-         - Purpose: generic event and rule info
-         - Key: @timestamp, event.*, rule.*, log.*
-         - Examples: time filters, rule.name group-by, event.action
-
-      5) MISC/OTHER
-         - Purpose: supplemental fields
-         - Key: file.*, related.*, tags, threat.*, vulnerability.*
-         - Examples: correlate by related.ip, file.name
-
-      6) NETWORK & TRAFFIC
-         - Purpose: conversations, bytes/packets, direction
-         - Key: source.*, destination.*, network.* (bytes, packets, direction)
-         - Examples: top destination.ip by bytes; outbound/inbound/internal
-
-      7) THREAT/SECURITY (IPS)
-         - Purpose: detections, signatures, risk
-         - Key: fortinet.firewall.attack, attackid, crlevel
-         - Examples: top signatures, risk distribution, high/critical
-
-      8) USER/IDENTITY/EMAIL
-         - Purpose: user-centric queries
-         - Key: user.*, source.user.*, destination.user.*, email.*
-         - Examples: logs by user.name, role = Administrator
-
-      NOTE:
-      - Normalize roles: admin/ad/administrator → Administrator
-      - Prefer bool.filter for exact matches and ranges
-      - Time ranges: use now-<X> (e.g., now-24h, now-7d) with @timestamp
-      - For counting: use aggs.value_count on @timestamp and size: 0
-      - For ranking: use terms agg and optional sum(network.bytes/packets)
-      """;
-  }
-
-  /**
    * Trả về role normalization rules để sử dụng trong AI prompt
    */
   public static String getRoleNormalizationRules() {
@@ -986,80 +893,61 @@ public class SchemaHint {
   }
 
   /**
-   * Trả về example query cho admin roles
+   * Quy tắc viết hoa cho fortinet.firewall.action
    */
-  public static String getAdminRoleExample() {
+  public static String getFortinetActionRules() {
     return """
-        Question: "hôm ngày 11-09 có roles admin nào vào hệ thống hay ko?"
-        Response: {"body":"{\\"query\\":{\\"bool\\":{\\"must\\":[{\\"term\\":{\\"source.user.roles\\":\\"Administrator\\"}},{\\"range\\":{\\"@timestamp\\":{\\"gte\\":\\"2025-09-11T00:00:00.000+07:00\\",\\"lte\\":\\"2025-09-11T23:59:59.999+07:00\\"}}}]}} ,\\"size\\":50}","query":1}
-        """;
-  }
-
-
-
-
-
-
-  /**
-   * Quick reference cho các pattern phổ biến
-   */
-  public static String getQuickPatterns() {
-    return """
-        🚀 QUICK PATTERNS REFERENCE:
+        === FORTINET ACTION CAPITALIZATION RULES (CRITICAL) ===
         
-        📋 BASIC SEARCHES:
-        • User logs: {"query":{"bool":{"filter":[{"term":{"source.user.name":"USERNAME"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
-        • Admin activity: {"query":{"bool":{"filter":[{"term":{"source.user.roles":"Administrator"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
-        • Blocked traffic: {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.action":"deny"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
+        When using field: fortinet.firewall.action
         
-        📊 COUNTING QUERIES:
-        • Count total: {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"total":{"value_count":{"field":"@timestamp"}}},"size":0}
-        • Count by user: {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"by_user":{"terms":{"field":"source.user.name"}}},"size":0}
+        🔤 CAPITALIZATION RULES - MUST FOLLOW EXACTLY:
         
-        🔍 ANALYSIS QUERIES:
-        • Users for IP: {"query":{"bool":{"filter":[{"term":{"source.ip":"10.6.99.78"}}]}},"aggs":{"users":{"terms":{"field":"source.user.name","size":50}}},"size":0}
-        • IPs for user: {"query":{"bool":{"filter":[{"term":{"source.user.name":"USERNAME"}}]}},"aggs":{"ips":{"terms":{"field":"source.ip","size":50}}},"size":0}
+        ✅ CAPITALIZE FIRST LETTER (chữ cái đầu viết hoa):
+           - "Edit"   (NOT "edit", "EDIT", "eDit")
+           - "Add"    (NOT "add", "ADD", "aDD")
+           - "Delete" (NOT "delete", "DELETE", "dELETE")
+           - "Move"   (NOT "move", "MOVE", "mOVE")
         
-        🔝 TOP RANKINGS:
-        • Top destinations: {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_dst":{"terms":{"field":"destination.ip","size":50}}},"size":0}
-        • Top rules: {"query":{"range":{"@timestamp":{"gte":"now-24h"}}},"aggs":{"top_rules":{"terms":{"field":"rule.name","size":50}}},"size":0}
+        ✅ ALL LOWERCASE (viết thường hoàn toàn):
+           - "allow"  (NOT "Allow", "ALLOW")
+           - "deny"   (NOT "Deny", "DENY")
+           - "accept" (NOT "Accept", "ACCEPT")
+           - "reject" (NOT "Reject", "REJECT")
+           - "close"  (NOT "Close", "CLOSE")
+           - "timeout" (NOT "Timeout", "TIMEOUT")
+           - "ipsec"  (NOT "Ipsec", "IPSEC")
+           - All other actions → lowercase
         
-        🌍 GEOGRAPHIC:
-        • Vietnam outbound: [Moved to QueryTemplates.OUTBOUND_CONNECTIONS_FROM_VIETNAM]
+        📝 CORRECT QUERY EXAMPLES:
+        ✅ {"term": {"fortinet.firewall.action": "Edit"}}     // Configuration change
+        ✅ {"term": {"fortinet.firewall.action": "Add"}}      // Add new config
+        ✅ {"term": {"fortinet.firewall.action": "Delete"}}   // Remove config
+        ✅ {"term": {"fortinet.firewall.action": "Move"}}     // Move config
+        ✅ {"term": {"fortinet.firewall.action": "allow"}}    // Firewall allow traffic
+        ✅ {"term": {"fortinet.firewall.action": "deny"}}     // Firewall deny traffic
         
-        🔄 NAT QUERIES:
-        • DNAT to server: [See QueryTemplates.getDnatSessionsToInternalServer()]
-        • SNAT from IP: {"query":{"bool":{"filter":[{"term":{"fortinet.firewall.trandisp":"snat"}},{"term":{"source.ip":"192.168.1.100"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
+        ❌ INCORRECT QUERY EXAMPLES:
+        ❌ {"term": {"fortinet.firewall.action": "edit"}}     // Wrong: must be "Edit"
+        ❌ {"term": {"fortinet.firewall.action": "EDIT"}}     // Wrong: must be "Edit"
+        ❌ {"term": {"fortinet.firewall.action": "Allow"}}    // Wrong: must be "allow"
+        ❌ {"term": {"fortinet.firewall.action": "ALLOW"}}    // Wrong: must be "allow"
         
-        🔐 PROTOCOL QUERIES:
-        • RDP from WAN: [Moved to QueryTemplates.RDP_TRAFFIC_FROM_WAN]
-        • SSH to server: {"query":{"bool":{"filter":[{"term":{"destination.port":22}},{"term":{"destination.ip":"10.0.0.10"}},{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
+        🎯 USER INTENT MAPPING (Vietnamese → English):
+        - "sửa", "chỉnh sửa", "thay đổi config" → "Edit"
+        - "thêm", "tạo mới", "add config" → "Add"
+        - "xóa", "gỡ bỏ", "delete config" → "Delete"
+        - "di chuyển", "move config" → "Move"
+        - "cho phép", "thông qua", "allow traffic" → "allow"
+        - "chặn", "từ chối", "block traffic" → "deny"
         
-        🚨 SECURITY THREAT DETECTION:
-        • Brute force login: [Moved to QueryTemplates.BRUTE_FORCE_DETECTION]
-        • Port scanning: [Moved to QueryTemplates.PORT_SCAN_DETECTION]
-        • Data exfiltration: [Moved to QueryTemplates.DATA_EXFILTRATION_DETECTION]
-        • Excessive admin port connections 15m: [Moved to QueryTemplates.EXCESSIVE_ADMIN_PORT_CONNECTIONS]
-        • Blocked ICMP by user 1h: [Moved to QueryTemplates.BLOCKED_ICMP_BY_USER]
+        ⚠️ VALIDATION BEFORE GENERATING QUERY:
+        1. Check if action is in ["Edit", "Add", "Delete", "Move"]
+           → YES: Use capitalized first letter
+           → NO: Use all lowercase
+        2. NEVER use all uppercase (EDIT, ALLOW, DENY)
+        3. NEVER mix cases (eDit, aLLow)
         
-        ⚙️ CONFIGURATION MONITORING:
-        • Policy changes: [Moved to QueryTemplates.FIREWALL_RULE_CHANGES]
-        • Interface changes: [Moved to QueryTemplates.WAN_INTERFACE_CHANGES]
-        • Shaping policy: [Moved to QueryTemplates.SHAPING_POLICY_CHANGES]
-        • CNHN_ZONE changes: {"query":{"bool":{"filter":[{"term":{"source.user.name":"tanln"}},{"match":{"message":"CNHN_ZONE"}},{"exists":{"field":"fortinet.firewall.cfgattr"}}]}},"_source":["@timestamp","source.user.name","source.ip","message","fortinet.firewall.cfgattr"],"sort":[{"@timestamp":"asc"}],"size":200}
-
-        
-        🚫 BLOCKED ACTIVITIES:
-        • SSH blocked: [Moved to QueryTemplates.BLOCKED_SSH_CONNECTIONS_BY_USER]
-        • RDP blocked: [Moved to QueryTemplates.BLOCKED_RDP_FROM_LAN]
-        • P2P blocked: [Moved to QueryTemplates.BLOCKED_P2P_TRAFFIC]
-        • Shaping policy drop on device: [See QueryTemplates.getDroppedTrafficByShapingPolicy()]
-
-
-        👤 USER-LEVEL SECURITY QUERIES:
-        • User login failures 48h: [See QueryTemplates.getFailedLoginsByUser()]
-        • Admin login from foreign 48h: [Moved to QueryTemplates.ADMIN_LOGINS_FROM_FOREIGN_COUNTRIES]
-
         """;
   }
 
