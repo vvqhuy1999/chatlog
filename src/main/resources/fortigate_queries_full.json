@@ -647,7 +647,7 @@
           "filter": [
             {
               "term": {
-                "network.protocol": "icmp"
+                "network.protocol": "ping"
               }
             },
             {
@@ -1654,7 +1654,7 @@
           "filter": [
             {
               "term": {
-                "network.protocol": "icmp"
+                "network.protocol": "ping"
               }
             },
             {
@@ -3056,7 +3056,7 @@
         "icmp_traffic": {
           "filter": {
             "term": {
-              "network.protocol": "icmp"
+              "network.protocol": "ping"
             }
           },
           "aggs": {
@@ -3179,7 +3179,7 @@
             {
               "terms": {
                 "network.protocol": [
-                  "icmp",
+                  "ping",
                   "dns",
                   "http",
                   "https"
@@ -14733,7 +14733,7 @@
             },
             {
               "term": {
-                "network.protocol": "icmp"
+                "network.protocol": "ping"
               }
             }
           ]

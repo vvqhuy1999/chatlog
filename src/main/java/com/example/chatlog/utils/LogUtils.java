@@ -214,7 +214,8 @@ public class LogUtils {
                 String key = entry.getKey();
                 // Bỏ qua các field được xử lý riêng
                 if ("esPreview".equals(key) || "dynamicExamples".equals(key) || 
-                    "openaiEsData".equals(key) || "openrouterEsData".equals(key)) {
+                    "openaiEsData".equals(key) || "openrouterEsData".equals(key) ||
+                    "openaiDslQuery".equals(key) || "openrouterDslQuery".equals(key)) {
                     continue;
                 }
                 logEntry.append("\n   - ").append(key).append(": ");
@@ -233,16 +234,29 @@ public class LogUtils {
             logEntry.append("\n   No context provided");
         }
 
-        // Phần ES DATA PREVIEW giữ nguyên nhưng đảm bảo labels rõ ràng (OpenAI ES và OpenRouter ES)
-        logEntry.append("\n\n▶ ES DATA PREVIEW:");
-        String esPreview = (String) context.get("esPreview");
-        if (esPreview != null && !esPreview.isEmpty()) {
-            if (esPreview.length() > 1000) {
-                esPreview = esPreview.substring(0, 1000) + "... (preview truncated)";
+        // Phần DSL QUERIES từ 2 AI
+        logEntry.append("\n\n▶ DSL QUERIES:");
+        String openaiDslQuery = context != null && context.get("openaiDslQuery") != null ? context.get("openaiDslQuery").toString() : null;
+        String openrouterDslQuery = context != null && context.get("openrouterDslQuery") != null ? context.get("openrouterDslQuery").toString() : null;
+        
+        if (openaiDslQuery != null && !openaiDslQuery.equals("N/A")) {
+            String query = openaiDslQuery;
+            if (query.length() > 800) {
+                query = query.substring(0, 800) + "... (truncated)";
             }
-            logEntry.append("\n   " + esPreview.replace("\n", "\n   "));
+            logEntry.append("\n   OpenAI DSL: ").append(query.replace("\n", " "));
         } else {
-            logEntry.append("\n   No ES data available (OpenAI ES: N/A | OpenRouter ES: N/A)");
+            logEntry.append("\n   OpenAI DSL: N/A");
+        }
+        
+        if (openrouterDslQuery != null && !openrouterDslQuery.equals("N/A")) {
+            String query = openrouterDslQuery;
+            if (query.length() > 800) {
+                query = query.substring(0, 800) + "... (truncated)";
+            }
+            logEntry.append("\n   OpenRouter DSL: ").append(query.replace("\n", " "));
+        } else {
+            logEntry.append("\n   OpenRouter DSL: N/A");
         }
 
         // Hiển thị dữ liệu chi tiết theo từng nguồn nếu có (đã cắt ngắn)

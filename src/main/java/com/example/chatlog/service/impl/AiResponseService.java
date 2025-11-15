@@ -77,20 +77,7 @@ public class AiResponseService {
                 - CRITICAL: Only respond "không có dữ liệu" if hits.hits is empty [] AND no aggregations exist. If hits.hits has data, you MUST use it even if total.value is large.
                 - If required fields are missing in results: Use available fields and note "Một số trường dữ liệu không khả dụng trong kết quả."
                 - If index not found: Respond with "Không tìm thấy index dữ liệu. Vui lòng kiểm tra tên index hoặc khoảng thời gian."
-                - NEVER generate fake data when errors occur
-                                
-                TIME RANGE HANDLING:
-                - "hôm nay" / "today": {"range": {"@timestamp": {"gte": "now/d", "lte": "now"}}}
-                - "hôm qua" / "yesterday": {"range": {"@timestamp": {"gte": "now-1d/d", "lte": "now-1d/d"}}}
-                - "tuần này" / "this week": {"range": {"@timestamp": {"gte": "now/w", "lte": "now"}}}
-                - "tuần trước" / "last week": {"range": {"@timestamp": {"gte": "now-1w/w", "lte": "now-1w/w"}}}
-                - "tháng này" / "this month": {"range": {"@timestamp": {"gte": "now/M", "lte": "now"}}}
-                - "tháng trước" / "last month": {"range": {"@timestamp": {"gte": "now-1M/M", "lte": "now-1M/M"}}}
-                - "24h qua" / "last 24h": {"range": {"@timestamp": {"gte": "now-24h", "lte": "now"}}}
-                - "7 ngày qua" / "last 7 days": {"range": {"@timestamp": {"gte": "now-7d", "lte": "now"}}}
-                - "30 ngày qua" / "last 30 days": {"range": {"@timestamp": {"gte": "now-30d", "lte": "now"}}}
-                - Always use @timestamp field for time filtering
-                - If user specifies exact date/time, convert to ISO8601 format with Vietnam timezone (+07:00)
+                - NEVER generate fake data when errors occur       
                                 
                 QUERY SIZE & PERFORMANCE RULES:
                 - Default size: 200 for detailed queries (unless aggregation-only)
@@ -154,7 +141,6 @@ public class AiResponseService {
                 - Mức rủi ro: fortinet.firewall.crlevel (if available)
                 - Tấn công: fortinet.firewall.attack (if available)
                 - Nếu fortinet.firewall.cfgattr tồn tại hoặc câu hỏi liên quan đến CNHN_ZONE/cfgattr:
-                  • QUERY PATTERN: {"query":{"bool":{"filter":[{"term":{"source.user.name":"tanln"}},{"match":{"message":"CNHN_ZONE"}}]}},"sort":[{"@timestamp":"asc"}],"size":200}
                   • Phân tích chuỗi cfgattr theo quy tắc:
                     1) Tách hai phần trước và sau "->" thành hai danh sách
                     2) Trước khi tách, loại bỏ tiền tố "interface[" (nếu có) và dấu "]" ở cuối (nếu có)
