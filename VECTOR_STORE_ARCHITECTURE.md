@@ -1,4 +1,4 @@
-# 🏗️ Vector Store Architecture - Chi Tiết Quá Trình Chuyển Thành Vector Database
+# 🏗️ Vector Store Architecture - PostgreSQL/Supabase Implementation
 
 ## 📚 Mục Lục
 1. [Khái Niệm Cơ Bản](#khái-niệm-cơ-bản)
@@ -17,9 +17,9 @@ Vector là **một mảng số** đại diện cho **ý nghĩa** của một đo
 
 ```
 Text: "Show failed authentication attempts"
-                      ↓
-            Embedding Model (AI)
-                      ↓
+                  ↓
+        Embedding Model (AI)
+                  ↓
 Vector: [-0.234, 0.891, -0.456, 0.123, ... ] ← 1536 con số (OpenAI)
 ```
 
@@ -32,7 +32,7 @@ Vector: [-0.234, 0.891, -0.456, 0.123, ... ] ← 1536 con số (OpenAI)
 - ✅ Trả ra vector đó
 
 **Ví dụ:**
-- OpenAI text-embedding-3-small: 1536 dimensions
+- OpenAI text-embedding-3-small: 1536 dimensions (dự án này sử dụng)
 - OpenAI text-embedding-3-large: 3072 dimensions
 - Google PaLM Embedding: 768 dimensions
 
@@ -49,10 +49,8 @@ Vector: [-0.234, 0.891, -0.456, 0.123, ... ] ← 1536 con số (OpenAI)
 │      Tất cả file JSON trong        │
 │     src/main/resources/            │
 ├─────────────────────────────────────┤
-│ 📄 fortigate_queries_full.json      │ → 500+ câu hỏi
-│ 📄 advanced_security_scenarios.json │ → 200+ câu hỏi
-│ 📄 network_forensics_performance.json
-│ 📄 ... (8 file khác)               │
+│ 📄 fortigate_queries_full.json      │ → 184+ câu hỏi
+│ 📄 ... (các file khác)              │
 └─────────────────────────────────────┘
 ```
 
@@ -72,10 +70,6 @@ Vector: [-0.234, 0.891, -0.456, 0.123, ... ] ← 1536 con số (OpenAI)
       }
     }
   },
-  {
-    "question": "Display unsuccessful login events",
-    "query": { ... }
-  },
   ...
 ]
 ```
@@ -93,21 +87,20 @@ Vector: [-0.234, 0.891, -0.456, 0.123, ... ] ← 1536 con số (OpenAI)
    ↓
 3️⃣ VectorStoreConfig bean được tạo
    ├─ Tạo EmbeddingModel từ OpenAI API
-   ├─ Tạo SimpleVectorStore (bộ nhớ)
-   └─ Kiểm tra: vector_store.json có tồn tại?
-      │
-      ├─→ CÓ: Load dữ liệu từ file
-      │       ↓
-      │       Xong! (⚡ 1-2 giây)
-      │
-      └─→ KHÔNG: Tiếp tục sang Bước 3
+   ├─ Tạo SimpleVectorStore (in-memory cache)
+   └─ Log: "Embeddings persisted in PostgreSQL/Supabase"
+   ↓
+4️⃣ KnowledgeBaseIndexingService.indexKnowledgeBase() triggered
+   ├─ Check: countBySourceFile() vs file entries
+   ├─ If fileCount == dbCount: Skip file ✅
+   └─ If fileCount > dbCount: Process new entries only
 ```
 
 ---
 
 ### 📌 **Bước 3: Vector Hóa Dữ Liệu (Embedding Process)** ⭐ **QUAN TRỌNG**
 
-**Giai đoạn:** Lần đầu ứng dụng chạy, nếu chưa có `vector_store.json`
+**Giai đoạn:** Lần đầu ứng dụng chạy hoặc có entries mới
 
 **Chi tiết:**
 
@@ -120,7 +113,12 @@ for (String fileName : knowledgeBaseFiles) {
        ↓
     2️⃣ Parse thành List<DataExample>
        ↓
-    3️⃣ FOR EACH DataExample:
+    3️⃣ So sánh count: fileCount vs dbCount
+       ├─ If fileCount == dbCount: Skip file ✅
+       └─ If fileCount > dbCount: Process new entries
+       ↓
+    4️⃣ FOR EACH new DataExample:
+       ├─ Check duplicate: existsByContent()
        ├─ Lấy: example.getQuestion()
        │   ↓ "Show failed authentication attempts"
        │
@@ -140,10 +138,10 @@ for (String fileName : knowledgeBaseFiles) {
        │   └─→ Trả về vector
        │       Vector: [-0.234, 0.891, -0.456, ...]
        │
-       └─ Tạo Document object
+       └─ Lưu vào PostgreSQL/Supabase
            ├─ content: "Show failed authentication attempts"
-           ├─ embedding: [-0.234, 0.891, -0.456, ...]
-           └─ metadata:
+           ├─ embedding: vector(1536) ← pgvector type
+           └─ metadata (JSONB):
               ├─ question: "Show failed authentication attempts"
               ├─ query_dsl: {...elasticsearch query...}
               └─ source_file: "fortigate_queries_full.json"
@@ -152,7 +150,8 @@ for (String fileName : knowledgeBaseFiles) {
 
 **⏱️ Thời gian:**
 - Mỗi question: ~100-200ms (phụ thuộc mạng)
-- 2300 questions: **~30-60 phút** (nếu có rate limiting)
+- 184 questions: **~20-40 phút** (nếu có rate limiting)
+- **Optimized:** Chỉ xử lý entries mới, không tái tạo
 
 ---
 
@@ -161,45 +160,29 @@ for (String fileName : knowledgeBaseFiles) {
 **Giai đoạn:** Sau khi vector hóa xong
 
 ```
-SimpleVectorStore (in-memory)
+PostgreSQL/Supabase Database
    │
-   ├─ Document 1: {content, embedding, metadata}
-   ├─ Document 2: {content, embedding, metadata}
-   ├─ Document 3: {content, embedding, metadata}
-   └─ ... (2300+ documents)
-   
-   ↓ vectorStore.save(vectorStoreFile)
-   
-vector_store.json (file trên disk)
-   
-   JSON structure:
-   {
-     "documents": [
-       {
-         "content": "Show failed authentication attempts",
-         "embedding": [-0.234, 0.891, -0.456, ...],  ← 1536 số!
-         "metadata": {
-           "question": "Show failed authentication attempts",
-           "query_dsl": "{...}",
-           "source_file": "fortigate_queries_full.json"
-         }
-       },
-       {
-         "content": "Display unsuccessful login events",
-         "embedding": [-0.245, 0.885, -0.450, ...],  ← Khác 1 chút
-         "metadata": {...}
-       },
-       ...
-     ]
-   }
-   
-   📊 File size: ~50-200 MB (tùy số documents)
+   └─ Table: ai_embedding
+      ├─ id (UUID)
+      ├─ content (TEXT)
+      ├─ embedding (vector(1536)) ← pgvector extension
+      ├─ metadata (JSONB)
+      ├─ created_at (TIMESTAMP)
+      ├─ updated_at (TIMESTAMP)
+      └─ is_deleted (INTEGER) ← Soft delete: 0=active, 1=deleted
+      
+      Indexes:
+      ├─ IVFFLAT index (vector similarity search)
+      ├─ GIN index (metadata JSONB queries)
+      └─ BTREE index (is_deleted)
 ```
 
-**Lợi ích của persistence:**
-- ✅ Lần sau khởi động nhanh (1-2 giây thay vì 30-60 phút)
-- ✅ Tiết kiệm API calls đến OpenAI
+**Lợi ích của PostgreSQL persistence:**
+- ✅ Lần sau khởi động nhanh (1-2 giây - chỉ check count)
+- ✅ Tiết kiệm API calls đến OpenAI (chỉ xử lý entries mới)
 - ✅ Không bị mất dữ liệu khi restart
+- ✅ Scalable (hỗ trợ hàng triệu records)
+- ✅ Fast search với IVFFLAT index
 
 ---
 
@@ -215,47 +198,40 @@ AiComparisonService.handleRequestWithComparison()
    │  ↓
    │  VectorSearchService.findRelevantExamples(userQuery)
    │  ↓
-   │  vectorStore.similaritySearch(userQuery, topK=5)
-   │  ↓
    │  ┌─── MAGIC HAPPENS HERE ───┐
    │  │ 1️⃣ Embedding Model vector hóa query
    │  │    Input: "Show me login failures from last hour"
    │  │    Output: [-0.230, 0.895, -0.455, ...]  ← 1536 số
    │  │
-   │  │ 2️⃣ Tính độ tương đồng (similarity) với tất cả documents
-   │  │    Công thức: Cosine Similarity
+   │  │ 2️⃣ Convert to PostgreSQL format
+   │  │    "[0.1,0.2,0.3,...]"
+   │  │
+   │  │ 3️⃣ Database Vector Search (SQL với pgvector)
+   │  │    SELECT * FROM ai_embedding
+   │  │    WHERE is_deleted = 0
+   │  │    ORDER BY embedding <=> CAST(:queryEmbedding AS vector)
+   │  │    LIMIT 10
    │  │    
-   │  │    Query Vector:      [-0.230, 0.895, -0.455, ...]
-   │  │    Doc 1 Vector:      [-0.234, 0.891, -0.456, ...]
-   │  │    Similarity Score:  0.987 ← Rất giống! (0.0 - 1.0)
+   │  │    pgvector operator: <=> (cosine distance)
+   │  │    IVFFLAT index used for fast search
+   │  │    
+   │  │    Returns: List<AiEmbedding> (top 10)
    │  │
-   │  │    Doc 2 Vector:      [-0.245, 0.885, -0.450, ...]
-   │  │    Similarity Score:  0.985 ← Rất giống!
-   │  │
-   │  │    Doc 3 Vector:      [-0.100, 0.700, -0.300, ...]
-   │  │    Similarity Score:  0.750 ← Khá giống
-   │  │
-   │  │    Doc 4 Vector:      [0.500, -0.200, 0.800, ...]
-   │  │    Similarity Score:  0.120 ← Không giống
-   │  │
-   │  │ 3️⃣ Sort theo similarity score và lấy topK=5
-   │  │    Top 1: Doc 1 (0.987) ← "Show failed authentication attempts"
-   │  │    Top 2: Doc 2 (0.985) ← "Display unsuccessful login events"
-   │  │    Top 3: Doc 3 (0.750) ← "Get failed auth in last hour"
-   │  │    Top 4: ...
-   │  │    Top 5: ...
+   │  │ 4️⃣ Format results
+   │  │    Extract: question, query_dsl, scenario, phase
    │  └──────────────────────────┘
    │
    └─ Format kết quả
       ↓
-"RELEVANT EXAMPLES FROM KNOWLEDGE BASE (Semantic Search):
+"RELEVANT EXAMPLES FROM KNOWLEDGE BASE
+Mode: VECTOR
 
 Example 1:
-       Question: Show failed authentication attempts
+Question: Show failed authentication attempts
 Query: {...elasticsearch query...}
 
 Example 2:
-       Question: Display unsuccessful login events
+Question: Display unsuccessful login events
 Query: {...elasticsearch query...}
 
 ..."
@@ -285,33 +261,24 @@ Trong đó:
 Kết quả: 0.0 (hoàn toàn khác) ↔ 1.0 (hoàn toàn giống)
 ```
 
-**Ví dụ thực tế:**
+**PostgreSQL pgvector:**
+- Operator `<=>` tính cosine distance
+- Distance = 1 - similarity
+- Smaller distance = more similar
 
-```
-Query vector:    [0.5, 0.3, 0.2]
-Doc 1 vector:    [0.5, 0.3, 0.2]  ← Giống y hệt
-Similarity:      1.0 ✅ (100% match)
+### PostgreSQL pgvector vs SimpleVectorStore
 
-Doc 2 vector:    [0.4, 0.2, 0.15] ← Khác chút
-Similarity:      0.98 ✅ (98% match)
+| Tính Năng | SimpleVectorStore | PostgreSQL/pgvector (Current) |
+|-----------|-------------------|-------------------------------|
+| **Storage** | In-memory | Database (persistent) |
+| **Persistence** | File JSON | PostgreSQL table |
+| **Scalability** | ❌ Hạn chế (< 1M) | ✅ Excellent (millions) |
+| **Performance** | O(n) scan | O(log n) with IVFFLAT index |
+| **Search** | similaritySearch() | SQL với `<=>` operator |
+| **Soft Delete** | No | Yes (is_deleted) |
+| **Optimization** | Re-index all | Only new entries |
 
-Doc 3 vector:    [0.1, 0.1, 0.1]  ← Khác hơn
-Similarity:      0.89 ✅ (89% match)
-
-Doc 4 vector:    [-0.5, -0.3, -0.2] ← Ngược hướng
-Similarity:      -1.0 ❌ (0% match)
-```
-
-### SimpleVectorStore vs Production Vector DB
-
-| Tính Năng | SimpleVectorStore | Pinecone | Weaviate | Milvus |
-|-----------|-------------------|----------|----------|--------|
-| **In-memory** | ✅ Đơn giản | ❌ Cloud | ❌ Distributed | ❌ Distributed |
-| **Persistence** | ✅ File JSON | ✅ Cloud | ✅ Disk | ✅ Disk |
-| **Scalability** | ❌ Hạn chế | ✅ Tuyệt vời | ✅ Tuyệt vời | ✅ Tuyệt vời |
-| **Performance** | ⚡ Nhanh (< 100 examples) | ⚡⚡ Nhanh (millions) | ⚡⚡ Nhanh | ⚡⚡ Nhanh |
-| **Setup** | ✅ Dễ (không cần) | ❌ Phức tạp | ❌ Phức tạp | ❌ Phức tạp |
-| **Cost** | ✅ Free | ❌ $ | ❌ $ | ✅ Free |
+**Dự án này sử dụng:** PostgreSQL/Supabase với pgvector extension
 
 ---
 
@@ -323,42 +290,40 @@ Similarity:      -1.0 ❌ (0% match)
 T+0s      → App starts
 T+1s      → Spring Framework loaded
 T+2s      → VectorStoreConfig created
+           └─ Log: "Embeddings persisted in PostgreSQL/Supabase"
 T+3s      → KnowledgeBaseIndexingService.indexKnowledgeBase() triggered
-T+4s      → Đọc fortigate_queries_full.json (500 questions)
-T+5s      → Bắt đầu vector hóa question 1
+T+4s      → Đọc fortigate_queries_full.json (184 questions)
+T+5s      → Check count: fileCount (184) vs dbCount (0)
+           └─ fileCount > dbCount → Process 184 entries
+T+6s      → Bắt đầu vector hóa question 1
            → Call OpenAI API: embedding("Show failed auth attempts")
            → Wait 200ms
            → Nhận vector: [-0.234, ...]
-           → Tạo Document 1
-T+5.2s    → Vector hóa question 2
+           → Save to PostgreSQL/Supabase
+T+6.2s    → Vector hóa question 2
            → ...
-T+200s    → Vector hóa question 500
-T+205s    → Đọc advanced_security_scenarios.json (200 questions)
-T+405s    → Vector hóa tất cả 200 questions
-T+410s    → ... (tiếp tục 9 file khác)
-T+2400s   → Hoàn thành vector hóa 2300 questions
-T+2401s   → vectorStore.save(vectorStoreFile)
-T+2420s   → Write vector_store.json (125MB) to disk
-T+2425s   → ✅ Xong! App ready to serve
-           
-           ⏱️ Tổng: ~40 phút (tùy mạng, API rate limit)
+T+200s    → Vector hóa question 184
+T+201s    → ✅ Xong! App ready to serve
+
+           ⏱️ Tổng: ~3-4 phút (184 questions)
 ```
 
-### Timeline Lần Khởi Động Thứ 2+ (Nhanh)
+### Timeline Lần Khởi Động Thứ 2+ (Nhanh - Optimized)
 
 ```
 T+0s      → App starts
 T+1s      → Spring Framework loaded
 T+2s      → VectorStoreConfig created
-T+3s      → Kiểm tra: vector_store.json tồn tại?
-           → YES! 
-           → Load from disk
-T+1.5s    → Parse JSON file (125MB)
-           → Khôi phục 2300 documents vào memory
-T+2s      → ✅ Xong! App ready to serve
-           
-           ⏱️ Tổng: ~2 giây
+T+3s      → KnowledgeBaseIndexingService.indexKnowledgeBase() triggered
+T+4s      → Đọc fortigate_queries_full.json (184 questions)
+T+5s      → Check count: fileCount (184) vs dbCount (184)
+           └─ fileCount == dbCount → Skip file ✅
+T+6s      → ✅ Xong! App ready to serve
+
+           ⏱️ Tổng: ~1-2 giây (chỉ check count, không xử lý)
 ```
+
+**Optimization:** So sánh count trước khi xử lý, chỉ xử lý entries mới
 
 ### Timeline Request Từ User
 
@@ -367,27 +332,27 @@ T+0ms     → User gửi: "Show failed authentication attempts"
 T+10ms    → AiComparisonService.handleRequestWithComparison() called
 T+50ms    → buildDynamicExamples("Show failed auth attempts")
 T+60ms    → VectorSearchService.findRelevantExamples() called
-T+70ms    → vectorStore.similaritySearch(userQuery, topK=5)
-T+80ms    → Embedding Model vector hóa query
+T+70ms    → Embedding Model vector hóa query
            → Call OpenAI API: embedding("Show failed auth attempts")
            → Wait 150ms
-T+230ms   → Nhận vector: [-0.230, ...]
-T+240ms   → Tính similarity với 2300 documents
-           → Tính xong trong ~100ms
-T+340ms   → Sort và lấy top 5
-T+350ms   → Format kết quả string
-T+360ms   → Trả về cho AiComparisonService
-T+365ms   → Thêm vào LLM Prompt
-T+370ms   → OpenAI (temperature=0.0) tạo query
+T+220ms   → Nhận vector: [-0.230, ...]
+T+230ms   → Convert to PostgreSQL format: "[0.1,0.2,...]"
+T+240ms   → SQL Query với pgvector `<=>` operator
+           → IVFFLAT index used
+           → Returns top 10 results (~50-100ms)
+T+340ms   → Format kết quả string
+T+350ms   → Trả về cho AiComparisonService
+T+355ms   → Thêm vào LLM Prompt
+T+360ms   → OpenAI (temperature=0.0) tạo query
 T+3500ms  → OpenAI trả về Elasticsearch query
 T+3510ms  → OpenRouter (temperature=0.5) tạo query (parallel)
 T+6000ms  → OpenRouter trả về query
 T+6100ms  → Tìm kiếm Elasticsearch với cả 2 query
 T+6500ms  → AiResponseService tạo response
 T+10000ms → Trả về cho user
-           
+
            ⏱️ Tổng: ~10 giây (phần lớn là LLM wait time)
-           🔍 Semantic Search: ~0.3 giây (rất nhanh!)
+           🔍 Semantic Search: ~0.35 giây (rất nhanh!)
 ```
 
 ---
@@ -399,30 +364,24 @@ T+10000ms → Trả về cho user
 ```java
 @Configuration
 public class VectorStoreConfig {
-    private final File vectorStoreFile = new File("vector_store.json");
-    
     @Bean
     public VectorStore vectorStore(EmbeddingModel embeddingModel) {
-        // 1️⃣ Tạo SimpleVectorStore với EmbeddingModel
+        // SimpleVectorStore chỉ là in-memory cache
+        // Embeddings chính lưu trong PostgreSQL/Supabase
         SimpleVectorStore vectorStore = SimpleVectorStore
             .builder(embeddingModel)
             .build();
-        
-        // 2️⃣ Nếu file đã tồn tại, tải dữ liệu từ file
-        if (vectorStoreFile.exists()) {
-            System.out.println("✅ Tải Vector Store từ file: " 
-                + vectorStoreFile.getAbsolutePath());
-            vectorStore.load(vectorStoreFile);
-            // Dữ liệu được load vào bộ nhớ
-            // Sau đó SẴN SÀNG để tìm kiếm
-        } else {
-            System.out.println("ℹ️ Sẽ tạo file mới sau khi indexing");
-        }
         
         return vectorStore;
     }
 }
 ```
+
+**Chức năng:**
+- Tạo SimpleVectorStore làm in-memory cache
+- Embeddings chính lưu trong database, không phải file JSON
+
+---
 
 ### 2️⃣ **KnowledgeBaseIndexingService.java** - Vector Hóa
 
@@ -430,177 +389,100 @@ public class VectorStoreConfig {
 @Service
 public class KnowledgeBaseIndexingService {
     @Autowired
-    private VectorStore vectorStore; // ← Được inject từ config
+    private AiEmbeddingService aiEmbeddingService;
     
-    private final File vectorStoreFile = new File("vector_store.json");
-    
-    @PostConstruct  // ← Chạy tự động khi class được khởi tạo
+    @PostConstruct
+    @Transactional("secondaryTransactionManager")
     public void indexKnowledgeBase() {
-        // CHỈ CHẠY NẾU CHƯA CÓ FILE
-        if (vectorStoreFile.exists()) {
-            System.out.println("✅ Vector store đã tồn tại, skip indexing");
-            return;
-        }
-        
-        System.out.println("🚀 Bắt đầu vector hóa...");
-        
-        String[] knowledgeBaseFiles = {
-            "fortigate_queries_full.json",
-            "advanced_security_scenarios.json",
-            // ... (9 file khác)
-        };
-        
-        ObjectMapper objectMapper = new ObjectMapper();
-        List<Document> documents = new ArrayList<>();
-        
-        // 1️⃣ ĐỌC TẤT CẢ FILE JSON
-        for (String fileName : knowledgeBaseFiles) {
-            try {
-                ClassPathResource resource = new ClassPathResource(fileName);
-                InputStream inputStream = resource.getInputStream();
-                List<DataExample> examples = objectMapper.readValue(
-                    inputStream, 
-                    new TypeReference<List<DataExample>>() {}
-                );
-                
-                // 2️⃣ FOR EACH EXAMPLE
-                for (DataExample example : examples) {
-                    if (example.getQuestion() != null 
-                        && example.getQuery() != null) {
-                        
-                        // 3️⃣ CHUYỂN THÀNH DOCUMENT
-                        Document doc = new Document(
-                            example.getQuestion(),  // ← Content
-                            Map.of(
-                                "question", example.getQuestion(),
-                                "query_dsl", example.getQuery().toString(),
-                                "source_file", fileName
-                            )
-                        );
-                        documents.add(doc);
-                    }
-                }
-            } catch (Exception e) {
-                System.err.println("❌ Lỗi: " + e.getMessage());
-            }
-        }
-        
-        // 3️⃣ ĐƯA DOCUMENTS VÀO VECTOR STORE
-        // ⭐ TẠO VECTOR TƯƠNG ỨNG CHO MỖI DOCUMENT
-        vectorStore.add(documents);
-        // SimpleVectorStore sẽ tự động:
-        // - Gọi EmbeddingModel để vector hóa
-        // - Lưu embedding vào bộ nhớ
-        
-        // 4️⃣ LƯU XUỐNG FILE
-        if (vectorStore instanceof SimpleVectorStore) {
-            ((SimpleVectorStore) vectorStore).save(vectorStoreFile);
-        }
-        
-        System.out.println("✅ Đã lưu " + documents.size() 
-            + " ví dụ vào " + vectorStoreFile);
+        // 1. Đọc JSON files từ resources
+        // 2. So sánh count: fileCount vs dbCount
+        // 3. Chỉ xử lý entries mới
+        // 4. Tạo embedding và lưu vào PostgreSQL/Supabase
+        // 5. Add to SimpleVectorStore (cache)
     }
 }
 ```
+
+**Key Features:**
+- ✅ Optimized: Chỉ xử lý entries mới (so sánh count)
+- ✅ Database persistence: Lưu vào PostgreSQL/Supabase
+- ✅ Soft delete support: `is_deleted = 0`
+- ✅ Transaction: Sử dụng secondaryTransactionManager
+- ✅ Duplicate check: `existsByContent()` trước khi lưu
+
+---
 
 ### 3️⃣ **VectorSearchService.java** - Tìm Kiếm
 
 ```java
 @Service
+@Transactional("secondaryTransactionManager")
 public class VectorSearchService {
     @Autowired
-    private VectorStore vectorStore;  // ← Dùng lại bean từ config
+    private EmbeddingModel embeddingModel;
+    
+    @Autowired
+    private AiEmbeddingService aiEmbeddingService;
     
     public String findRelevantExamples(String userQuery) {
-        System.out.println("🧠 Tìm kiếm: " + userQuery);
+        // 1. Embed user query
+        float[] embedding = embeddingModel.embed(userQuery);
+        String embeddingString = convertToPostgreSQLFormat(embedding);
         
-        // 1️⃣ GỌI SIMILARITY SEARCH
-        // ⭐ SimpleVectorStore sẽ:
-        //    - Vector hóa userQuery bằng EmbeddingModel
-        //    - Tính similarity với tất cả documents đã lưu
-        //    - Return top 5 most similar
-        List<Document> similarDocuments = vectorStore.similaritySearch(
-            userQuery,  // ← Query text
-            5           // ← Top K
-        );
+        // 2. Database vector search
+        List<AiEmbedding> results = aiEmbeddingService
+            .findSimilarEmbeddings(embeddingString, topK=10);
         
-        if (similarDocuments.isEmpty()) {
-            System.out.println("⚠️ Không tìm thấy ví dụ nào!");
-            return "No examples found";
-        }
-        
-        // 2️⃣ FORMAT KẾT QUẢ
-        StringBuilder result = new StringBuilder();
-        result.append("RELEVANT EXAMPLES:\n\n");
-        
-        for (int i = 0; i < similarDocuments.size(); i++) {
-            Document doc = similarDocuments.get(i);
-            result.append("Example ").append(i + 1).append(":\n");
-            result.append("Question: ")
-                .append(doc.getMetadata().get("question"))
-                .append("\n");
-            result.append("Query: ")
-                .append(doc.getMetadata().get("query_dsl"))
-                .append("\n\n");
-        }
-        
-        System.out.println("✅ Tìm thấy " + similarDocuments.size() 
-            + " ví dụ tương đồng");
-        return result.toString();
+        // 3. Format results for LLM
+        return formatForLLM(results);
     }
 }
 ```
 
-### 4️⃣ **AiComparisonService.java** - Sử Dụng
+**Key Features:**
+- ✅ Database search: Sử dụng pgvector `<=>` operator
+- ✅ Fast: IVFFLAT index tối ưu
+- ✅ Top K: Lấy 10 kết quả tốt nhất
+- ✅ Format: Extract question, query_dsl, scenario, phase
+
+---
+
+### 4️⃣ **AiEmbeddingRepository.java** - Database Queries
 
 ```java
-@Service
-public class AiComparisonService {
-    @Autowired
-    private VectorSearchService vectorSearchService;  // ← Inject
+@Repository
+public interface AiEmbeddingRepository extends JpaRepository<AiEmbedding, UUID> {
     
-    public Map<String, Object> handleRequestWithComparison(
-        Long sessionId, 
-        ChatRequest chatRequest) {
-        
-        // ✅ BỬC 1: Xây dựng dynamic examples từ vector search
-        String dynamicExamples = buildDynamicExamples(
-            chatRequest.message()  // ← "Show failed auth attempts"
-        );
-        
-        // Kết quả:
-        // "RELEVANT EXAMPLES:
-        //  
-        //  Example 1:
-        //  Question: Show failed authentication attempts
-        //  Query: {...}
-        //  
-        //  Example 2:
-        //  ..."
-        
-        // ✅ BƯỚC 2: Thêm vào LLM Prompt
-        String combinedPrompt = systemPrompt 
-            + "\n\n" + dynamicExamples;
-        
-        // ✅ BƯỚC 3: OpenAI/OpenRouter tạo Elasticsearch query
-        String openaiQuery = chatClient
-            .prompt(new Prompt(List.of(
-                new SystemMessage(combinedPrompt),
-                new UserMessage(chatRequest.message())
-            )))
-            .call()
-            .content();
-        
-        // ... tiếp tục xử lý
-        return result;
-    }
+    // Vector similarity search
+    @Query(nativeQuery = true, value = 
+        "SELECT * FROM ai_embedding " +
+        "WHERE is_deleted = 0 " +
+        "ORDER BY embedding <=> CAST(:queryEmbedding AS vector) " +
+        "LIMIT :limit")
+    List<AiEmbedding> findSimilarEmbeddings(
+        @Param("queryEmbedding") String queryEmbedding, 
+        @Param("limit") int limit
+    );
     
-    private String buildDynamicExamples(String userQuery) {
-        // ⭐ GỌI VECTOR SEARCH
-        return vectorSearchService.findRelevantExamples(userQuery);
-    }
+    // Count by source file
+    @Query(nativeQuery = true, value = 
+        "SELECT COUNT(*) FROM ai_embedding " +
+        "WHERE metadata->>'source_file' = ?1 AND is_deleted = 0")
+    long countBySourceFile(String sourceFile);
+    
+    // Check existence
+    @Query(nativeQuery = true, value = 
+        "SELECT COUNT(*) > 0 FROM ai_embedding " +
+        "WHERE content = ?1 AND is_deleted = 0")
+    boolean existsByContent(String content);
 }
 ```
+
+**Key Points:**
+- `<=>` operator: Cosine distance (pgvector)
+- `CAST(... AS vector)`: Convert string to vector type
+- `LIMIT`: Top K results
+- `is_deleted = 0`: Chỉ lấy active records
 
 ---
 
@@ -612,20 +494,20 @@ public class AiComparisonService {
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  1️⃣ PREPARE DATA                                            │
-│     JSON files (2300 Q&A)                                   │
+│     JSON files (184+ Q&A)                                   │
 │                                                             │
 │  2️⃣ STARTUP (First time)                                   │
 │     App starts → VectorStoreConfig created                 │
 │                                                             │
 │  3️⃣ EMBEDDING (First time)                                 │
 │     KnowledgeBaseIndexingService.indexKnowledgeBase()      │
-│     For each question: vectorize → store                   │
+│     For each question: vectorize → save to PostgreSQL      │
 │                                                             │
-│  4️⃣ PERSISTENCE (First time)                               │
-│     Save to vector_store.json (125MB)                      │
+│  4️⃣ PERSISTENCE                                            │
+│     Save to PostgreSQL/Supabase (ai_embedding table)       │
 │                                                             │
 │  5️⃣ RUNTIME (Every request)                                │
-│     User query → vectorize → similarity search → result    │
+│     User query → vectorize → SQL search → result          │
 │                                                             │
 │  ✅ Ready! Fast semantic search in real-time              │
 │                                                             │
@@ -641,29 +523,33 @@ public class AiComparisonService {
 ```
 1. Thêm file vào src/main/resources/
 2. Thêm tên file vào knowledgeBaseFiles array
-3. Xóa vector_store.json
-4. Restart app
-5. Tự động vector hóa + lưu file mới
+3. Restart app
+4. Tự động phát hiện entries mới và vector hóa
+5. Lưu vào PostgreSQL/Supabase
 ```
 
 ### ❓ Nếu mình muốn thay embedding model?
 
 ```
-VectorStoreConfig.java:
-  
-  @Bean
-  public VectorStore vectorStore(EmbeddingModel embeddingModel) {
-      // Thay OpenAI bằng model khác
-      // Spring AI hỗ trợ: OpenAI, Google PaLM, Cohere, ...
-  }
+application.yaml:
+spring:
+  ai:
+    openai:
+      embedding:
+        options:
+          model: text-embedding-3-large  # Thay đổi model
 ```
 
-### ❓ Nếu vector_store.json bị lỗi?
+### ❓ Nếu muốn tái tạo embeddings?
 
 ```
-1. Xóa file
-2. Restart app
-3. Tự động tái tạo
+Option 1: Xóa records trong database
+DELETE FROM ai_embedding 
+WHERE metadata->>'source_file' = 'fortigate_queries_full.json';
+
+Option 2: Restart application
+- Application tự động phát hiện entries mới
+- Chỉ xử lý entries chưa có trong database
 ```
 
 ### ❓ Nếu mình muốn top 10 thay vì top 5?
@@ -671,11 +557,12 @@ VectorStoreConfig.java:
 ```
 VectorSearchService.java:
   
-  List<Document> similarDocuments = vectorStore
-    .similaritySearch(userQuery, 10);  // ← Thay đổi số này
+  int topK = 10;  // ← Thay đổi số này
+  List<AiEmbedding> results = aiEmbeddingService
+      .findSimilarEmbeddings(embeddingString, topK);
 ```
 
 ---
 
-**Generated:** 2025-10-22  
-**Version:** 2.0
+**Last Updated:** 2025-11-15  
+**Version:** 3.0 (PostgreSQL/Supabase Implementation)

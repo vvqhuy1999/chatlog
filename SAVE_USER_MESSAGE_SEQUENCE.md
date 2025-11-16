@@ -1,11 +1,15 @@
 # 💬 BƯỚC 1: Request Processing & Save User Message - Sequence Diagram
 
+## 📋 Tổng Quan
+
+Tài liệu này mô tả quy trình lưu tin nhắn của người dùng vào database trước khi xử lý comparison mode.
+
 ## 📊 Sequence Diagram
 
 ### Cách xem diagram:
 1. **Mermaid (GitHub/GitLab tự động render)**: Diagram sẽ tự động render trong file `.md`
 2. **Online Mermaid Editor**: https://mermaid.live
-3. **Draw.io**: Tạo mới theo hướng dẫn bên dưới
+3. **VS Code**: Cài extension "Markdown Preview Mermaid Support"
 
 ---
 

@@ -7,9 +7,9 @@ User Input: "Tôi muốn xem các lần đăng nhập thất bại"
    ↓
 Convert to Vector (1536 numbers)
    ↓
-Compare với tất cả stored vectors (2300 documents)
+Database Vector Search (PostgreSQL/Supabase với pgvector)
    ↓
-Find top 5 most similar
+Find top 10 most similar
    ↓
 Return kết quả
 ```
@@ -22,7 +22,7 @@ Return kết quả
 
 **Controller (REST API):**
 ```
-POST /api/chat/compare
+POST /api/chat-messages/compare/{sessionId}
 {
   "message": "Tôi muốn xem các lần đăng nhập thất bại"
 }
@@ -31,19 +31,17 @@ POST /api/chat/compare
 **File:** `src/main/java/com/example/chatlog/controller/ChatMessagesController.java`
 
 ```java
-@PostMapping("/compare")
-public ResponseEntity<?> handleRequestWithComparison(
-    @RequestParam Long sessionId,
+@PostMapping("/compare/{sessionId}")
+public ResponseEntity<Map<String, Object>> sendMessageWithComparison(
+    @PathVariable Long sessionId,
     @RequestBody ChatRequest chatRequest) {
     
     // chatRequest.message = "Tôi muốn xem các lần đăng nhập thất bại"
     
-    return ResponseEntity.ok(
-        aiComparisonService.handleRequestWithComparison(
-            sessionId, 
-            chatRequest
-        )
-    );
+    Map<String, Object> comparisonResult = aiServiceImpl
+        .handleRequestWithComparison(sessionId, chatRequest);
+    
+    return ResponseEntity.ok(comparisonResult);
 }
 ```
 
@@ -79,116 +77,82 @@ private String buildDynamicExamples(String userQuery) {
 
 ```java
 @Service
+@Transactional("secondaryTransactionManager")
 public class VectorSearchService {
     
     @Autowired
-    private VectorStore vectorStore;  // ← Chứa 2300 stored vectors
+    private EmbeddingModel embeddingModel;  // ← OpenAI embedding model
+    
+    @Autowired
+    private AiEmbeddingService aiEmbeddingService;  // ← Database service
     
     public String findRelevantExamples(String userQuery) {
-        System.out.println("🧠 Thực hiện tìm kiếm ngữ nghĩa cho: \"" + userQuery + "\"");
+        System.out.println("\n" + "=".repeat(100));
+        System.out.println("🔍 VECTOR SEMANTIC SEARCH");
+        System.out.println("=".repeat(100));
         
-        // ⭐ BƯỚC 3: Gọi vectorStore.similaritySearch()
-        // Bên trong:
-        // 1. Chuyển userQuery thành vector
-        // 2. So sánh với tất cả stored vectors
-        // 3. Return top 5 most similar
-        List<Document> similarDocuments = vectorStore.similaritySearch(userQuery);
+        // Check database stats first
+        long totalEmbeddings = aiEmbeddingService.countAllNotDeleted();
+        System.out.println("\n📊 DATABASE STATS:");
+        System.out.println("   Total embeddings in database: " + totalEmbeddings);
         
-        // ⭐ DEBUG: Kiểm tra kết quả tìm kiếm
-        System.out.println("[VectorSearchService] 🔍 Số lượng kết quả tìm được: " 
-            + similarDocuments.size());
-        
-        // ... format kết quả
-        return examples.toString();
+        // ⭐ BƯỚC 3: Tạo Query Embedding
+        // ... (xem chi tiết bên dưới)
     }
 }
 ```
 
 ---
 
-### Bước 4️⃣: VectorStore - Embedding Query
+### Bước 4️⃣: Embedding Query & Database Search
 
-**Bên Trong SimpleVectorStore.similaritySearch():**
+**Chi tiết trong VectorSearchService:**
 
 ```java
-public List<Document> similaritySearch(String userQuery) {
-    
-    // ⭐ BƯỚC 4A: EMBEDDING QUERY
-    // Gọi EmbeddingModel để vector hóa user query
-    
-    System.out.println("📊 User Query: " + userQuery);
-    System.out.println("🔄 Converting query to vector...");
-    
-    // Gọi OpenAI Embedding API
-    EmbeddingRequest request = new EmbeddingRequest(userQuery);
-    EmbeddingResponse response = embeddingModel.call(request);
-    
-    float[] queryVector = response.getResult()
-                                  .getOutput()
-                                  .toArray();
-    
-    System.out.println("✅ Query Vector: " + queryVector.length + " dimensions");
-    System.out.println("✅ First 5 values: " + Arrays.toString(
-        Arrays.copyOf(queryVector, 5)
-    ));
-    
-    // queryVector = [-0.232, 0.893, -0.454, 0.122, ...]  (1536 numbers)
-    
-    // ⭐ BƯỚC 4B: SO SÁNH VỚI TẤT CẢ STORED VECTORS
-    System.out.println("🔍 Comparing with " + this.documents.size() + " stored documents...");
-    
-    List<SimilarityScore> scores = new ArrayList<>();
-    
-    // Loop qua từng document được lưu
-    for (Document doc : this.documents.values()) {
-        
-        float[] storedVector = doc.getEmbedding().toArray();
-        
-        // Tính Cosine Similarity
-        double similarity = calculateCosineSimilarity(queryVector, storedVector);
-        
-        scores.add(new SimilarityScore(doc, similarity));
-        
-        // Log chi tiết
-        System.out.println("  Document: " + doc.getMetadata().get("question"));
-        System.out.println("  Similarity Score: " + String.format("%.4f", similarity));
-    }
-    
-    // ⭐ BƯỚC 4C: SẮP XẾP VÀ LẤY TOP K
-    System.out.println("📊 Sorting results...");
-    
-    scores.sort((a, b) -> Double.compare(b.score, a.score));
-    
-    // Get top 5
-    List<Document> topResults = scores.stream()
-                                      .limit(5)
-                                      .map(s -> s.document)
-                                      .collect(Collectors.toList());
-    
-    System.out.println("✅ Top 5 results:");
-    for (int i = 0; i < topResults.size(); i++) {
-        System.out.println((i+1) + ". " + topResults.get(i).getMetadata().get("question"));
-    }
-    
-    return topResults;
-}
+// BƯỚC 4A: EMBEDDING QUERY
+System.out.println("\n🔄 STEP 1: Creating Query Embedding for Semantic Search");
+queryEmbedding = embeddingModel.embed(userQuery);
 
-// Cosine Similarity calculation
-private double calculateCosineSimilarity(float[] a, float[] b) {
-    double dotProduct = 0.0;
-    double normA = 0.0;
-    double normB = 0.0;
-    
-    for (int i = 0; i < a.length; i++) {
-        dotProduct += a[i] * b[i];
-        normA += a[i] * a[i];
-        normB += b[i] * b[i];
-    }
-    
-    // similarity = (A · B) / (||A|| × ||B||)
-    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+// Convert float[] to PostgreSQL format: "[0.1,0.2,...]"
+StringBuilder sb = new StringBuilder("[");
+for (int i = 0; i < queryEmbedding.length; i++) {
+    if (i > 0) sb.append(",");
+    sb.append(queryEmbedding[i]);
 }
+sb.append("]");
+queryEmbeddingString = sb.toString();
+
+// queryEmbeddingString = "[0.0234,-0.0156,0.0891,...]"  (1536 numbers)
+
+// BƯỚC 4B: DATABASE VECTOR SEARCH
+System.out.println("\n🎯 STEP 2: Vector Semantic Search");
+
+List<AiEmbedding> similarEmbeddings = aiEmbeddingService
+    .findSimilarEmbeddings(queryEmbeddingString, topK=10);
+
+// SQL Query thực tế:
+// SELECT * FROM ai_embedding 
+// WHERE is_deleted = 0 
+// ORDER BY embedding <=> CAST(:queryEmbedding AS vector) 
+// LIMIT 10
 ```
+
+**SQL Query Details:**
+```sql
+-- Cosine distance operator: <=>
+-- Smaller value = more similar
+-- ORDER BY ... LIMIT 10 = Top 10 most similar
+
+SELECT * FROM ai_embedding 
+WHERE is_deleted = 0 
+ORDER BY embedding <=> CAST('[0.0234,-0.0156,0.0891,...]' AS vector) 
+LIMIT 10;
+```
+
+**IVFFLAT Index:**
+- Index được sử dụng tự động
+- Fast approximate nearest neighbor search
+- Performance: O(log n) thay vì O(n)
 
 ---
 
@@ -197,42 +161,67 @@ private double calculateCosineSimilarity(float[] a, float[] b) {
 **Tiếp tục trong VectorSearchService:**
 
 ```java
-public String findRelevantExamples(String userQuery) {
+// BƯỚC 5: FORMAT KẾT QUẢ
+StringBuilder examples = new StringBuilder();
+examples.append("RELEVANT EXAMPLES FROM KNOWLEDGE BASE\n");
+examples.append("Mode: VECTOR\n\n");
+
+for (int i = 0; i < similarEmbeddings.size(); i++) {
+    AiEmbedding embedding = similarEmbeddings.get(i);
     
-    List<Document> similarDocuments = vectorStore.similaritySearch(userQuery);
+    examples.append("Example ").append(i + 1).append(":\n");
     
-    // ⭐ BƯỚC 5: FORMAT KẾT QUẢ
-    StringBuilder examples = new StringBuilder();
-    examples.append("RELEVANT EXAMPLES FROM KNOWLEDGE BASE (Semantic Search):\n\n");
-    
-    for (int i = 0; i < similarDocuments.size(); i++) {
-        Document doc = similarDocuments.get(i);
-        
-        examples.append("Example ").append(i + 1).append(":\n");
-        examples.append("Question: ")
-            .append(doc.getMetadata().get("question"))
-            .append("\n");
-        examples.append("Query: ")
-            .append(doc.getMetadata().get("query_dsl"))
-            .append("\n\n");
+    // Extract từ metadata
+    Object question = embedding.getMetadata().get("question");
+    if (question != null) {
+        examples.append("Question: ").append(question).append("\n");
     }
     
-    System.out.println("✅ Tìm thấy " + similarDocuments.size() + " ví dụ tương đồng.");
+    String content = embedding.getContent();
+    if (content != null && !content.isEmpty()) {
+        String preview = content.length() > 180 ? content.substring(0, 180) + "..." : content;
+        examples.append("Content: ").append(preview).append("\n");
+    }
     
-    return examples.toString();
+    Object scenario = embedding.getMetadata().get("scenario");
+    if (scenario != null) {
+        examples.append("Scenario: ").append(scenario).append("\n");
+    }
     
-    // Output:
-    // RELEVANT EXAMPLES FROM KNOWLEDGE BASE (Semantic Search):
-    //
-    // Example 1:
-    // Question: Show failed authentication attempts
-    // Query: {"size": 100, "query": {"bool": {...}}}
-    //
-    // Example 2:
-    // Question: Display unsuccessful login events
-    // Query: {"size": 100, "query": {"bool": {...}}}
-    // ...
+    Object phase = embedding.getMetadata().get("phase");
+    if (phase != null) {
+        examples.append("Phase: ").append(phase).append("\n");
+    }
+    
+    Object queryDsl = embedding.getMetadata().get("query_dsl");
+    if (queryDsl != null) {
+        examples.append("Query: ").append(queryDsl).append("\n\n");
+    } else {
+        examples.append("\n");
+    }
 }
+
+return examples.toString();
+```
+
+**Output Format:**
+```
+RELEVANT EXAMPLES FROM KNOWLEDGE BASE
+Mode: VECTOR
+
+Example 1:
+Question: Show failed authentication attempts
+Content: Show failed authentication attempts...
+Scenario: Authentication
+Query: {"size": 100, "query": {"bool": {...}}}
+
+Example 2:
+Question: Display unsuccessful login events
+Content: Display unsuccessful login events...
+Scenario: Authentication
+Query: {"size": 100, "query": {"bool": {...}}}
+
+...
 ```
 
 ---
@@ -254,7 +243,7 @@ public Map<String, Object> handleRequestWithComparison(Long sessionId, ChatReque
         "Your task is to convert natural language queries into Elasticsearch queries.\n" +
         "\n" +
         "Here are examples of similar queries:\n" +
-        dynamicExamples +  // ← Thêm top 5 similar examples
+        dynamicExamples +  // ← Thêm top 10 similar examples
         "\n" +
         "Based on the examples above, convert this query to Elasticsearch: " +
         chatRequest.message();
@@ -287,86 +276,18 @@ public Map<String, Object> handleRequestWithComparison(Long sessionId, ChatReque
 (1536 dimensions)
 ```
 
-### Stored Vectors & Similarity Scores
+### Database Search Results
 
-| # | Question | Stored Vector | Similarity |
-|---|----------|---------------|-----------|
-| 1 | Show failed authentication attempts | [-0.234, 0.891, -0.456, ...] | **0.9871** ✅ |
-| 2 | Display unsuccessful login events | [-0.245, 0.885, -0.450, ...] | **0.9854** ✅ |
-| 3 | Get failed access attempts | [-0.240, 0.890, -0.455, ...] | **0.9821** ✅ |
-| 4 | List failed login attempts | [-0.228, 0.896, -0.451, ...] | **0.9798** ✅ |
-| 5 | Show authentication failures | [-0.235, 0.892, -0.457, ...] | **0.9765** ✅ |
-| 999 | Get user list | [0.800, -0.200, 0.100, ...] | 0.1234 ❌ |
-| 1500 | Show server logs | [0.500, 0.300, -0.400, ...] | 0.2456 ❌ |
+| # | Question | Similarity Score | Source |
+|---|----------|------------------|--------|
+| 1 | Show failed authentication attempts | **0.9871** ✅ | fortigate_queries_full.json |
+| 2 | Display unsuccessful login events | **0.9854** ✅ | fortigate_queries_full.json |
+| 3 | Get failed access attempts | **0.9821** ✅ | advanced_security_scenarios.json |
+| 4 | List failed login attempts | **0.9798** ✅ | fortigate_queries_full.json |
+| 5 | Show authentication failures | **0.9765** ✅ | fortigate_queries_full.json |
+| ... | ... | ... | ... |
 
-### Output cho User
-
-```
-RELEVANT EXAMPLES FROM KNOWLEDGE BASE (Semantic Search):
-
-Example 1:
-Question: Show failed authentication attempts
-Query: {
-  "size": 100,
-  "query": {
-    "bool": {
-      "must": [
-        {"match": {"action": "failed"}},
-        {"match": {"event_type": "authentication"}}
-      ]
-    }
-  }
-}
-
-Example 2:
-Question: Display unsuccessful login events
-Query: {
-  "size": 100,
-  "query": {
-    "bool": {
-      "must": [
-        {"match": {"result": "failure"}},
-        {"match": {"event": "login"}}
-      ]
-    }
-  }
-}
-
-...
-```
-
-### LLM Prompt (với Examples)
-
-```
-You are an Elasticsearch query expert.
-
-Here are similar queries:
-Example 1: Show failed authentication attempts → {...query1...}
-Example 2: Display unsuccessful login events → {...query2...}
-Example 3: Get failed access attempts → {...query3...}
-Example 4: List failed login attempts → {...query4...}
-Example 5: Show authentication failures → {...query5...}
-
-Convert this to Elasticsearch: "Tôi muốn xem các lần đăng nhập thất bại"
-
-Response:
-{
-  "size": 100,
-  "query": {
-    "bool": {
-      "must": [
-        {"match": {"result": "failed"}},
-        {"match": {"event_type": "login"}}
-      ],
-      "filter": {
-        "range": {
-          "timestamp": {"gte": "now-24h"}
-        }
-      }
-    }
-  }
-}
-```
+**Note:** Similarity score được tính bởi pgvector `<=>` operator (cosine distance). Smaller value = more similar.
 
 ---
 
@@ -387,34 +308,10 @@ Trong đó:
 Kết quả: 0.0 (hoàn toàn khác) → 1.0 (giống 100%)
 ```
 
-### Ví Dụ Đơn Giản (3 dimensions)
-
-```
-Query Vector:    [0.5, 0.3, 0.2]
-Doc 1 Vector:    [0.5, 0.3, 0.2]
-Doc 2 Vector:    [0.4, 0.2, 0.15]
-Doc 3 Vector:    [0.1, 0.1, 0.1]
-
-Tính Doc 1:
-- A · B = (0.5×0.5) + (0.3×0.3) + (0.2×0.2) = 0.38
-- ||A|| = √(0.25 + 0.09 + 0.04) = 0.655
-- ||B|| = √(0.25 + 0.09 + 0.04) = 0.655
-- Similarity = 0.38 / (0.655 × 0.655) = 0.888
-
-Tính Doc 2:
-- A · B = (0.5×0.4) + (0.3×0.2) + (0.2×0.15) = 0.29
-- ||A|| = 0.655
-- ||B|| = √(0.16 + 0.04 + 0.0225) = 0.468
-- Similarity = 0.29 / (0.655 × 0.468) = 0.943
-
-Tính Doc 3:
-- A · B = (0.5×0.1) + (0.3×0.1) + (0.2×0.1) = 0.1
-- ||A|| = 0.655
-- ||B|| = √(0.01 + 0.01 + 0.01) = 0.173
-- Similarity = 0.1 / (0.655 × 0.173) = 0.884
-
-Top 1: Doc 2 (0.943) ← Giống nhất!
-```
+**PostgreSQL pgvector:**
+- Operator `<=>` tính cosine distance
+- Distance = 1 - similarity
+- Smaller distance = more similar
 
 ---
 
@@ -424,22 +321,20 @@ Top 1: Doc 2 (0.943) ← Giống nhất!
 T+0ms:   User gửi query
 T+50ms:  AiComparisonService nhận request
 T+100ms: VectorSearchService.findRelevantExamples() gọi
-T+150ms: vectorStore.similaritySearch() gọi
-T+200ms: EmbeddingModel embed query
-T+350ms: OpenAI trả về vector query
-T+360ms: Loop qua 2300 stored vectors
-T+460ms: Tính similarity cho tất cả
-T+500ms: Sort kết quả
-T+510ms: Get top 5
-T+520ms: Format output
-T+530ms: Return examples string
-T+600ms: AiComparisonService thêm vào LLM prompt
-T+700ms: Gửi prompt đến OpenAI
+T+150ms: embeddingModel.embed(userQuery) - Call OpenAI API
+T+350ms: OpenAI trả về vector query (1536 dimensions)
+T+360ms: Convert float[] to PostgreSQL format: "[0.1,0.2,...]"
+T+370ms: Execute SQL query với pgvector <=> operator
+T+420ms: Database trả về top 10 results (với IVFFLAT index)
+T+430ms: Format results string
+T+450ms: Return examples string
+T+500ms: AiComparisonService thêm vào LLM prompt
+T+600ms: Gửi prompt đến OpenAI/OpenRouter
 T+3500ms: OpenAI trả về Elasticsearch query
 T+3600ms: Return final response
 
 Total: ~3.6 giây (phần lớn là chờ LLM)
-Semantic Search: ~530ms (rất nhanh!)
+Semantic Search: ~450ms (rất nhanh!)
 ```
 
 ---
@@ -448,7 +343,7 @@ Semantic Search: ~530ms (rất nhanh!)
 
 ```
 ChatController
-  └─ POST /compare
+  └─ POST /api/chat-messages/compare/{sessionId}
      └─ ChatRequest: "Tôi muốn xem các lần đăng nhập thất bại"
         │
         └─ AiComparisonService.handleRequestWithComparison()
@@ -457,17 +352,20 @@ ChatController
            │  │
            │  └─ VectorSearchService.findRelevantExamples()
            │     │
-           │     └─ vectorStore.similaritySearch(userQuery)
-           │        │
-           │        ├─ Step 1: Embed query → Vector[1536]
-           │        │
-           │        ├─ Step 2: Compare with 2300 stored vectors
-           │        │  ├─ Doc 1: similarity = 0.9871
-           │        │  ├─ Doc 2: similarity = 0.9854
-           │        │  ├─ ...
-           │        │  └─ Sort by score
-           │        │
-           │        └─ Step 3: Return top 5 documents
+           │     ├─ Step 1: Embed query → Vector[1536]
+           │     │  └─ embeddingModel.embed(userQuery)
+           │     │     └─ OpenAI API: POST /v1/embeddings
+           │     │
+           │     ├─ Step 2: Convert to PostgreSQL format
+           │     │  └─ "[0.1,0.2,...]"
+           │     │
+           │     ├─ Step 3: Database Vector Search
+           │     │  └─ SQL: ORDER BY embedding <=> CAST(:queryEmbedding AS vector)
+           │     │     └─ IVFFLAT index used
+           │     │     └─ Returns: List<AiEmbedding> (top 10)
+           │     │
+           │     └─ Step 4: Format results
+           │        └─ Extract: question, query_dsl, scenario, phase
            │
            ├─ Format as String examples
            │
@@ -488,11 +386,13 @@ User Query (tự nhiên)
    ↓
 Embedding Model chuyển thành Vector 1536-chiều
    ↓
-So sánh với 2300 stored vectors
+Convert to PostgreSQL format: "[0.1,0.2,...]"
    ↓
-Calculate Cosine Similarity cho mỗi cái
+Database Vector Search (SQL với pgvector <=>)
    ↓
-Sort và lấy Top 5 kết quả tương đồng nhất
+IVFFLAT index tối ưu search
+   ↓
+Top 10 kết quả tương đồng nhất
    ↓
 Format thành String examples
    ↓
@@ -505,5 +405,43 @@ Return Elasticsearch query cho user
 
 ---
 
-**Generated:** 2025-10-22  
-**Reference:** Spring AI + Vector Database
+## 🔑 Key Points
+
+1. **Database Storage**: Embeddings lưu trong PostgreSQL/Supabase, không phải file JSON
+2. **Fast Search**: IVFFLAT index cho phép search nhanh O(log n)
+3. **Top K Results**: Mặc định lấy 10 kết quả tốt nhất
+4. **Similarity Score**: Tính bằng cosine distance (pgvector `<=>` operator)
+5. **Optimized**: Chỉ search trong active records (`is_deleted = 0`)
+
+---
+
+---
+
+## 📝 Tóm Tắt
+
+```
+User Query (tự nhiên)
+   ↓
+Embedding Model chuyển thành Vector 1536-chiều
+   ↓
+Convert to PostgreSQL format: "[0.1,0.2,...]"
+   ↓
+Database Vector Search (SQL với pgvector <=>)
+   ↓
+IVFFLAT index tối ưu search
+   ↓
+Top 10 kết quả tương đồng nhất
+   ↓
+Format thành String examples
+   ↓
+Thêm vào LLM Prompt
+   ↓
+LLM xem examples và tạo query tốt hơn
+   ↓
+Return Elasticsearch query cho user
+```
+
+---
+
+**Last Updated:** 2025-11-15  
+**Version:** 2.0 (PostgreSQL/Supabase Implementation)

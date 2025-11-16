@@ -42,12 +42,35 @@ curl http://localhost:8080/test/connections
 
 ## 📚 Documentation
 
+### 🚀 Getting Started
 | File | Purpose |
 |------|---------|
-| **FINAL_SETUP_GUIDE.md** | Complete setup with troubleshooting |
-| **embedding.sql** | Database schema for Supabase |
+| **00_START_HERE.md** | This file - Quick start guide |
+| **ACTIVITY_DIAGRAM.md** | Complete flow diagram with parallel processing |
+| **COMPARISON_MODE_DOCUMENTATION.md** | Comparison mode architecture & details |
+
+### 🧠 Vector Store & Embeddings
+| File | Purpose |
+|------|---------|
+| **VECTOR_STORE_GUIDE.md** | PostgreSQL/Supabase implementation guide |
+| **VECTOR_STORE_ARCHITECTURE.md** | Detailed architecture & 5-step process |
+| **USER_QUERY_TO_VECTOR_SEARCH.md** | Query to vector search flow |
+| **EMBEDDING_MODEL_DETAILS.md** | Embedding model specifications |
+| **EMBEDDING_SYNC_OPTIMIZATION.md** | Optimization strategies |
+
+### ⚡ Performance & Processing
+| File | Purpose |
+|------|---------|
+| **PARALLEL_PROCESSING_UPGRADE.md** | Parallel processing implementation |
+| **SAVE_USER_MESSAGE_SEQUENCE.md** | User message save sequence diagram |
+
+### 🔧 Dependencies & Setup
+| File | Purpose |
+|------|---------|
+| **DEPENDENCIES_DETAILED_SOURCES.md** | Complete dependency sources |
+| **DEPENDENCIES_VECTOR_CONVERSION.md** | Vector conversion process |
+| **sql/embedding.sql** | Database schema for Supabase |
 | **application.yaml** | Configuration with env vars |
-| **RUN_COMMANDS.md** | Common commands reference |
 
 ---
 
