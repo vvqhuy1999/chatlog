@@ -1,0 +1,108 @@
+[2025-11-18 14:08:55.945] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 18843ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: ai dùng internet nhiều nhất trong hôm qua
+   - timeSavedMs: 18843
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=29491, openai_totalMs=32102, openrouter_searchMs=0, openai_searchMs=0}
+   - sessionId: 286
+   - totalProcessingTimeMs: 42750
+
+▶ DSL QUERIES:
+   OpenAI DSL: {"size":0,"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"2025-11-17T00:00:00.000+07:00","lte":"2025-11-17T23:59:59.999+07:00"}}},{"term":{"network.direction":"outbound"}}]}},"aggs":{"top_users":{"terms":{"field":"source.user.name","size":20,"order":{"total_bytes":"desc"}},"aggs":{"total_bytes":{"sum":{"field":"network.bytes"}},"total_sessions":{"value_count":{"field":"@timestamp"}},"top_source_ips":{"terms":{"field":"source.ip","size":3}}}}}}
+   OpenRouter DSL: {"size":0,"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"2025-11-17T00:00:00.000+07:00","lte":"2025-11-17T23:59:59.999+07:00"}}},{"term":{"network.direction":"outbound"}}]}},"aggs":{"top_users":{"terms":{"field":"source.user.name","size":20,"order":{"total_bytes":"desc"}},"aggs":{"total_bytes":{"sum":{"field":"network.bytes"}},"total_sessions":{"value_count":{"field":"@timestamp"}}}}}}
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: Data retrieved
+   OpenRouter Data: Data retrieved
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 29491
+   - openai_totalMs: 32102
+   - openrouter_searchMs: 0
+   - openai_searchMs: 0
+
+▶ DYNAMIC EXAMPLES (Vector Search):
+RELEVANT EXAMPLES FROM KNOWLEDGE BASE
+   Mode: VECTOR
+   
+   Example 1:
+   Question: Ai sử dụng lưu lượng internet nhiều nhất ngày 7/10 (đi ra)
+   Content: Ai sử dụng lưu lượng internet nhiều nhất ngày 7/10 (đi ra)
+   Query: {"size":0,"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"2025-10-07T00:00:00.000+07:00","lte":"2025-10-07T23:59:59.999+07:00"}}},{"term":{"network.direction":"outbound"}}],"should":[{"term":{"observer.egress.interface.name":"port1"}},{"term":{"observer.egress.interface.name":"port2"}},{"terms":{"source.nat.ip":["118.70.81.176","101.99.13.33"]}}],"minimum_should_match":1}},"aggs":{"top_users":{"terms":{"field":"source.user.name","size":20,"order":{"total_bytes":"desc"}},"aggs":{"total_bytes":{"sum":{"field":"network.bytes"}},"total_sessions":{"value_count":{"field":"@timestamp"}},"by_interface":{"terms":{"field":"observer.egress.interface.name","size":5},"aggs":{"interface_bytes":{"sum":{"field":"network.bytes"}}}}}}}}
+   
+   Example 2:
+   Question: User nào sử dụng băng thông ra internet nhiều nhất trong ngày 7/10?
+   Content: User nào sử dụng băng thông ra internet nhiều nhất trong ngày 7/10?
+   Query: {"size":0,"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"2025-10-07T00:00:00.000+07:00","lte":"2025-10-07T23:59:59.999+07:00"}}},{"terms":{"observer.egress.interface.name":["sdwan","port1","port2","FTTH-WAN1-CMC","FTTH-WAN2-FPT"]}},{"bool":{"should":[{"bool":{"filter":[{"terms":{"fortinet.firewall.transip":["118.70.81.176","101.99.13.33"]}},{"terms":{"network.direction":["outbound","external"]}}]}},{"bool":{"filter":[{"terms":{"source.ip":["118.70.81.176","101.99.13.33"]}},{"terms":{"network.direction":["outbound","external"]}},{"bool":{"must_not":{"exists":{"field":"fortinet.firewall.transip"}}}}]}}],"minimum_should_match":1}}]}},"aggs":{"top_users":{"terms":{"field":"source.user.name","size":20,"order":{"total_bytes":"desc"}},"aggs":{"total_bytes":{"sum":{"field":"network.bytes"}},"total_sessions":{"value_count":{"field":"@timestamp"}},"by_interface":{"terms":{"field":"observer.egress.interface.name","size":5},"aggs":{"interface_bytes":{"sum":{"field":"network.bytes"}}}},"top_organizations":{"terms":{"field":"destination.as.organization.name","size":10,"order":{"org_bytes":"desc"}},"aggs":{"org_bytes":{"sum":{"field":"network.bytes"}}}}}},"organization_stats":{"terms":{"field":"destination.as.organization.name","size":15,"order":{"total_bytes":"desc"}},"aggs":{"total_bytes":{"sum":{"field":"network.bytes"}},"unique_users":{"cardinality":{"field":"source.user.name"}}}}}}
+   
+   Example 3:
+   Question: Ai đang truy cập internet từ mạng nội bộ qua các cổng ra ngoài trong 7 ngày qua?
+   Content: Ai đang truy cập internet từ mạng nội bộ qua các cổng ra ngoài trong 7 ngày qua?
+   Query: {"size":0,"query":{"bool":{"filter":[{"terms":{"network.protocol":["http","https"]}},{"range":{"@timestamp":{"gte":"now-7d"}}},{"terms":{"observer.egress.interface.name":["sdwan","port1","port2","FTTH-WAN1-CMC","FTTH-WAN2-FPT"]}},{"bool":{"should":[{"bool":{"filter":[{"term...
+   (truncated - see full output in console)
+
+▶ TIMESTAMP: 2025-11-18T14:08:55.9458261
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+
+[2025-11-18 14:34:47.949] [SUCCESS_DETAILED] [AiComparisonService] ✅ Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm 7583ms)
+════════════════════════════ SUCCESS DETAILS ════════════════════════════
+▶ CONTEXT:
+   - userMessage: ip 10.4.100.87 truy cập những website nào hôm nay
+   - timeSavedMs: 7583
+   - aiSummary: {openrouter_esSuccess=true, openai_esSuccess=true, openrouter_totalMs=14370, openai_totalMs=13204, openrouter_searchMs=0, openai_searchMs=0}
+   - sessionId: 286
+   - totalProcessingTimeMs: 19991
+
+▶ DSL QUERIES:
+   OpenAI DSL: {"query":{"bool":{"filter":[{"term":{"source.ip":"10.4.100.87"}},{"range":{"@timestamp":{"gte":"now/d"}}},{"exists":{"field":"url.domain"}}]}},"sort":[{"@timestamp":"desc"}],"size":50,"_source":["@timestamp","url.domain","source.ip"]}
+   OpenRouter DSL: {"query":{"bool":{"filter":[{"term":{"source.ip":"10.4.100.87"}},{"range":{"@timestamp":{"gte":"now/d","lte":"now"}}},{"exists":{"field":"url.domain"}}]}},"sort":[{"@timestamp":"desc"}],"size":20,"_source":["@timestamp","url.domain","source.ip"]}
+
+▶ ES DATA (FULL, truncated):
+   OpenAI Data: Data retrieved
+   OpenRouter Data: Data retrieved
+
+▶ AI RESULTS SUMMARY:
+   - openrouter_esSuccess: true
+   - openai_esSuccess: true
+   - openrouter_totalMs: 14370
+   - openai_totalMs: 13204
+   - openrouter_searchMs: 0
+   - openai_searchMs: 0
+
+▶ DYNAMIC EXAMPLES (Vector Search):
+RELEVANT EXAMPLES FROM KNOWLEDGE BASE
+   Mode: VECTOR
+   
+   Example 1:
+   Question: IP 10.4.110.107 truy cập những website nào?
+   Content: IP 10.4.110.107 truy cập những website nào?
+   Query: {"query":{"bool":{"must":[{"match":{"source.ip":"10.4.110.107"}}],"filter":[{"exists":{"field":"url.domain"}}]}},"sort":[{"@timestamp":"desc"}],"size":10,"_source":["@timestamp","url.domain","source.ip"]}
+   
+   Example 2:
+   Question: IP nào truy cập đến các website như thế nào?
+   Content: IP nào truy cập đến các website như thế nào?
+   Query: {"query":{"exists":{"field":"url.domain"}},"sort":[{"@timestamp":"desc"}],"size":10,"_source":["@timestamp","source.ip","url.domain"]}
+   
+   Example 3:
+   Question: Lịch sử truy cập internet của nhân viên - những website nào được truy cập trong 7 ngày qua?
+   Content: Lịch sử truy cập internet của nhân viên - những website nào được truy cập trong 7 ngày qua?
+   Query: {"query":{"bool":{"filter":[{"terms":{"network.protocol":["http","https"]}},{"range":{"@timestamp":{"gte":"now-7d"}}},{"bool":{"should":[{"bool":{"filter":[{"terms":{"fortinet.firewall.transip":["118.70.81.176","101.99.13.33"]}},{"terms":{"network.direction":["outbound","external"]}}]}},{"bool":{"filter":[{"terms":{"source.ip":["118.70.81.176","101.99.13.33"]}},{"terms":{"network.direction":["outbound","external"]}},{"bool":{"must_not":{"exists":{"field":"fortinet.firewall.transip"}}}}]}}],"minimum_should_match":1}}]}},"aggs":{"by_user":{"terms":{"field":"source.user.name","size":10},"aggs":{"by_interface":{"terms":{"field":"observer.egress.interface.name","size":10},"aggs":{"interface_bytes":{"sum":{"field":"network.bytes"}},"user_domains":{"terms":{"field":"url.domain","size":15},"aggs":{"domain_bytes":{"sum":{"field":"network.bytes"}}}}}},"user_total_bytes":{"sum":{"field":"network.bytes"}}}},"top_domains":{"terms":{"field":"url.domain","size":20},"aggs":{"total_bytes":{"sum":{"field":"network.bytes"}},"unique_users":{"cardinality":{"field":"source.user.name"}},"by_interface":{"terms":{"field":"observer.egress.interface.name","size":10},"aggs":{"interface_bytes":{"sum":{"field":"network.bytes"}}}}}}},"_source":["@timestamp","source.user.name","source.ip","url.original","network.protocol","destination.as.organization.name","observer.egress.interface.name"],"sort":[{"@timestamp":"desc"}],"size":100}
+   
+   Example 4:
+   Question: User nào truy cập nhiều websites khác nhau nhất?
+   Content: User nào truy cập nhiều websites khác nhau nhất?
+   Query: {"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}},{"terms":{"network.protocol":["http","https"]}},{"exists":{"field":"url.domain"}}]}},"aggs":{"by_user":{"terms":{"field":"source.user.name","size":10},"aggs":{"unique_websites":{"cardinality":{"field":"url.domain"}}}}}}
+   
+   Example 5:
+   Question: Danh sách các truy cập bị chặn hôm nay
+   Content: Danh sách các truy cập bị chặn hôm nay
+   Query: {"size":50,"sort":[{"@timestamp":"desc"}],"query":{"bool":{"filter":[{"term":{"fortinet.firewall.action":"blocked"}},{"range":{"@timestamp":{"gte":"now/d"}}}]}}}
+   
+   Exa...
+   (truncated - see full output in console)
+
+▶ TIMESTAMP: 2025-11-18T14:34:47.9493117
+════════════════════════════ END SUCCESS DETAILS ════════════════════════════
+

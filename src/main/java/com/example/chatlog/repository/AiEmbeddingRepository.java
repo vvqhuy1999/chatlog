@@ -37,20 +37,27 @@ public interface AiEmbeddingRepository extends JpaRepository<AiEmbedding, UUID> 
     List<AiEmbedding> findSimilarEmbeddings(@Param("queryEmbedding") String queryEmbedding, @Param("limit") int limit);
     
     
-    // Custom insert với explicit vector cast
+    // Custom insert với explicit vector cast - Sửa để prevent duplicate theo content
+    // INSERT chỉ xảy ra nếu chưa tồn tại record với cùng content và is_deleted = 0
     @Modifying
     @Transactional
     @Query(nativeQuery = true, value = """
         INSERT INTO ai_embedding (id, content, embedding, metadata, created_at, updated_at, is_deleted)
-        VALUES (:id, :content, CAST(:embedding AS vector), CAST(:metadata AS jsonb), :createdAt, :updatedAt, :isDeleted)
-        ON CONFLICT (id) DO UPDATE SET
-            content = EXCLUDED.content,
-            embedding = EXCLUDED.embedding,
-            metadata = EXCLUDED.metadata,
-            updated_at = EXCLUDED.updated_at,
-            is_deleted = EXCLUDED.is_deleted
+        SELECT 
+            :id,
+            :content,
+            CAST(:embedding AS vector),
+            CAST(:metadata AS jsonb),
+            :createdAt,
+            :updatedAt,
+            :isDeleted
+        WHERE NOT EXISTS (
+            SELECT 1 FROM ai_embedding 
+            WHERE content = :content 
+            AND is_deleted = 0
+        )
         """)
-    void saveWithVectorCast(
+    int saveWithVectorCast(
         @Param("id") UUID id,
         @Param("content") String content,
         @Param("embedding") String embedding,

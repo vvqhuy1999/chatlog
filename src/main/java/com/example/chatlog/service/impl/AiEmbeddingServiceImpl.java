@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -23,6 +24,13 @@ public class AiEmbeddingServiceImpl implements AiEmbeddingService {
 
     @Override
     public AiEmbedding saveEmbedding(String content, String embedding, Map<String, Object> metadata) {
+        // Check duplicate trước để tránh duplicate insertion (double-check pattern)
+        Optional<AiEmbedding> existing = aiEmbeddingRepository.findByContentAndNotDeleted(content);
+        if (existing.isPresent()) {
+            // Nếu đã tồn tại, return existing record thay vì tạo mới
+            return existing.get();
+        }
+        
         // Generate ID and timestamps manually (since @PrePersist won't be triggered)
         java.util.UUID id = java.util.UUID.randomUUID();
         java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
@@ -31,7 +39,8 @@ public class AiEmbeddingServiceImpl implements AiEmbeddingService {
         String metadataJson = convertMapToJson(metadata);
         
         // Use custom native query with explicit vector cast
-        aiEmbeddingRepository.saveWithVectorCast(
+        // Query sẽ tự check duplicate bằng WHERE NOT EXISTS để đảm bảo an toàn
+        int rowsAffected = aiEmbeddingRepository.saveWithVectorCast(
             id,
             content,
             embedding,
@@ -41,16 +50,23 @@ public class AiEmbeddingServiceImpl implements AiEmbeddingService {
             0     // isDeleted
         );
         
-        // Return the saved entity (build it for return)
-        return AiEmbedding.builder()
-                .id(id)
-                .content(content)
-                .embedding(embedding)
-                .metadata(metadata)
-                .createdAt(now)
-                .updatedAt(now)
-                .isDeleted(0)
-                .build();
+        // Nếu insert thành công (rowsAffected > 0), return new entity
+        if (rowsAffected > 0) {
+            return AiEmbedding.builder()
+                    .id(id)
+                    .content(content)
+                    .embedding(embedding)
+                    .metadata(metadata)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .isDeleted(0)
+                    .build();
+        } else {
+            // Nếu insert thất bại (duplicate), query lại để return existing record
+            // Điều này có thể xảy ra nếu có race condition giữa check và insert
+            return aiEmbeddingRepository.findByContentAndNotDeleted(content)
+                    .orElseThrow(() -> new RuntimeException("Failed to save embedding and cannot find existing record"));
+        }
     }
     
     private String convertMapToJson(Map<String, Object> map) {

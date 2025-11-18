@@ -7011,6 +7011,17 @@
               }
             },
             {
+              "terms": {
+                "observer.egress.interface.name": [
+                  "sdwan",
+                  "port1",
+                  "port2",
+                  "FTTH-WAN1-CMC",
+                  "FTTH-WAN2-FPT"
+                ]
+              }
+            },
+            {
               "bool": {
                 "should": [
                   {
@@ -7177,6 +7188,17 @@
                   "gte": "2025-10-07T00:00:00.000+07:00",
                   "lte": "2025-10-07T23:59:59.999+07:00"
                 }
+              }
+            },
+            {
+              "terms": {
+                "observer.egress.interface.name": [
+                  "sdwan",
+                  "port1",
+                  "port2",
+                  "FTTH-WAN1-CMC",
+                  "FTTH-WAN2-FPT"
+                ]
               }
             },
             {
@@ -7385,6 +7407,17 @@
               }
             },
             {
+              "terms": {
+                "observer.egress.interface.name": [
+                  "sdwan",
+                  "port1",
+                  "port2",
+                  "FTTH-WAN1-CMC",
+                  "FTTH-WAN2-FPT"
+                ]
+              }
+            },
+            {
               "bool": {
                 "should": [
                   {
@@ -7573,6 +7606,17 @@
               "term": {
                 "network.direction": "inbound"
               }
+            },
+            {
+              "terms": {
+                "observer.ingress.interface.name": [
+                  "sdwan",
+                  "port1",
+                  "port2",
+                  "FTTH-WAN1-CMC",
+                  "FTTH-WAN2-FPT"
+                ]
+              }
             }
           ]
         }
@@ -7694,6 +7738,17 @@
                 "@timestamp": {
                   "gte": "now-7d"
                 }
+              }
+            },
+            {
+              "terms": {
+                "observer.egress.interface.name": [
+                  "sdwan",
+                  "port1",
+                  "port2",
+                  "FTTH-WAN1-CMC",
+                  "FTTH-WAN2-FPT"
+                ]
               }
             },
             {
@@ -7865,7 +7920,10 @@
       "statistics",
       "thống kê",
       "grouping",
-      "nhóm"
+      "nhóm",
+      "observer.egress.interface.name",
+      "đường truyền",
+      "interface"
     ],
     "scenario": "Web filtering - Monitor web access patterns for security, compliance, and productivity management",
     "query": {
@@ -7957,17 +8015,35 @@
             "size": 10
           },
           "aggs": {
-            "user_domains": {
+            "by_interface": {
               "terms": {
-                "field": "url.domain",
-                "size": 15
+                "field": "observer.egress.interface.name",
+                "size": 10
               },
               "aggs": {
-                "org_bytes": {
+                "interface_bytes": {
                   "sum": {
                     "field": "network.bytes"
                   }
+                },
+                "user_domains": {
+                  "terms": {
+                    "field": "url.domain",
+                    "size": 15
+                  },
+                  "aggs": {
+                    "domain_bytes": {
+                      "sum": {
+                        "field": "network.bytes"
+                      }
+                    }
+                  }
                 }
+              }
+            },
+            "user_total_bytes": {
+              "sum": {
+                "field": "network.bytes"
               }
             }
           }
@@ -7987,6 +8063,19 @@
               "cardinality": {
                 "field": "source.user.name"
               }
+            },
+            "by_interface": {
+              "terms": {
+                "field": "observer.egress.interface.name",
+                "size": 10
+              },
+              "aggs": {
+                "interface_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
             }
           }
         }
@@ -7997,7 +8086,8 @@
         "source.ip",
         "url.original",
         "network.protocol",
-        "destination.as.organization.name"
+        "destination.as.organization.name",
+        "observer.egress.interface.name"
       ],
       "sort": [
         {
@@ -8253,7 +8343,13 @@
       "statistics",
       "thống kê",
       "grouping",
-      "nhóm"
+      "nhóm",
+      "observer.egress.interface.name",
+      "sdwan",
+      "port1",
+      "port2",
+      "FTTH-WAN1-CMC",
+      "FTTH-WAN2-FPT"
     ],
     "scenario": "Web filtering - Monitor web access patterns for security, compliance, and productivity management",
     "query": {
@@ -8280,19 +8376,20 @@
               "exists": {
                 "field": "destination.as.organization.name"
               }
+            },
+            {
+              "terms": {
+                "observer.egress.interface.name": [
+                  "sdwan",
+                  "port1",
+                  "port2",
+                  "FTTH-WAN1-CMC",
+                  "FTTH-WAN2-FPT"
+                ]
+              }
             }
           ],
           "should": [
-            {
-              "term": {
-                "observer.egress.interface.name": "port1"
-              }
-            },
-            {
-              "term": {
-                "observer.egress.interface.name": "port2"
-              }
-            },
             {
               "terms": {
                 "source.nat.ip": [
@@ -8317,10 +8414,61 @@
                 "field": "network.bytes"
               }
             },
-            "websites": {
+            "by_interface": {
               "terms": {
-                "field": "destination.as.organization.name",
-                "size": 100
+                "field": "observer.egress.interface.name",
+                "size": 10
+              },
+              "aggs": {
+                "interface_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                },
+                "websites": {
+                  "terms": {
+                    "field": "destination.as.organization.name",
+                    "size": 20
+                  },
+                  "aggs": {
+                    "website_bytes": {
+                      "sum": {
+                        "field": "network.bytes"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "top_websites": {
+          "terms": {
+            "field": "destination.as.organization.name",
+            "size": 30
+          },
+          "aggs": {
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "unique_users": {
+              "cardinality": {
+                "field": "source.user.name"
+              }
+            },
+            "by_interface": {
+              "terms": {
+                "field": "observer.egress.interface.name",
+                "size": 10
+              },
+              "aggs": {
+                "interface_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
               }
             }
           }
@@ -8329,7 +8477,7 @@
     }
   },
   {
-    "question": "Ai sử dụng lưu lượng internet nhiều nhất ngày 7/10 (đi ra)",
+    "question": "Ai sử dụng lưu lượng internet nhiều nhất ngày 7/10 (đi ra) qua 5 đường truyền chính",
     "keywords": [
       "ai",
       "user",
@@ -8369,9 +8517,18 @@
       "statistics",
       "thống kê",
       "grouping",
-      "nhóm"
+      "nhóm",
+      "observer.egress.interface.name",
+      "sdwan",
+      "port1",
+      "port2",
+      "FTTH-WAN1-CMC",
+      "FTTH-WAN2-FPT",
+      "đường truyền",
+      "interface",
+      "network interface"
     ],
-    "scenario": "Network performance - Identify top traffic consumers to optimize bandwidth allocation and detect anomalies",
+    "scenario": "Network performance - Identify top traffic consumers across multiple network interfaces on a specific day to optimize bandwidth allocation and detect anomalies",
     "query": {
       "size": 0,
       "query": {
@@ -8389,19 +8546,20 @@
               "term": {
                 "network.direction": "outbound"
               }
+            },
+            {
+              "terms": {
+                "observer.egress.interface.name": [
+                  "sdwan",
+                  "port1",
+                  "port2",
+                  "FTTH-WAN1-CMC",
+                  "FTTH-WAN2-FPT"
+                ]
+              }
             }
           ],
           "should": [
-            {
-              "term": {
-                "observer.egress.interface.name": "port1"
-              }
-            },
-            {
-              "term": {
-                "observer.egress.interface.name": "port2"
-              }
-            },
             {
               "terms": {
                 "source.nat.ip": [
@@ -8411,7 +8569,7 @@
               }
             }
           ],
-          "minimum_should_match": 1
+          "minimum_should_match": 0
         }
       },
       "aggs": {
@@ -8441,6 +8599,48 @@
               },
               "aggs": {
                 "interface_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            },
+            "by_nat_ip": {
+              "terms": {
+                "field": "source.nat.ip",
+                "size": 5
+              },
+              "aggs": {
+                "nat_ip_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "traffic_by_interface": {
+          "terms": {
+            "field": "observer.egress.interface.name",
+            "size": 5
+          },
+          "aggs": {
+            "interface_total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "top_users_per_interface": {
+              "terms": {
+                "field": "source.user.name",
+                "size": 5,
+                "order": {
+                  "user_bytes": "desc"
+                }
+              },
+              "aggs": {
+                "user_bytes": {
                   "sum": {
                     "field": "network.bytes"
                   }
@@ -8773,41 +8973,95 @@
     }
   },
   {
-    "question": "User truy cập web nhiều nhất với đầy đủ thông tin",
+    "question": "Phân tích top users truy cập web ra ngoài với chi tiết theo đường truyền, public IP và website đích trong 7 ngày qua",
+    "scenario": "Web filtering and user activity monitoring - Track top users' web browsing patterns across multiple network interfaces and public IPs for security auditing, compliance, and network performance analysis",
     "keywords": [
       "user",
       "người dùng",
       "truy cập web",
       "web access",
-      "nhiều nhất",
+      "web browsing",
+      "top users",
       "top",
-      "đầy đủ thông tin",
-      "source.nat.ip",
-      "public IP",
-      "network.direction",
-      "outbound",
-      "most",
+      "nhiều nhất",
       "highest",
       "cao nhất",
-      "maximum",
-      "tối đa",
-      "xếp hạng",
-      "ranking",
+      "7 ngày qua",
+      "7 days",
+      "7d",
+      "tuần",
+      "week",
+      "http",
+      "https",
+      "network.protocol",
+      "outbound",
+      "outbound traffic",
+      "lưu lượng đi ra",
+      "ra ngoài",
+      "external",
+      "public IP",
+      "IP công cộng",
+      "source.nat.ip",
+      "118.70.81.176",
+      "101.99.13.33",
+      "observer.egress.interface.name",
+      "đường truyền",
+      "interface",
+      "sdwan",
+      "port1",
+      "port2",
+      "FTTH-WAN1-CMC",
+      "FTTH-WAN2-FPT",
+      "url.domain",
+      "website",
+      "trang web",
+      "destination.as.organization.name",
+      "tổ chức đích",
+      "organization",
       "network bytes",
-      "packet size",
-      "kích thước gói tin",
+      "network.bytes",
+      "bandwidth",
+      "băng thông",
+      "data volume",
+      "lượng dữ liệu",
+      "packet",
+      "gói tin",
+      "session",
+      "phiên",
       "user activity",
       "hoạt động người dùng",
-      "account",
-      "tài khoản",
+      "breakdown",
+      "chi tiết",
+      "by interface",
+      "theo đường truyền",
+      "by IP",
+      "theo IP",
+      "top websites",
+      "website hàng đầu",
       "aggregation",
       "tổng hợp",
       "statistics",
       "thống kê",
+      "analysis",
+      "phân tích",
       "grouping",
-      "nhóm"
+      "nhóm",
+      "cardinality",
+      "counting",
+      "sum",
+      "tổng",
+      "order by",
+      "sắp xếp",
+      "sort",
+      "security",
+      "bảo mật",
+      "compliance",
+      "tuân thủ",
+      "audit",
+      "kiểm toán",
+      "network performance",
+      "hiệu suất mạng"
     ],
-    "scenario": "Web filtering - Monitor web access patterns for security, compliance, and productivity management",
     "query": {
       "size": 0,
       "query": {
@@ -8836,13 +9090,14 @@
           ],
           "should": [
             {
-              "term": {
-                "observer.egress.interface.name": "port1"
-              }
-            },
-            {
-              "term": {
-                "observer.egress.interface.name": "port2"
+              "terms": {
+                "observer.egress.interface.name": [
+                  "sdwan",
+                  "port1",
+                  "port2",
+                  "FTTH-WAN1-CMC",
+                  "FTTH-WAN2-FPT"
+                ]
               }
             },
             {
@@ -8879,7 +9134,8 @@
             },
             "by_interface": {
               "terms": {
-                "field": "observer.egress.interface.name"
+                "field": "observer.egress.interface.name",
+                "size": 10
               },
               "aggs": {
                 "interface_bytes": {
@@ -8891,7 +9147,8 @@
             },
             "by_nat_ip": {
               "terms": {
-                "field": "source.nat.ip"
+                "field": "source.nat.ip",
+                "size": 10
               },
               "aggs": {
                 "nat_bytes": {
@@ -8916,6 +9173,111 @@
               },
               "aggs": {
                 "site_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "top_websites_global": {
+          "terms": {
+            "field": "url.domain",
+            "size": 20,
+            "order": {
+              "total_bytes": "desc"
+            }
+          },
+          "aggs": {
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "unique_users": {
+              "cardinality": {
+                "field": "source.user.name"
+              }
+            },
+            "by_interface": {
+              "terms": {
+                "field": "observer.egress.interface.name",
+                "size": 10
+              },
+              "aggs": {
+                "interface_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            },
+            "by_nat_ip": {
+              "terms": {
+                "field": "source.nat.ip",
+                "size": 10
+              },
+              "aggs": {
+                "nat_ip_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "traffic_by_interface": {
+          "terms": {
+            "field": "observer.egress.interface.name",
+            "size": 10
+          },
+          "aggs": {
+            "interface_total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "top_users_per_interface": {
+              "terms": {
+                "field": "source.user.name",
+                "size": 10,
+                "order": {
+                  "user_bytes": "desc"
+                }
+              },
+              "aggs": {
+                "user_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "traffic_by_nat_ip": {
+          "terms": {
+            "field": "source.nat.ip",
+            "size": 10
+          },
+          "aggs": {
+            "nat_ip_total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "top_users_per_ip": {
+              "terms": {
+                "field": "source.user.name",
+                "size": 10,
+                "order": {
+                  "user_bytes": "desc"
+                }
+              },
+              "aggs": {
+                "user_bytes": {
                   "sum": {
                     "field": "network.bytes"
                   }
@@ -16841,18 +17203,20 @@
     "scenario": "Phân tích danh sách các website mà IP 10.4.110.107 đã truy cập",
     "query": {
       "query": {
-        "match": {
-          "source.ip": "10.4.110.107"
+        "bool": {
+          "must": [
+            { "match": { "source.ip": "10.4.110.107" } }
+          ],
+          "filter": [
+            { "exists": { "field": "url.domain" } }
+          ]
         }
       },
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ],
+      "sort": [{ "@timestamp": "desc" }],
       "size": 10,
-      "_source": ["@timestamp", "url.domain"]
+      "_source": ["@timestamp", "url.domain", "source.ip"]
     }
+
   },
   {
     "question": "Hiển thị các kết nối được chấp nhận trong 24 giờ qua",
@@ -17710,6 +18074,103 @@
             { "range": { "@timestamp": { "gte": "now-30d" } } },
             { "terms": { "fortinet.firewall.action": ["Edit", "Add", "Delete"] } }
           ]
+        }
+      }
+    }
+  },
+  {
+    "question": "Ai dùng internet nhiều nhất trong hôm qua?",
+    "keywords": [
+      "ai",
+      "user",
+      "người dùng",
+      "internet",
+      "nhiều nhất",
+      "top",
+      "hôm qua",
+      "yesterday",
+      "sử dụng",
+      "usage",
+      "băng thông",
+      "bandwidth",
+      "network.bytes",
+      "http",
+      "https",
+      "sdwan",
+      "wan",
+      "traffic",
+      "lưu lượng",
+      "most",
+      "highest",
+      "cao nhất",
+      "maximum",
+      "tối đa",
+      "xếp hạng",
+      "ranking",
+      "aggregation",
+      "tổng hợp",
+      "statistics",
+      "thống kê",
+      "grouping",
+      "nhóm"
+    ],
+    "scenario": "Network performance - Identify top internet bandwidth consumers to monitor usage and optimize network resources",
+    "query": {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-1d/d",
+                  "lt": "now/d"
+                }
+              }
+            },
+            {
+              "terms": {
+                "network.protocol": [
+                  "http",
+                  "https"
+                ]
+              }
+            },
+            {
+              "terms": {
+                "observer.egress.interface.name": [
+                  "sdwan",
+                  "port1",
+                  "port2",
+                  "FTTH-WAN1-CMC",
+                  "FTTH-WAN2-FPT"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "top_users": {
+          "terms": {
+            "field": "source.user.name",
+            "size": 10,
+            "order": {
+              "total_bytes": "desc"
+            }
+          },
+          "aggs": {
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            },
+            "total_sessions": {
+              "value_count": {
+                "field": "@timestamp"
+              }
+            }
+          }
         }
       }
     }

@@ -137,11 +137,18 @@ public class AiComparisonService {
             📊 IMPORTANT DATA HANDLING RULES:
             
             BYTE CONVERSION (Auto-convert to readable units):
+            - CRITICAL: If value is in scientific notation (e.g., 4.199510429E9, 1.8275531163E10, 1.771889792704E12),
+              MUST convert to decimal/base-10 first before calculating GB/MB/KB
             - >= 1,073,741,824 bytes → X.XX GB (show original in parentheses)
             - >= 1,048,576 bytes → X.XX MB (show original in parentheses)
             - >= 1,024 bytes → X.XX KB (show original in parentheses)
             - < 1,024 bytes → keep as bytes
-            Example: "140.93 GB (151,234,567,890 bytes)" or "52.42 MB (54,976,546 bytes)"
+            
+            Example conversions:
+            - 4.199510429E9 → 4,199,510,429 bytes → 3.91 GB (4,199,510,429 bytes)
+            - 1.8275531163E10 → 18,275,531,163 bytes → 17.02 GB (18,275,531,163 bytes)
+            - 1.771889792704E12 → 1,771,889,792,704 bytes → 1.61 TB (1,771,889,792,704 bytes)
+            - Regular: "140.93 GB (151,234,567,890 bytes)" or "52.42 MB (54,976,546 bytes)"
             
             DEDUPLICATION & SUMMARIZATION:
             - If >5 similar logs (same user, IP, port, action, rule): Group them
