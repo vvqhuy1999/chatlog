@@ -407,7 +407,7 @@ public class AiComparisonService {
                             You MUST apply specific filters based on keywords in the User Query.
                             Ignore any Dynamic Example above if it conflicts with these rules.
                             
-                            1. IF QUERY CONTAINS: "internet", "web", "ra ngoài", "outbound", "băng thông", "lưu lượng"
+                            1. IF QUERY CONTAINS: "internet", "ra ngoài", "outbound", "băng thông", "lưu lượng"
                                THEN YOU MUST ADD THESE FILTERS:
 
                                "terms": {
@@ -424,6 +424,10 @@ public class AiComparisonService {
                             
                             2. IF QUERY CONTAINS: "truy cập", "sử dụng" (without specifying "internal")
                                -> Assume "outbound" internet traffic and apply the rules above.
+                               
+                            3. IF QUERY CONTAINS: "website", "trang web", "domain", "url"
+                                   THEN YOU MUST ADD THIS FILTER:
+                                   "exists": { "field": "url.domain" }
             ═══════════════════════════════════════════════════════════════
             🚀 BEGIN NOW
             ═══════════════════════════════════════════════════════════════

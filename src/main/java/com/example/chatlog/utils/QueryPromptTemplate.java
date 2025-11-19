@@ -60,7 +60,7 @@ public class QueryPromptTemplate {
             
         🚨 MANDATORY BUSINESS RULES (PRIORITY #0 - MUST FOLLOW) 🚨
          
-           1. IF QUERY CONTAINS: "internet", "web", "ra ngoài", "outbound", "băng thông", "lưu lượng"
+           1. IF QUERY CONTAINS: "internet", "ra ngoài", "outbound", "băng thông", "lưu lượng"
            THEN YOU MUST ADD THESE FILTERS:
            "terms": {
              "observer.egress.interface.name": ["sdwan", "port1", "port2", "FTTH-WAN1-CMC", "FTTH-WAN2-FPT"]
