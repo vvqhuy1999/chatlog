@@ -21,9 +21,6 @@ CREATE TABLE IF NOT EXISTS public.ai_embedding (
 -- ============================================
 -- 3. Tạo indexes để tối ưu tìm kiếm
 -- ============================================
-CREATE INDEX IF NOT EXISTS idx_ai_embedding_vector
-    ON public.ai_embedding USING ivfflat (embedding vector_cosine_ops)
-    WITH (lists = '100') TABLESPACE pg_default;
 
 CREATE INDEX IF NOT EXISTS idx_ai_embedding_metadata
     ON public.ai_embedding USING gin (metadata) TABLESPACE pg_default;

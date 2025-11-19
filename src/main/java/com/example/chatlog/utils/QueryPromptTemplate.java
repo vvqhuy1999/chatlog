@@ -40,7 +40,7 @@ public class QueryPromptTemplate {
             "hôm qua/yesterday" → {"gte": "now-1d/d"}
                         
             "ngày DD-MM" → {"gte": "YYYY-MM-DDT00:00:00.000+07:00", "lte": "YYYY-MM-DDT23:59:59.999+07:00"}
-                               
+                         
             SCHEMA INFORMATION
             {schemaInfo}
             
@@ -57,6 +57,21 @@ public class QueryPromptTemplate {
             
             DYNAMIC EXAMPLES FROM KNOWLEDGE BASE
             {dynamic_examples}
+            
+            🚨 MANDATORY BUSINESS RULES (OVERRIDES EXAMPLES ABOVE) 🚨
+
+               If the user asks about "internet", "web traffic", "ra ngoài", or "bandwidth/lưu lượng",you MUST apply these filters (even if examples above don't have them):
+                       
+               1. Protocols (MUST BE http or https):
+               "terms": {"network.protocol": ["http", "https"]}
+                          
+               2. Egress Interfaces (MUST MATCH ONE OF THESE):
+               "terms": {"observer.egress.interface.name": ["sdwan", "port1", "port2", "FTTH-WAN1-CMC", "FTTH-WAN2-FPT"]}
+                       
+               3. Direction (MUST BE outbound):
+               "term": {"network.direction": "outbound"}
+                          
+               ⚠️ IGNORE any example above that contradicts these rules for "internet" queries.
             
             OUTPUT RULES
                         

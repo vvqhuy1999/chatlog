@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -16,6 +18,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class LogUtils {
     
     private static final String LOG_DIRECTORY = "logs";
+    private static final int MAX_LOG_FILES = 10;
     private static final ReentrantLock lock = new ReentrantLock();
     
     /**
@@ -351,8 +354,31 @@ public class LogUtils {
                 System.err.println("Không thể ghi log vào file: " + fileName);
                 e.printStackTrace();
             }
+
+            cleanupOldLogFiles();
         } finally {
             lock.unlock();
+        }
+    }
+
+    private static void cleanupOldLogFiles() {
+        File directory = new File(LOG_DIRECTORY);
+        File[] logFiles = directory.listFiles((dir, name) -> name.startsWith("chatlog_") && name.endsWith(".log"));
+        if (logFiles == null || logFiles.length <= MAX_LOG_FILES) {
+            return;
+        }
+
+        Arrays.sort(logFiles, Comparator.comparingLong(File::lastModified).reversed());
+
+        for (int i = MAX_LOG_FILES; i < logFiles.length; i++) {
+            try {
+                if (!logFiles[i].delete()) {
+                    System.err.println("Không thể xóa log cũ: " + logFiles[i].getName());
+                }
+            } catch (Exception e) {
+                System.err.println("Lỗi khi xóa log cũ: " + logFiles[i].getName());
+                e.printStackTrace();
+            }
         }
     }
 }
