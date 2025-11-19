@@ -72,11 +72,33 @@ public class KnowledgeBaseIndexingService {
                     System.out.println("   🆕 Phát hiện " + newEntriesCount + " entries mới cần thêm vào DB");
                 }
 
-                // Chỉ xử lý các entries chưa có trong database
+                // Tính số records cần thêm vào DB
+                int newEntriesCount = fileCount - (int)dbCount;
+                
+                // Chỉ lấy các records CUỐI CÙNG của file JSON (số lượng = newEntriesCount)
+                // Ví dụ: file có 231 records, DB có 227 records → chỉ lấy 4 records cuối cùng (index 227-230)
+                List<DataExample> examplesToProcess = new ArrayList<>();
+                if (newEntriesCount > 0 && newEntriesCount <= examples.size()) {
+                    // Lấy newEntriesCount records cuối cùng
+                    int startIndex = examples.size() - newEntriesCount;
+                    examplesToProcess = examples.subList(startIndex, examples.size());
+                    System.out.println("   📋 Chỉ xử lý " + newEntriesCount + " records cuối cùng (từ index " + startIndex + " đến " + (examples.size() - 1) + ")");
+                } else if (newEntriesCount > examples.size()) {
+                    // Trường hợp đặc biệt: newEntriesCount > examples.size() (không nên xảy ra)
+                    System.out.println("   ⚠️ Cảnh báo: newEntriesCount (" + newEntriesCount + ") > examples.size() (" + examples.size() + "), xử lý tất cả");
+                    examplesToProcess = examples;
+                } else {
+                    // newEntriesCount <= 0, không cần xử lý
+                    System.out.println("   ℹ️ Không có records mới cần xử lý");
+                    examplesToProcess = new ArrayList<>();
+                }
+
+                // Chỉ xử lý các entries cuối cùng chưa có trong database
                 int processedCount = 0;
-                for (DataExample example : examples) {
+                for (DataExample example : examplesToProcess) {
                     if (example.getQuestion() != null && example.getQuery() != null) {
                         // Kiểm tra xem embedding đã tồn tại chưa - bỏ qua nếu đã tồn tại
+                        // Check này để tránh tạo embedding không cần thiết
                         if (aiEmbeddingService.existsByContent(example.getQuestion())) {
                             continue; // Bỏ qua nếu đã tồn tại
                         }
@@ -106,6 +128,7 @@ public class KnowledgeBaseIndexingService {
                         metadata.put("keywords", example.getKeywords());
 
                         // Lưu embedding vào database - saveEmbedding() sẽ tự check duplicate
+                        // saveEmbedding() sử dụng WHERE NOT EXISTS trong SQL nên an toàn với race condition
                         if (embedding != null) {
                             // Convert float[] to PostgreSQL vector format: "[0.1,0.2,0.3,...]"
                             StringBuilder sb = new StringBuilder("[");
@@ -116,13 +139,39 @@ public class KnowledgeBaseIndexingService {
                             sb.append("]");
                             String embeddingString = sb.toString();
                             
-                            // Check lại một lần nữa trước khi save (double-check để tránh race condition)
-                            if (!aiEmbeddingService.existsByContent(example.getQuestion())) {
-                                aiEmbeddingService.saveEmbedding(
-                                    example.getQuestion(),
-                                    embeddingString,
-                                    metadata
-                                );
+                            // Kiểm tra xem record có tồn tại trước khi save không
+                            boolean existedBefore = aiEmbeddingService.existsByContent(example.getQuestion());
+                            
+                            // Lưu thời gian trước khi save để kiểm tra xem record có phải mới không
+                            java.time.OffsetDateTime beforeSave = java.time.OffsetDateTime.now().minusSeconds(1);
+                            
+                            // Gọi saveEmbedding() - method này sẽ tự check duplicate bằng WHERE NOT EXISTS
+                            // Nếu record đã tồn tại, method sẽ return existing record (với createdAt cũ)
+                            // Nếu record mới, method sẽ insert và return new record (với createdAt mới)
+                            com.example.chatlog.entity.ai.AiEmbedding savedEmbedding = aiEmbeddingService.saveEmbedding(
+                                example.getQuestion(),
+                                embeddingString,
+                                metadata
+                            );
+                            
+                            // Kiểm tra xem record có phải là record mới không
+                            // Cách 1: Nếu trước đó không tồn tại và sau đó tồn tại, thì là record mới
+                            // Cách 2: Kiểm tra createdAt - record mới sẽ có createdAt gần với thời gian hiện tại
+                            java.time.OffsetDateTime afterSave = java.time.OffsetDateTime.now().plusSeconds(1);
+                            boolean isNewRecord = false;
+                            
+                            if (!existedBefore) {
+                                // Nếu trước đó không tồn tại, kiểm tra createdAt để đảm bảo là record mới
+                                if (savedEmbedding.getCreatedAt() != null && 
+                                    savedEmbedding.getCreatedAt().isAfter(beforeSave) && 
+                                    savedEmbedding.getCreatedAt().isBefore(afterSave)) {
+                                    isNewRecord = true;
+                                }
+                            }
+                            // Nếu existedBefore = true, thì chắc chắn không phải record mới
+                            
+                            if (isNewRecord) {
+                                // Chỉ tăng totalSaved và add document nếu thực sự insert mới
                                 totalSaved++;
                                 
                                 // Chỉ add document vào vectorStore nếu thực sự insert mới vào DB

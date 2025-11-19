@@ -72,7 +72,7 @@ public class VectorSearchService {
         
         List<AiEmbedding> similarEmbeddings;
         String resultMode = "VECTOR";
-        int topK = 10; // Lấy 10 kết quả tốt nhất
+        int topK = 8; // Lấy 10 kết quả tốt nhất
         
         if (queryEmbeddingString != null) {
             // Lấy 10 kết quả tốt nhất từ vector similarity search

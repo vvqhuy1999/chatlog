@@ -470,7 +470,7 @@ public class AiComparisonService {
             System.out.println("\n" + "=".repeat(100));
             System.out.println("📝 [TOOL-BASED PROMPT] Full System Prompt Being Used:");
             System.out.println("=".repeat(100));
-            System.out.println(toolBasedPrompt);
+            // System.out.println(toolBasedPrompt);
             System.out.println("=".repeat(100) + "\n");
             
             // --- BƯỚC 2: PARALLEL EXECUTION - OpenAI và OpenRouter đồng thời ---
@@ -821,7 +821,10 @@ public class AiComparisonService {
             if (toolResult != null) {
                 esData = toolResult.data;
                 esQuery = toolResult.query != null ? toolResult.query : extractedQuery;
+                System.out.println("[OpenAI Thread] 📊 Tool result - Data length: " + (esData != null ? esData.length() : 0) + " chars");
+                System.out.println("[OpenAI Thread] 📊 Tool result - Data preview: " + (esData != null && esData.length() > 100 ? esData.substring(0, 100) + "..." : esData));
             } else {
+                System.out.println("[OpenAI Thread] ⚠️ Tool result is NULL!");
                 esQuery = extractedQuery;
             }
             
@@ -840,10 +843,17 @@ public class AiComparisonService {
             ));
             
             // Determine success based on tool execution
-            boolean esSuccess = toolResult != null && esData != null;
+            boolean esSuccess = toolResult != null && esData != null && !esData.trim().isEmpty();
             
             Map<String, Object> elasticsearchResult = new HashMap<>();
-            elasticsearchResult.put("data", esData != null ? "Data retrieved" : "No data");
+            // Lưu dữ liệu thực tế từ Elasticsearch để log chi tiết
+            // Chỉ lưu dữ liệu thực tế nếu không phải error message
+            if (esData != null && !esData.trim().isEmpty() && 
+                !esData.startsWith("❌") && !esData.startsWith("⚠️") && !esData.startsWith("ℹ️")) {
+                elasticsearchResult.put("data", esData);
+            } else {
+                elasticsearchResult.put("data", esData != null ? esData : "No data");
+            }
             elasticsearchResult.put("success", esSuccess);
             elasticsearchResult.put("query", esQuery != null ? esQuery : "N/A");
             elasticsearchResult.put("tool_called", toolResult != null);
@@ -1007,7 +1017,10 @@ public class AiComparisonService {
             if (toolResult != null) {
                 esData = toolResult.data;
                 esQuery = toolResult.query != null ? toolResult.query : extractedQuery;
+                System.out.println("[OpenRouter Thread] 📊 Tool result - Data length: " + (esData != null ? esData.length() : 0) + " chars");
+                System.out.println("[OpenRouter Thread] 📊 Tool result - Data preview: " + (esData != null && esData.length() > 100 ? esData.substring(0, 100) + "..." : esData));
             } else {
+                System.out.println("[OpenRouter Thread] ⚠️ Tool result is NULL!");
                 esQuery = extractedQuery;
             }
             
@@ -1026,10 +1039,17 @@ public class AiComparisonService {
             ));
             
             // Determine success based on tool execution
-            boolean esSuccess = toolResult != null && esData != null;
+            boolean esSuccess = toolResult != null && esData != null && !esData.trim().isEmpty();
             
             Map<String, Object> elasticsearchResult = new HashMap<>();
-            elasticsearchResult.put("data", esData != null ? "Data retrieved" : "No data");
+            // Lưu dữ liệu thực tế từ Elasticsearch để log chi tiết
+            // Chỉ lưu dữ liệu thực tế nếu không phải error message
+            if (esData != null && !esData.trim().isEmpty() && 
+                !esData.startsWith("❌") && !esData.startsWith("⚠️") && !esData.startsWith("ℹ️")) {
+                elasticsearchResult.put("data", esData);
+            } else {
+                elasticsearchResult.put("data", esData != null ? esData : "No data");
+            }
             elasticsearchResult.put("success", esSuccess);
             elasticsearchResult.put("query", esQuery != null ? esQuery : "N/A");
             elasticsearchResult.put("tool_called", toolResult != null);

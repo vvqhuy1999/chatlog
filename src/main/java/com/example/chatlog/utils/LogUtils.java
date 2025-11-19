@@ -294,12 +294,18 @@ public class LogUtils {
             String dynamicExamples = (String) context.get("dynamicExamples");
             if (dynamicExamples != null && !dynamicExamples.isEmpty()) {
                 logEntry.append("\n\n▶ DYNAMIC EXAMPLES (Vector Search):");
-                // Giới hạn độ dài nếu quá dài
-                String examplesDisplay = dynamicExamples;
-                if (examplesDisplay.length() > 3000) {
-                    examplesDisplay = examplesDisplay.substring(0, 3000) + "...\n(truncated - see full output in console)";
+                logEntry.append("\n   Total length: ").append(dynamicExamples.length()).append(" characters");
+                // Đếm số examples (tìm pattern "Example " hoặc "Example:")
+                int exampleCount = 0;
+                String lowerExamples = dynamicExamples.toLowerCase();
+                int index = 0;
+                while ((index = lowerExamples.indexOf("example ", index)) != -1) {
+                    exampleCount++;
+                    index += "example ".length();
                 }
-                logEntry.append("\n").append(examplesDisplay.replace("\n", "\n   "));
+                logEntry.append("\n   Number of examples found: ").append(exampleCount);
+                // Hiển thị đầy đủ không truncate
+                logEntry.append("\n").append(dynamicExamples.replace("\n", "\n   "));
             }
         }
         
