@@ -76,7 +76,7 @@ public class KnowledgeBaseIndexingService {
                 int processedCount = 0;
                 for (DataExample example : examples) {
                     if (example.getQuestion() != null && example.getQuery() != null) {
-                        // Kiểm tra xem embedding đã tồn tại chưa (chỉ khi cần thiết)
+                        // Kiểm tra xem embedding đã tồn tại chưa - bỏ qua nếu đã tồn tại
                         if (aiEmbeddingService.existsByContent(example.getQuestion())) {
                             continue; // Bỏ qua nếu đã tồn tại
                         }
@@ -105,7 +105,7 @@ public class KnowledgeBaseIndexingService {
                         metadata.put("source_file", fileName);
                         metadata.put("keywords", example.getKeywords());
 
-                        // Lưu embedding vào database
+                        // Lưu embedding vào database - saveEmbedding() sẽ tự check duplicate
                         if (embedding != null) {
                             // Convert float[] to PostgreSQL vector format: "[0.1,0.2,0.3,...]"
                             StringBuilder sb = new StringBuilder("[");
@@ -116,20 +116,24 @@ public class KnowledgeBaseIndexingService {
                             sb.append("]");
                             String embeddingString = sb.toString();
                             
-                            aiEmbeddingService.saveEmbedding(
-                                example.getQuestion(),
-                                embeddingString,
-                                metadata
-                            );
-                            totalSaved++;
+                            // Check lại một lần nữa trước khi save (double-check để tránh race condition)
+                            if (!aiEmbeddingService.existsByContent(example.getQuestion())) {
+                                aiEmbeddingService.saveEmbedding(
+                                    example.getQuestion(),
+                                    embeddingString,
+                                    metadata
+                                );
+                                totalSaved++;
+                                
+                                // Chỉ add document vào vectorStore nếu thực sự insert mới vào DB
+                                // SimpleVectorStore chỉ là in-memory cache, không lưu vào DB
+                                Document doc = new Document(
+                                    example.getQuestion(),
+                                    metadata
+                                );
+                                documents.add(doc);
+                            }
                         }
-
-                        // Chuẩn bị document cho Vector Store (trong bộ nhớ)
-                        Document doc = new Document(
-                            example.getQuestion(),
-                            metadata
-                        );
-                        documents.add(doc);
                     }
                 }
                 
