@@ -4257,27 +4257,43 @@
       "bandwidth",
       "băng thông",
       "1 giờ qua",
-      "sum",
-      "aggregation",
-      "network.bytes",
-      "traffic",
-      "lưu lượng",
-      "throughput",
-      "1h",
-      "hour",
-      "giờ qua",
-      "last hour",
-      "network bytes",
-      "packet size",
-      "kích thước gói tin"
+      "internet",
+      "ra ngoài",
+      "outbound"
     ],
-    "scenario": "Network performance - Monitor network traffic patterns to ensure optimal performance and detect unusual activity",
+    "scenario": "Network performance - Measure total internet bandwidth usage",
     "query": {
+      "size": 0,
       "query": {
-        "range": {
-          "@timestamp": {
-            "gte": "now-1h"
-          }
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-1h"
+                }
+              }
+            },
+            {
+              "terms": {
+                "network.protocol": [
+                  "http",
+                  "https"
+                ]
+              }
+            },
+            {
+              "terms": {
+                "observer.egress.interface.name": [
+                  "sdwan",
+                  "port1",
+                  "port2",
+                  "FTTH-WAN1-CMC",
+                  "FTTH-WAN2-FPT"
+                ]
+              }
+            }
+          ]
         }
       },
       "aggs": {
@@ -4286,8 +4302,7 @@
             "field": "network.bytes"
           }
         }
-      },
-      "size": 0
+      }
     }
   },
   {
@@ -14014,38 +14029,37 @@
     "keywords": [
       "bandwidth comparison",
       "so sánh băng thông",
-      "baseline analysis",
-      "phân tích mức cơ bản",
-      "network performance",
-      "hiệu suất mạng",
-      "traffic spike",
-      "đỉnh lưu lượng",
-      "băng thông",
-      "bandwidth",
       "hiện tại",
-      "current",
-      "so với",
-      "compared to",
       "7 ngày trước",
-      "7 days ago",
-      "cùng thời điểm",
-      "same time",
-      "so sánh",
-      "comparison",
-      "7d",
-      "tuần",
-      "week",
-      "7 days",
-      "tuần qua",
-      "last week",
-      "network bytes",
-      "packet size",
-      "kích thước gói tin"
+      "internet",
+      "traffic"
     ],
-    "scenario": "Network performance - Monitor network traffic patterns to ensure optimal performance and detect unusual activity",
+    "scenario": "Network performance - Compare internet bandwidth usage trends",
     "query": {
+      "size": 0,
       "query": {
         "bool": {
+          "filter": [
+            {
+              "terms": {
+                "network.protocol": [
+                  "http",
+                  "https"
+                ]
+              }
+            },
+            {
+              "terms": {
+                "observer.egress.interface.name": [
+                  "sdwan",
+                  "port1",
+                  "port2",
+                  "FTTH-WAN1-CMC",
+                  "FTTH-WAN2-FPT"
+                ]
+              }
+            }
+          ],
           "should": [
             {
               "range": {
@@ -14063,7 +14077,8 @@
                 }
               }
             }
-          ]
+          ],
+          "minimum_should_match": 1
         }
       },
       "aggs": {
@@ -14093,11 +14108,6 @@
                 "field": "network.bytes"
               }
             },
-            "total_sessions": {
-              "value_count": {
-                "field": "@timestamp"
-              }
-            },
             "avg_session_size": {
               "avg": {
                 "field": "network.bytes"
@@ -14105,8 +14115,7 @@
             }
           }
         }
-      },
-      "size": 0
+      }
     }
   },
   {
@@ -14221,53 +14230,51 @@
     "keywords": [
       "bandwidth hogs",
       "người dùng tiêu thụ băng thông",
-      "top consumers",
-      "người tiêu thụ hàng đầu",
-      "network abuse",
-      "lạm dụng mạng",
-      "user analysis",
-      "phân tích người dùng",
       "top 20",
       "users",
-      "người dùng",
-      "tiêu tốn",
-      "consume",
       "băng thông",
       "bandwidth",
-      "nhiều nhất",
-      "most",
       "2h qua",
-      "2 hours",
-      "top",
-      "highest",
-      "cao nhất",
-      "maximum",
-      "tối đa",
-      "xếp hạng",
-      "ranking",
-      "hàng đầu",
-      "leading",
-      "network bytes",
-      "packet size",
-      "kích thước gói tin",
-      "user activity",
-      "hoạt động người dùng",
-      "account",
-      "tài khoản",
-      "aggregation",
-      "tổng hợp",
-      "statistics",
-      "thống kê",
-      "grouping",
-      "nhóm"
+      "internet",
+      "http",
+      "https",
+      "sdwan",
+      "port1",
+      "network bytes"
     ],
-    "scenario": "Network performance - Identify top traffic consumers to optimize bandwidth allocation and detect anomalies",
+    "scenario": "Network performance - Identify top internet traffic consumers",
     "query": {
+      "size": 0,
       "query": {
-        "range": {
-          "@timestamp": {
-            "gte": "now-2h"
-          }
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-2h"
+                }
+              }
+            },
+            {
+              "terms": {
+                "network.protocol": [
+                  "http",
+                  "https"
+                ]
+              }
+            },
+            {
+              "terms": {
+                "observer.egress.interface.name": [
+                  "sdwan",
+                  "port1",
+                  "port2",
+                  "FTTH-WAN1-CMC",
+                  "FTTH-WAN2-FPT"
+                ]
+              }
+            }
+          ]
         }
       },
       "aggs": {
@@ -14302,82 +14309,58 @@
                   }
                 }
               }
-            },
-            "top_applications": {
-              "terms": {
-                "field": "network.application",
-                "size": 5
-              },
-              "aggs": {
-                "bytes": {
-                  "sum": {
-                    "field": "network.bytes"
-                  }
-                }
-              }
-            },
-            "upload_vs_download": {
-              "stats": {
-                "field": "source.bytes"
-              }
             }
           }
         }
-      },
-      "size": 0
+      }
     }
   },
   {
     "question": "Top 20 applications đang chiếm bandwidth?",
     "keywords": [
       "application usage",
-      "sử dụng ứng dụng",
-      "bandwidth by app",
-      "băng thông theo ứng dụng",
-      "resource consumption",
-      "tiêu thụ tài nguyên",
-      "app analysis",
-      "phân tích ứng dụng",
       "top 20",
       "applications",
-      "ứng dụng",
       "chiếm",
-      "consuming",
       "băng thông",
       "bandwidth",
-      "đang",
-      "currently",
-      "phân tích",
-      "analysis",
-      "traffic",
-      "lưu lượng",
-      "throughput",
-      "nhiều nhất",
-      "hàng đầu",
-      "cao nhất",
-      "highest",
-      "leading",
-      "network bytes",
-      "packet size",
-      "kích thước gói tin",
-      "user activity",
-      "hoạt động người dùng",
-      "account",
-      "tài khoản",
-      "aggregation",
-      "tổng hợp",
-      "statistics",
-      "thống kê",
-      "grouping",
-      "nhóm"
+      "internet",
+      "web traffic",
+      "network.application"
     ],
-    "scenario": "Network performance - Identify top traffic consumers to optimize bandwidth allocation and detect anomalies",
+    "scenario": "Network performance - Identify top applications consuming internet bandwidth",
     "query": {
+      "size": 0,
       "query": {
-        "range": {
-          "@timestamp": {
-            "gte": "now-2h"
-          }
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-2h"
+                }
+              }
+            },
+            {
+              "terms": {
+                "network.protocol": [
+                  "http",
+                  "https"
+                ]
+              }
+            },
+            {
+              "terms": {
+                "observer.egress.interface.name": [
+                  "sdwan",
+                  "port1",
+                  "port2",
+                  "FTTH-WAN1-CMC",
+                  "FTTH-WAN2-FPT"
+                ]
+              }
+            }
+          ]
         }
       },
       "aggs": {
@@ -14404,21 +14387,10 @@
               "cardinality": {
                 "field": "source.user.name"
               }
-            },
-            "avg_session_duration": {
-              "avg": {
-                "field": "event.duration"
-              }
-            },
-            "protocols": {
-              "terms": {
-                "field": "network.protocol"
-              }
             }
           }
         }
-      },
-      "size": 0
+      }
     }
   },
   {

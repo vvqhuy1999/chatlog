@@ -58,20 +58,27 @@ public class QueryPromptTemplate {
             DYNAMIC EXAMPLES FROM KNOWLEDGE BASE
             {dynamic_examples}
             
-            🚨 MANDATORY BUSINESS RULES (OVERRIDES EXAMPLES ABOVE) 🚨
+            🚨 MANDATORY BUSINESS RULES (PRIORITY #0 - MUST FOLLOW) 🚨
+              You MUST apply specific filters based on keywords in the User Query.
+              Ignore any Dynamic Example above if it conflicts with these rules.
 
-               If the user asks about "internet", "web traffic", "ra ngoài", or "bandwidth/lưu lượng",you MUST apply these filters (even if examples above don't have them):
-                       
-               1. Protocols (MUST BE http or https):
-               "terms": {"network.protocol": ["http", "https"]}
-                          
-               2. Egress Interfaces (MUST MATCH ONE OF THESE):
-               "terms": {"observer.egress.interface.name": ["sdwan", "port1", "port2", "FTTH-WAN1-CMC", "FTTH-WAN2-FPT"]}
-                       
-               3. Direction (MUST BE outbound):
-               "term": {"network.direction": "outbound"}
-                          
-               ⚠️ IGNORE any example above that contradicts these rules for "internet" queries.
+               1. IF QUERY CONTAINS: "internet", "web", "ra ngoài", "outbound", "băng thông", "lưu lượng"
+               THEN YOU MUST ADD THESE FILTERS:
+               
+               "terms": {
+                 "observer.egress.interface.name": ["sdwan", "port1", "port2", "FTTH-WAN1-CMC", "FTTH-WAN2-FPT"]
+               }
+               AND
+               "terms": {
+                 "network.protocol": ["http", "https"]
+               }
+               AND
+               "term": {
+                 "network.direction": "outbound"
+               }
+
+            2. IF QUERY CONTAINS: "truy cập", "sử dụng" (without specifying "internal")
+               -> Assume "outbound" internet traffic and apply the rules above.
             
             OUTPUT RULES
                         
