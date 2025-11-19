@@ -58,28 +58,14 @@ public class QueryPromptTemplate {
             DYNAMIC EXAMPLES FROM KNOWLEDGE BASE
             {dynamic_examples}
             
-            🚨 MANDATORY BUSINESS RULES (PRIORITY #0 - MUST FOLLOW) 🚨
-              You MUST apply specific filters based on keywords in the User Query.
-              Ignore any Dynamic Example above if it conflicts with these rules.
-
-               1. IF QUERY CONTAINS: "internet", "web", "ra ngoài", "outbound", "băng thông", "lưu lượng"
-               THEN YOU MUST ADD THESE FILTERS:
-               
-               "terms": {
-                 "observer.egress.interface.name": ["sdwan", "port1", "port2", "FTTH-WAN1-CMC", "FTTH-WAN2-FPT"]
-               }
-               AND
-               "terms": {
-                 "network.protocol": ["http", "https"]
-               }
-               AND
-               "term": {
-                 "network.direction": "outbound"
-               }
-
-            2. IF QUERY CONTAINS: "truy cập", "sử dụng" (without specifying "internal")
-               -> Assume "outbound" internet traffic and apply the rules above.
-            
+        🚨 MANDATORY BUSINESS RULES (PRIORITY #0 - MUST FOLLOW) 🚨
+         
+           1. IF QUERY CONTAINS: "internet", "web", "ra ngoài", "outbound", "băng thông", "lưu lượng"
+           THEN YOU MUST ADD THESE FILTERS:
+           "terms": {
+             "observer.egress.interface.name": ["sdwan", "port1", "port2", "FTTH-WAN1-CMC", "FTTH-WAN2-FPT"]
+           }
+   
             OUTPUT RULES
                         
             Return ONLY the JSON query object (valid JSON)
