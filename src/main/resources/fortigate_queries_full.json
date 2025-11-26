@@ -2576,8 +2576,8 @@
       "query": {
         "range": {
           "@timestamp": {
-            "gte": "2025-09-15T10:00:00.000+07:00",
-            "lte": "2025-09-15T15:30:00.000+07:00"
+            "gte": "2025-09-15T03:00:00.000Z",
+            "lte": "2025-09-15T08:30:00.000Z"
           }
         }
       },
@@ -4276,14 +4276,6 @@
             },
             {
               "terms": {
-                "network.protocol": [
-                  "http",
-                  "https"
-                ]
-              }
-            },
-            {
-              "terms": {
                 "observer.egress.interface.name": [
                   "sdwan",
                   "port1",
@@ -4291,6 +4283,11 @@
                   "FTTH-WAN1-CMC",
                   "FTTH-WAN2-FPT"
                 ]
+              }
+            },
+            {
+              "term": {
+                "network.direction": "outbound"
               }
             }
           ]
@@ -5558,8 +5555,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "2025-09-19T00:00:00.000+07:00",
-                  "lte": "2025-09-19T23:59:59.999+07:00"
+                  "gte": "2025-09-18T17:00:00.000Z",
+                  "lte": "2025-09-19T16:59:59.999Z"
                 }
               }
             }
@@ -6698,8 +6695,8 @@
       "query": {
         "range": {
           "@timestamp": {
-            "gte": "2025-10-07T18:00:00.000+07:00",
-            "lt": "2025-10-07T20:00:00.000+07:00"
+            "gte": "2025-10-07T11:00:00.000Z",
+            "lt": "2025-10-07T13:00:00.000Z"
           }
         }
       },
@@ -6710,6 +6707,7 @@
         }
       ]
     }
+
   },
   {
     "question": "Lấy 100 log mới nhất trong khoảng từ 8h đến 9h sáng ngày 08/10/2025",
@@ -6726,8 +6724,8 @@
       "query": {
         "range": {
           "@timestamp": {
-            "gte": "2025-10-08T08:00:00.000+07:00",
-            "lt": "2025-10-08T09:00:00.000+07:00"
+            "gte": "2025-10-08T01:00:00.000Z",
+            "lt": "2025-10-08T02:00:00.000Z"
           }
         }
       },
@@ -6754,8 +6752,8 @@
       "query": {
         "range": {
           "@timestamp": {
-            "gte": "2025-10-05T22:00:00.000+07:00",
-            "lt": "2025-10-06T01:00:00.000+07:00"
+            "gte": "2025-10-05T15:00:00.000Z",
+            "lt": "2025-10-05T18:00:00.000Z"
           }
         }
       },
@@ -6776,20 +6774,30 @@
     ],
     "scenario": "Email security - Monitor SMTP traffic to detect spam, phishing attempts, and email-borne threats",
     "query": {
+      "question": "Tìm tất cả log của ngày 01/10/2025, hiển thị mới nhất trước",
+      "keywords": [
+        "log",
+        "toàn bộ ngày",
+        "cả ngày"
+      ],
+      "scenario": "Email security - Monitor SMTP traffic to detect spam, phishing attempts, and email-borne threats",
       "query": {
-        "range": {
-          "@timestamp": {
-            "gte": "2025-10-01T00:00:00.000+07:00",
-            "lte": "2025-10-01T23:59:59.999+07:00"
+        "query": {
+          "range": {
+            "@timestamp": {
+              "gte": "2025-09-30T17:00:00.000Z",
+              "lte": "2025-10-01T16:59:59.999Z"
+            }
           }
-        }
-      },
-      "size": 50,
-      "sort": [
-        {
-          "@timestamp": "desc"
-        }
-      ]
+        },
+        "size": 50,
+        "sort": [
+          {
+            "@timestamp": "desc"
+          }
+        ]
+      }
+
     }
   },
   {
@@ -6806,8 +6814,8 @@
       "query": {
         "range": {
           "@timestamp": {
-            "gte": "2025-10-06T10:00:00.000+07:00",
-            "lt": "2025-10-06T12:00:00.000+07:00"
+            "gte": "2025-10-06T03:00:00.000Z",
+            "lt": "2025-10-06T05:00:00.000Z"
           }
         }
       },
@@ -6818,6 +6826,7 @@
         }
       ]
     }
+
   },
   {
     "question": "Hiển thị 20 log trong khoảng 15:00 đến 15:15 ngày 08/10/2025",
@@ -6833,8 +6842,8 @@
       "query": {
         "range": {
           "@timestamp": {
-            "gte": "2025-10-08T15:00:00.000+07:00",
-            "lt": "2025-10-08T15:15:00.000+07:00"
+            "gte": "2025-10-08T08:00:00.000Z",
+            "lt": "2025-10-08T08:15:00.000Z"
           }
         }
       },
@@ -6845,6 +6854,7 @@
         }
       ]
     }
+
   },
   {
     "question": "Tìm các log trong giờ làm việc (8h-17h) của ngày 03/10/2025",
@@ -6860,8 +6870,8 @@
       "query": {
         "range": {
           "@timestamp": {
-            "gte": "2025-10-03T08:00:00.000+07:00",
-            "lt": "2025-10-03T17:00:00.000+07:00"
+            "gte": "2025-10-03T01:00:00.000Z",
+            "lt": "2025-10-03T10:00:00.000Z"
           }
         }
       },
@@ -6872,6 +6882,7 @@
         }
       ]
     }
+
   },
   {
     "question": "Lấy 10 log mới nhất từ 00:00 đến 01:00 sáng ngày 02/10/2025",
@@ -6889,8 +6900,8 @@
       "query": {
         "range": {
           "@timestamp": {
-            "gte": "2025-10-02T00:00:00.000+07:00",
-            "lt": "2025-10-02T01:00:00.000+07:00"
+            "gte": "2025-10-01T17:00:00.000Z",
+            "lt": "2025-10-01T18:00:00.000Z"
           }
         }
       },
@@ -6916,8 +6927,8 @@
       "query": {
         "range": {
           "@timestamp": {
-            "gte": "2025-10-04T11:00:00.000+07:00",
-            "lt": "2025-10-04T11:30:00.000+07:00"
+            "gte": "2025-10-04T04:00:00.000Z",
+            "lt": "2025-10-04T04:30:00.000Z"
           }
         }
       },
@@ -6943,8 +6954,8 @@
       "query": {
         "range": {
           "@timestamp": {
-            "gte": "2025-10-09T12:00:00.000+07:00",
-            "lt": "2025-10-09T13:00:00.000+07:00"
+            "gte": "2025-10-09T05:00:00.000Z",
+            "lt": "2025-10-09T06:00:00.000Z"
           }
         }
       },
@@ -6954,192 +6965,6 @@
           "@timestamp": "desc"
         }
       ]
-    }
-  },
-  {
-    "question": "Ai đang truy cập internet từ mạng nội bộ qua các cổng ra ngoài trong 7 ngày qua?",
-    "keywords": [
-      "web",
-      "user",
-      "người dùng",
-      "truy cập internet",
-      "internet access",
-      "mạng nội bộ",
-      "internal network",
-      "đi ra ngoài",
-      "ra internet",
-      "outbound internet",
-      "port1",
-      "port2",
-      "cổng ra",
-      "egress",
-      "7 ngày qua",
-      "observer.egress.interface.name",
-      "network.protocol",
-      "http",
-      "https",
-      "tổ chức đích",
-      "destination.as.organization.name",
-      "network.direction",
-      "outbound",
-      "external",
-      "fortinet.firewall.transip",
-      "7d",
-      "tuần",
-      "week",
-      "7 days",
-      "tuần qua",
-      "last week",
-      "network bytes",
-      "packet size",
-      "kích thước gói tin",
-      "user activity",
-      "hoạt động người dùng",
-      "account",
-      "tài khoản",
-      "aggregation",
-      "tổng hợp",
-      "statistics",
-      "thống kê",
-      "grouping",
-      "nhóm"
-    ],
-    "scenario": "Network security - Monitor and analyze firewall logs for security threats, compliance, and operational insights",
-    "query": {
-      "size": 0,
-      "query": {
-        "bool": {
-          "filter": [
-            {
-              "terms": {
-                "network.protocol": [
-                  "http",
-                  "https"
-                ]
-              }
-            },
-            {
-              "range": {
-                "@timestamp": {
-                  "gte": "now-7d"
-                }
-              }
-            },
-            {
-              "terms": {
-                "observer.egress.interface.name": [
-                  "sdwan",
-                  "port1",
-                  "port2",
-                  "FTTH-WAN1-CMC",
-                  "FTTH-WAN2-FPT"
-                ]
-              }
-            },
-            {
-              "bool": {
-                "should": [
-                  {
-                    "bool": {
-                      "filter": [
-                        {
-                          "terms": {
-                            "fortinet.firewall.transip": [
-                              "118.70.81.176",
-                              "101.99.13.33"
-                            ]
-                          }
-                        },
-                        {
-                          "terms": {
-                            "network.direction": [
-                              "outbound",
-                              "external"
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "bool": {
-                      "filter": [
-                        {
-                          "terms": {
-                            "source.ip": [
-                              "118.70.81.176",
-                              "101.99.13.33"
-                            ]
-                          }
-                        },
-                        {
-                          "terms": {
-                            "network.direction": [
-                              "outbound",
-                              "external"
-                            ]
-                          }
-                        },
-                        {
-                          "bool": {
-                            "must_not": {
-                              "exists": {
-                                "field": "fortinet.firewall.transip"
-                              }
-                            }
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ],
-                "minimum_should_match": 1
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "by_user": {
-          "terms": {
-            "field": "source.user.name",
-            "size": 50
-          },
-          "aggs": {
-            "top_organizations": {
-              "terms": {
-                "field": "destination.as.organization.name",
-                "size": 10
-              },
-              "aggs": {
-                "org_bytes": {
-                  "sum": {
-                    "field": "network.bytes"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "top_organizations_global": {
-          "terms": {
-            "field": "destination.as.organization.name",
-            "size": 20
-          },
-          "aggs": {
-            "total_bytes": {
-              "sum": {
-                "field": "network.bytes"
-              }
-            },
-            "unique_users": {
-              "cardinality": {
-                "field": "source.user.name"
-              }
-            }
-          }
-        }
-      }
     }
   },
   {
@@ -7200,8 +7025,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "2025-10-07T00:00:00.000+07:00",
-                  "lte": "2025-10-07T23:59:59.999+07:00"
+                  "gte": "2025-10-06T17:00:00.000Z",
+                  "lte": "2025-10-07T16:59:59.999Z"
                 }
               }
             },
@@ -7740,14 +7565,6 @@
       "query": {
         "bool": {
           "filter": [
-            {
-              "terms": {
-                "network.protocol": [
-                  "http",
-                  "https"
-                ]
-              }
-            },
             {
               "range": {
                 "@timestamp": {
@@ -8552,8 +8369,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "2025-10-07T00:00:00.000+07:00",
-                  "lte": "2025-10-07T23:59:59.999+07:00"
+                  "gte": "2025-10-06T17:00:00.000Z",
+                  "lte": "2025-10-07T16:59:59.999Z"
                 }
               }
             },
@@ -9688,8 +9505,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "2025-10-07T00:00:00.000+07:00",
-                  "lte": "2025-10-07T23:59:59.999+07:00"
+                  "gte": "2025-10-06T17:00:00.000Z",
+                  "lte": "2025-10-07T16:59:59.999Z"
                 }
               }
             },
@@ -10153,8 +9970,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "2025-10-01T00:00:00.000+07:00",
-                  "lte": "2025-10-31T23:59:59.999+07:00"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lte": "2025-10-31T16:59:59.999Z"
                 }
               }
             },
@@ -10274,8 +10091,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "2025-10-01T00:00:00.000+07:00",
-                  "lte": "2025-10-31T23:59:59.999+07:00"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lte": "2025-10-31T16:59:59.999Z"
                 }
               }
             },
@@ -10442,8 +10259,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "2025-10-01T00:00:00.000+07:00",
-                  "lte": "2025-10-31T23:59:59.999+07:00"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lte": "2025-10-31T16:59:59.999Z"
                 }
               }
             }
@@ -10557,8 +10374,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "2025-10-01T00:00:00.000+07:00",
-                  "lte": "2025-10-31T23:59:59.999+07:00"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lte": "2025-10-31T16:59:59.999Z"
                 }
               }
             },
@@ -10825,8 +10642,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "2025-10-01T00:00:00.000+07:00",
-                  "lte": "2025-10-31T23:59:59.999+07:00"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lte": "2025-10-31T16:59:59.999Z"
                 }
               }
             },
@@ -10996,8 +10813,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "2025-10-01T00:00:00.000+07:00",
-                  "lte": "2025-10-31T23:59:59.999+07:00"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lte": "2025-10-31T16:59:59.999Z"
                 }
               }
             }
@@ -11137,8 +10954,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "2025-10-01T00:00:00.000+07:00",
-                  "lte": "2025-10-31T23:59:59.999+07:00"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lte": "2025-10-31T16:59:59.999Z"
                 }
               }
             }
@@ -11275,8 +11092,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "2025-10-01T00:00:00.000+07:00",
-                  "lt": "2025-10-31T23:59:59.999+07:00"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lt": "2025-10-31T16:59:59.999Z"
                 }
               }
             },
@@ -11353,7 +11170,7 @@
     }
   },
   {
-    "question": "hôm ngày 11-09 có roles admin nào vào hệ thống hay ko?",
+    "question": "Hôm ngày 11-09 có roles admin nào vào hệ thống hay không?",
     "keywords": [
       "hôm ngày 11-09",
       "admin",
@@ -11387,8 +11204,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "2025-09-11T00:00:00.000+07:00",
-                  "lte": "2025-09-11T23:59:59.999+07:00"
+                  "gte": "2025-09-10T17:00:00.000Z",
+                  "lte": "2025-09-11T16:59:59.999Z"
                 }
               }
             }
@@ -14042,14 +13859,6 @@
           "filter": [
             {
               "terms": {
-                "network.protocol": [
-                  "http",
-                  "https"
-                ]
-              }
-            },
-            {
-              "terms": {
                 "observer.egress.interface.name": [
                   "sdwan",
                   "port1",
@@ -14257,14 +14066,6 @@
             },
             {
               "terms": {
-                "network.protocol": [
-                  "http",
-                  "https"
-                ]
-              }
-            },
-            {
-              "terms": {
                 "observer.egress.interface.name": [
                   "sdwan",
                   "port1",
@@ -14339,14 +14140,6 @@
                 "@timestamp": {
                   "gte": "now-2h"
                 }
-              }
-            },
-            {
-              "terms": {
-                "network.protocol": [
-                  "http",
-                  "https"
-                ]
               }
             },
             {
@@ -18098,14 +17891,6 @@
                   "gte": "now-1d/d",
                   "lt": "now/d"
                 }
-              }
-            },
-            {
-              "terms": {
-                "network.protocol": [
-                  "http",
-                  "https"
-                ]
               }
             },
             {

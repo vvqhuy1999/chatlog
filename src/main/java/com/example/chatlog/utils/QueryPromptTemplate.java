@@ -39,7 +39,7 @@ public class QueryPromptTemplate {
                         
             "hôm qua/yesterday" → {"gte": "now-1d/d"}
                         
-            "ngày DD-MM" → {"gte": "YYYY-MM-DDT00:00:00.000+07:00", "lte": "YYYY-MM-DDT23:59:59.999+07:00"}
+            "ngày DD-MM" → {"gte": "YYYY-MM-DDT00:00:00Z", "lte": "YYYY-MM-DDT23:59:59Z"}
                          
             SCHEMA INFORMATION
             {schemaInfo}
@@ -311,7 +311,7 @@ public class QueryPromptTemplate {
             
             CRITICAL RULES - FOLLOW EXACTLY:
             1. MUST return ONLY direct Elasticsearch JSON query (no wrapper)
-            2. ALWAYS use '+07:00' timezone format in timestamps (Vietnam timezone)
+            2. ALWAYS use 'Z' or '+00:00' timezone format in timestamps (UTC)
             3. ALWAYS return single-line JSON without line breaks
             4. NEVER use RequestBody wrapper format
             5. Return clean JSON structure as single continuous string
@@ -327,8 +327,8 @@ public class QueryPromptTemplate {
                 ❌ WRONG: {"query": {"bool": {...}, "aggs": {...}}}
             
             TIMESTAMP FORMAT:
-            - CORRECT: "2025-09-14T11:41:04.000+07:00"
-            - INCORRECT: "2025-09-14T11:41:04.000Z"
+            - CORRECT: "2025-09-14T11:41:04.000Z"
+            - INCORRECT: "2025-09-14T11:41:04.000+07:00"
             
             Available fields: %s
             

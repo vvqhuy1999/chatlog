@@ -23,6 +23,8 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -64,10 +66,15 @@ public class AiQueryService {
      * Tạo chuỗi thông tin ngày tháng cho system message với các biểu thức thời gian tương đối của Elasticsearch
      */
     private String generateDateContext(LocalDateTime now) {
+        // Chuyển đổi từ giờ Việt Nam sang UTC
+        ZonedDateTime vnTime = ZonedDateTime.of(now, ZoneId.of("Asia/Ho_Chi_Minh"));
+        ZonedDateTime utcTime = vnTime.withZoneSameInstant(ZoneId.of("UTC"));
+        
         return String.format("""
-                CURRENT TIME CONTEXT (Vietnam timezone +07:00):
-                - Current exact time: %s (+07:00)
+                CURRENT TIME CONTEXT (UTC):
+                - Current exact time: %s (UTC)
                 - Current date: %s
+                - Note: System logs are in UTC. Vietnam time is +7 hours ahead of UTC.
                 
                 PREFERRED TIME QUERY METHOD - Use Elasticsearch relative time expressions:
                 - "5 phút qua, 5 phút trước, 5 minutes ago", "last 5 minutes" → {"gte": "now-5m"}
@@ -79,7 +86,7 @@ public class AiQueryService {
                 SPECIFIC DATE RANGES (when exact dates mentioned):
                 - "hôm nay, hôm nay, today" → {"gte": "now/d"}
                 - "hôm qua, hôm qua, yesterday" → {"gte": "now-1d/d"}
-                - Specific date like "ngày 15-09" → {"gte": "2025-09-15T00:00:00.000+07:00", "lte": "2025-09-15T23:59:59.999+07:00"}
+                - Specific date like "ngày 15-09" → {"gte": "2025-09-15T00:00:00Z", "lte": "2025-09-15T23:59:59Z"} (Convert input date to UTC range if needed, or use timezone offset)
                 
                 ADVANTAGES of "now-Xh/d/m" format:
                 - More efficient than absolute timestamps
@@ -87,8 +94,8 @@ public class AiQueryService {
                 - Elasticsearch native time calculations
                 - Always relative to query execution time
                 """,
-            now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
-            now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            utcTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
+            utcTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
         );
     }
     

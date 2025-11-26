@@ -87,6 +87,8 @@
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
+			<version>1.18.38</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -163,13 +165,6 @@
 			<version>3.7.0</version>
 		</dependency>
 
-		<dependency>
-			<groupId>org.postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-			<version>42.7.3</version>
-			<scope>runtime</scope>
-		</dependency>
-
 	</dependencies>
 
 	<build>
@@ -189,8 +184,19 @@
 				<version>3.11.0</version>
 				<configuration>
 					<release>${maven.compiler.release}</release>
+					<fork>true</fork>
+					<!-- optional: if you want to force a specific javac executable -->
+					<!-- <compilerExecutable>${java.home}/bin/javac</compilerExecutable> -->
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>1.18.38</version>
+						</path>
+					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
+
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>

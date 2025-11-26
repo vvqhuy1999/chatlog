@@ -19,6 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -49,12 +51,18 @@ public class AiComparisonService {
      * Tạo chuỗi thông tin ngày tháng cho system message
      */
     private String generateDateContext(LocalDateTime now) {
-        System.out.println("[generateDateContext] 📅 Tạo date context cho: " + now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        // Chuyển đổi từ giờ Việt Nam sang UTC
+        ZonedDateTime vnTime = ZonedDateTime.of(now, ZoneId.of("Asia/Ho_Chi_Minh"));
+        ZonedDateTime utcTime = vnTime.withZoneSameInstant(ZoneId.of("UTC"));
+        
+        System.out.println("[generateDateContext] 📅 Input (VN): " + vnTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        System.out.println("[generateDateContext] 🌍 Converted to UTC: " + utcTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         
         String dateContext = String.format("""
-                CURRENT TIME CONTEXT (Vietnam timezone +07:00):
-                - Current exact time: %s (+07:00)
+                CURRENT TIME CONTEXT (UTC):
+                - Current exact time: %s (UTC)
                 - Current date: %s
+                - Note: System logs are in UTC. Vietnam time is +7 hours ahead of UTC.
                 
                 PREFERRED TIME QUERY METHOD - Use Elasticsearch relative time expressions:
                 - "5 phút qua, 5 phút trước, 5 minutes ago", "last 5 minutes" → {"gte": "now-5m"}
@@ -66,7 +74,7 @@ public class AiComparisonService {
                 SPECIFIC DATE RANGES (when exact dates mentioned):
                 - "hôm nay, hôm nay, today" → {"gte": "now/d"}
                 - "hôm qua, hôm qua, yesterday" → {"gte": "now-1d/d"}
-                - Specific date like "ngày 15-09" → {"gte": "2025-09-15T00:00:00.000+07:00", "lte": "2025-09-15T23:59:59.999+07:00"}
+                - Specific date like "ngày 15-09" → {"gte": "2025-09-15T00:00:00Z", "lte": "2025-09-15T23:59:59Z"} (Convert input date to UTC range if needed, or use timezone offset)
                 
                 ADVANTAGES of "now-Xh/d/m" format:
                 - More efficient than absolute timestamps
@@ -74,11 +82,11 @@ public class AiComparisonService {
                 - Elasticsearch native time calculations
                 - Always relative to query execution time
                 """,
-            now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
-            now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            utcTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
+            utcTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
         );
         
-        System.out.println("[generateDateContext] ✅ Date context created - Length: " + dateContext.length() + " chars");
+        System.out.println("[generateDateContext] ✅ Date context created (UTC) - Length: " + dateContext.length() + " chars");
         
         return dateContext;
     }
@@ -256,8 +264,6 @@ public class AiComparisonService {
               size 50 đủ lớn để bao phủ outliers nhưng không quá nhiều
             - **network.bytes** (sum aggregation): Tính tổng lưu lượng chính xác, field chuẩn ECS 
               cho bandwidth measurement
-            - **network.protocol (http/https)**: Lọc traffic web only, loại trừ DNS, SSH, FTP để 
-              focus vào web browsing behavior
             - **network.direction = outbound**: Chỉ tính traffic đi ra (user requests), không tính 
               inbound để tránh đếm trùng
             - **@timestamp range (now-7d)**: 7 ngày đủ dài để thấy pattern, không quá ngắn (miss data) 
@@ -281,14 +287,6 @@ public class AiComparisonService {
                             "gte": "now-1d/d",
                             "lt": "now/d"
                             }
-                        }
-                        },
-                        {
-                        "terms": {
-                            "network.protocol": [
-                            "http",
-                            "https"
-                            ]
                         }
                         },
                         {
@@ -413,14 +411,7 @@ public class AiComparisonService {
                                "terms": {
                                  "observer.egress.interface.name": ["sdwan", "port1", "port2", "FTTH-WAN1-CMC", "FTTH-WAN2-FPT"]
                                }
-                               AND
-                               "terms": {
-                                 "network.protocol": ["http", "https"]
-                               }
-                               AND
-                               "term": {
-                                 "network.direction": "outbound"
-                               }
+                               
                             
                             2. IF QUERY CONTAINS: "truy cập", "sử dụng" (without specifying "internal")
                                -> Assume "outbound" internet traffic and apply the rules above.
@@ -428,6 +419,8 @@ public class AiComparisonService {
                             3. IF QUERY CONTAINS: "website", "trang web", "domain", "url"
                                    THEN YOU MUST ADD THIS FILTER:
                                    "exists": { "field": "url.domain" }
+                            4. - Nếu query chứa cụm từ chính xác "sử dụng internet"
+                                             → Không giới hạn giao thức(network.protocol) -> Thay vì filter {"terms": {"network.protocol": ["http", "https"]}}, bạn sẽ bỏ hẳn filter này.
             ═══════════════════════════════════════════════════════════════
             🚀 BEGIN NOW
             ═══════════════════════════════════════════════════════════════
