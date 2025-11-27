@@ -36,17 +36,17 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
  */
 @Service
 public class AiQueryService {
-    
+
     @Autowired
     private LogApiService logApiService;
-    
+
     // ✅ Inject KnowledgeBaseIndexingService thay vì load lại file
     @Autowired
     private KnowledgeBaseIndexingService knowledgeBaseIndexingService;
-    
+
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper;
-    
+
     @Autowired
     public AiQueryService(ChatClient.Builder builder) {
         this.chatClient = builder.build();
@@ -59,7 +59,7 @@ public class AiQueryService {
     public List<DataExample> getExampleLibrary() {
         return knowledgeBaseIndexingService.getExampleLibrary();
     }
-    
+
 
 
     /**
@@ -69,7 +69,7 @@ public class AiQueryService {
         // Chuyển đổi từ giờ Việt Nam sang UTC
         ZonedDateTime vnTime = ZonedDateTime.of(now, ZoneId.of("Asia/Ho_Chi_Minh"));
         ZonedDateTime utcTime = vnTime.withZoneSameInstant(ZoneId.of("UTC"));
-        
+
         return String.format("""
                 CURRENT TIME CONTEXT (UTC):
                 - Current exact time: %s (UTC)
@@ -86,7 +86,7 @@ public class AiQueryService {
                 SPECIFIC DATE RANGES (when exact dates mentioned):
                 - "hôm nay, hôm nay, today" → {"gte": "now/d"}
                 - "hôm qua, hôm qua, yesterday" → {"gte": "now-1d/d"}
-                - Specific date like "ngày 15-09" → {"gte": "2025-09-15T00:00:00Z", "lte": "2025-09-15T23:59:59Z"} (Convert input date to UTC range if needed, or use timezone offset)
+                - Specific date like "ngày 15-09" → {"gte": "2025-09-14T17:00:00Z", "lt": "2025-09-15T17:00:00Z"} (Convert input date to UTC range if needed, or use timezone offset)
                 
                 ADVANTAGES of "now-Xh/d/m" format:
                 - More efficient than absolute timestamps
@@ -98,7 +98,7 @@ public class AiQueryService {
             utcTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
         );
     }
-    
+
     /**
      * Thực hiện tìm kiếm Elasticsearch với retry logic
      */
@@ -129,7 +129,7 @@ public class AiQueryService {
             System.out.println("[AiQueryService] Sending query to Elasticsearch: " + query);
             String content = logApiService.search("logs-*", query);
             // System.out.println("[AiQueryService] Elasticsearch response received successfully");
-            
+
             // 🔍 DEBUG: Kiểm tra response có phải empty hay error không
             if (content == null || content.trim().isEmpty()) {
                 System.out.println("[AiQueryService] ⚠️ WARNING: Elasticsearch returned EMPTY response!");
@@ -138,7 +138,7 @@ public class AiQueryService {
                     query
                 };
             }
-            
+
             // Kiểm tra xem response có chứa error không
             if (content.contains("\"error\"") || content.contains("error_type")) {
                 System.out.println("[AiQueryService] ⚠️ WARNING: Elasticsearch returned ERROR in response!");
@@ -148,7 +148,7 @@ public class AiQueryService {
                     query
                 };
             }
-            
+
             // ✅ Kiểm tra xem có hits hoặc aggregations không
             // CHỈ check hits empty NẾU KHÔNG CÓ aggregations (vì size:0 query sẽ có aggs thay vì hits)
             boolean hasAggregations = content.contains("\"aggregations\"") || content.contains("\"aggs\"");
@@ -165,7 +165,7 @@ public class AiQueryService {
                 };
             }
 
-            
+
             System.out.println("[AiQueryService] ✅ Valid response received with data");
             return new String[]{content, query};
 
@@ -188,44 +188,44 @@ public class AiQueryService {
                     String prevQuery = requestBody.getBody();
                     String userMess = chatRequest.message();
 
-                     // Cải thiện prompt với error details cụ thể
-                     String systemPrompt =
-                         com.example.chatlog.utils.QueryPromptTemplate.getComparisonPrompt(
-                             allFields, prevQuery, userMess, generateDateContext(LocalDateTime.now())
-                         )
-                         + "\n\nROLE: You are an expert Elasticsearch DSL fixer.\n"
-                         + "Context:\n"
-                         + "- allFields: the complete list of valid field names (with types if available). Use only these.\n"
-                         + "- prevQuery: the failing query to fix without changing the user's intent.\n"
-                         + "- userMess: user's intent. Preserve semantics.\n"
-                         + "- dateContext: current time context if needed.\n\n"
-                         + "Task:\n"
-                         + "- Fix the specific issue in errorDetails.\n"
-                         + "- Keep the user's intent unchanged.\n"
-                         + "- Use only fields present in allFields; replace or remove invalid fields appropriately.\n\n"
-                         + "Output requirements:\n"
-                         + "- Return ONLY a single valid Elasticsearch JSON query. No explanations, no extra text.\n"
-                         + "- Ensure valid JSON syntax.\n\n"
-                         + "Best practices and constraints:\n"
-                         + "1) Do NOT place \"aggs\" inside \"query\". Use proper root-level aggs (or nested aggs correctly when needed).\n"
-                         + "2) Validate bool structure: must/should/filter/must_not used correctly.\n"
-                         + "3) Use operators matching field types (term/terms vs match; range for numeric/date, keyword vs text).\n"
-                         + "4) Ensure brackets, quotes, and commas are properly balanced.\n"
-                         + "5) If date filters are present, honor date formats and time zones. Use dateContext as needed.\n"
-                         + "6) Preserve size/sort/from if valid; otherwise fix or remove with minimal change.\n"
-                         + "7) Mentally verify the query passes syntax and mapping checks before returning.\n";
+                    // Cải thiện prompt với error details cụ thể
+                    String systemPrompt =
+                        com.example.chatlog.utils.QueryPromptTemplate.getComparisonPrompt(
+                            allFields, prevQuery, userMess, generateDateContext(LocalDateTime.now())
+                        )
+                            + "\n\nROLE: You are an expert Elasticsearch DSL fixer.\n"
+                            + "Context:\n"
+                            + "- allFields: the complete list of valid field names (with types if available). Use only these.\n"
+                            + "- prevQuery: the failing query to fix without changing the user's intent.\n"
+                            + "- userMess: user's intent. Preserve semantics.\n"
+                            + "- dateContext: current time context if needed.\n\n"
+                            + "Task:\n"
+                            + "- Fix the specific issue in errorDetails.\n"
+                            + "- Keep the user's intent unchanged.\n"
+                            + "- Use only fields present in allFields; replace or remove invalid fields appropriately.\n\n"
+                            + "Output requirements:\n"
+                            + "- Return ONLY a single valid Elasticsearch JSON query. No explanations, no extra text.\n"
+                            + "- Ensure valid JSON syntax.\n\n"
+                            + "Best practices and constraints:\n"
+                            + "1) Do NOT place \"aggs\" inside \"query\". Use proper root-level aggs (or nested aggs correctly when needed).\n"
+                            + "2) Validate bool structure: must/should/filter/must_not used correctly.\n"
+                            + "3) Use operators matching field types (term/terms vs match; range for numeric/date, keyword vs text).\n"
+                            + "4) Ensure brackets, quotes, and commas are properly balanced.\n"
+                            + "5) If date filters are present, honor date formats and time zones. Use dateContext as needed.\n"
+                            + "6) Preserve size/sort/from if valid; otherwise fix or remove with minimal change.\n"
+                            + "7) Mentally verify the query passes syntax and mapping checks before returning.\n";
 
-                     String userPrompt =
-                         "URGENT: Fix this Elasticsearch query and ensure correct syntax.\n\n"
-                         + "errorDetails: " + errorDetails + "\n"
-                         + "userMess: " + userMess + "\n"
-                         + "prevQuery: " + prevQuery + "\n\n"
-                         + "Return only the corrected JSON query.";
+                    String userPrompt =
+                        "URGENT: Fix this Elasticsearch query and ensure correct syntax.\n\n"
+                            + "errorDetails: " + errorDetails + "\n"
+                            + "userMess: " + userMess + "\n"
+                            + "prevQuery: " + prevQuery + "\n\n"
+                            + "Return only the corrected JSON query.";
 
-                     Prompt comparePrompt = new Prompt(
-                         new SystemMessage(systemPrompt),
-                         new UserMessage(userPrompt)
-                     );
+                    Prompt comparePrompt = new Prompt(
+                        new SystemMessage(systemPrompt),
+                        new UserMessage(userPrompt)
+                    );
 
 
                     ChatOptions retryChatOptions = ChatOptions.builder()
@@ -283,34 +283,34 @@ public class AiQueryService {
                             System.out.println("[AiQueryService] Raw response is not valid JSON: " + jsonException.getMessage());
                             throw new RuntimeException("AI returned invalid JSON: " + newQuery, jsonException);
                         }
-                     }
-                     System.out.println("[AiQueryService] 🔧 Generated new query with error fix: " + newQuery);
+                    }
+                    System.out.println("[AiQueryService] 🔧 Generated new query with error fix: " + newQuery);
 
-                     // Validate syntax của query mới trước khi sử dụng
-                     String newQueryValidationError = validateQuerySyntax(newQuery);
-                     if (newQueryValidationError != null) {
-                         System.out.println("[AiQueryService] WARNING: New query has syntax errors: " + newQueryValidationError);
-                         return new String[]{
-                             "❌ **Elasticsearch Error (Invalid Retry Query)**\n\n" +
-                                 "AI tạo ra query mới nhưng có lỗi syntax.\n\n" +
-                                 "**Lỗi gốc:** " + errorDetails + "\n\n" +
-                                 "**Lỗi query mới:** " + newQueryValidationError + "\n\n" +
-                                 "💡 **Gợi ý:** Vui lòng thử câu hỏi khác với cách diễn đạt khác.",
-                             query
-                         };
-                     }
+                    // Validate syntax của query mới trước khi sử dụng
+                    String newQueryValidationError = validateQuerySyntax(newQuery);
+                    if (newQueryValidationError != null) {
+                        System.out.println("[AiQueryService] WARNING: New query has syntax errors: " + newQueryValidationError);
+                        return new String[]{
+                            "❌ **Elasticsearch Error (Invalid Retry Query)**\n\n" +
+                                "AI tạo ra query mới nhưng có lỗi syntax.\n\n" +
+                                "**Lỗi gốc:** " + errorDetails + "\n\n" +
+                                "**Lỗi query mới:** " + newQueryValidationError + "\n\n" +
+                                "💡 **Gợi ý:** Vui lòng thử câu hỏi khác với cách diễn đạt khác.",
+                            query
+                        };
+                    }
 
-                     // Kiểm tra xem query mới có khác query cũ không
-                     if (newQuery.equals(prevQuery)) {
-                         System.out.println("[AiQueryService] WARNING: New query is identical to failed query");
-                         return new String[]{
-                             "❌ **Elasticsearch Error (Same Query Generated)**\n\n" +
-                                 "AI tạo ra query giống hệt với query đã lỗi.\n\n" +
-                                 "**Lỗi gốc:** " + errorDetails + "\n\n" +
-                                 "💡 **Gợi ý:** Vui lòng thử câu hỏi khác với cách diễn đạt khác.",
-                             query
-                         };
-                     }
+                    // Kiểm tra xem query mới có khác query cũ không
+                    if (newQuery.equals(prevQuery)) {
+                        System.out.println("[AiQueryService] WARNING: New query is identical to failed query");
+                        return new String[]{
+                            "❌ **Elasticsearch Error (Same Query Generated)**\n\n" +
+                                "AI tạo ra query giống hệt với query đã lỗi.\n\n" +
+                                "**Lỗi gốc:** " + errorDetails + "\n\n" +
+                                "💡 **Gợi ý:** Vui lòng thử câu hỏi khác với cách diễn đạt khác.",
+                            query
+                        };
+                    }
 
                     // Retry với query mới
                     System.out.println("[AiQueryService] 🔄 Đang thử lại với query đã sửa...");
@@ -371,42 +371,42 @@ public class AiQueryService {
             return errorMessage.length() > 200 ? errorMessage.substring(0, 200) + "..." : errorMessage;
         }
     }
-    
+
     /**
      * Validate Elasticsearch query syntax before sending to Elasticsearch
      */
     private String validateQuerySyntax(String query) {
         try {
             JsonNode jsonNode = new ObjectMapper().readTree(query);
-            
+
             // Check for required fields
             if (!jsonNode.has("query") && !jsonNode.has("aggs")) {
                 return "Query must contain either 'query' or 'aggs' field";
             }
-            
+
             // Check for common syntax issues
             if (jsonNode.has("query")) {
                 JsonNode queryNode = jsonNode.get("query");
-                
+
                 // Check if aggs is incorrectly placed inside query instead of at root level
                 if (queryNode.has("aggs")) {
                     return "Aggregations must be at root level, not inside query. Move 'aggs' outside of 'query'.";
                 }
-                
+
                 if (queryNode.has("bool")) {
                     JsonNode boolNode = queryNode.get("bool");
-                    
+
                     // Check if aggs is incorrectly placed inside bool
                     if (boolNode.has("aggs")) {
                         return "Aggregations must be at root level, not inside bool query. Move 'aggs' outside of 'query'.";
                     }
-                    
+
                     if (boolNode.has("filter")) {
                         JsonNode filterNode = boolNode.get("filter");
                         if (!filterNode.isArray()) {
                             return "Bool filter must be an array";
                         }
-                        
+
                         // Check each filter element
                         for (JsonNode filter : filterNode) {
                             if (filter.has("aggs")) {
@@ -414,21 +414,21 @@ public class AiQueryService {
                             }
                         }
                     }
-                    
+
                     if (boolNode.has("must")) {
                         JsonNode mustNode = boolNode.get("must");
                         if (!mustNode.isArray()) {
                             return "Bool must must be an array";
                         }
                     }
-                    
+
                     if (boolNode.has("should")) {
                         JsonNode shouldNode = boolNode.get("should");
                         if (!shouldNode.isArray()) {
                             return "Bool should must be an array";
                         }
                     }
-                    
+
                     if (boolNode.has("must_not")) {
                         JsonNode mustNotNode = boolNode.get("must_not");
                         if (!mustNotNode.isArray()) {
@@ -437,7 +437,7 @@ public class AiQueryService {
                     }
                 }
             }
-            
+
             // Check aggregations structure
             if (jsonNode.has("aggs")) {
                 JsonNode aggsNode = jsonNode.get("aggs");
@@ -445,7 +445,7 @@ public class AiQueryService {
                     return "Aggregations must be an object";
                 }
             }
-            
+
             // Check for size parameter
             if (jsonNode.has("size")) {
                 JsonNode sizeNode = jsonNode.get("size");
@@ -453,14 +453,14 @@ public class AiQueryService {
                     return "Size parameter must be a number";
                 }
             }
-            
+
             return null; // Valid query
-            
+
         } catch (Exception e) {
             return "Invalid JSON syntax: " + e.getMessage();
         }
     }
-    
+
     /**
      * Attempt to fix query structure issues
      */
@@ -468,27 +468,27 @@ public class AiQueryService {
         try {
             // First try to heal basic JSON issues
             String healedQuery = healJsonString(query);
-            
+
             ObjectMapper mapper = new ObjectMapper();
             JsonNode jsonNode = mapper.readTree(healedQuery);
-            
+
             // Fix: Ensure bool must/should/filter/must_not are arrays (recursively)
             JsonNode fixedNode = fixNestedBoolClauses(jsonNode, mapper);
-            
+
             String fixedQueryString = mapper.writeValueAsString(fixedNode);
             if (!fixedQueryString.equals(healedQuery)) {
                 System.out.println("[AiQueryService] ✅ Fixed query structure - converted bool clauses to arrays");
                 System.out.println("[AiQueryService] 📝 Original length: " + query.length() + ", Fixed length: " + fixedQueryString.length());
             }
             return fixedQueryString;
-            
+
         } catch (Exception e) {
             System.out.println("[AiQueryService] ❌ Failed to fix query structure: " + e.getMessage());
             System.out.println("[AiQueryService] 📝 Query length: " + query.length());
             return query; // Return original query if fix fails
         }
     }
-    
+
     /**
      * Attempt to heal basic JSON string issues
      */
@@ -496,39 +496,39 @@ public class AiQueryService {
         if (json == null || json.isEmpty()) {
             return json;
         }
-        
+
         // Count braces to find imbalances
         int openBraces = 0;
         int closeBraces = 0;
         int openBrackets = 0;
         int closeBrackets = 0;
-        
+
         for (char c : json.toCharArray()) {
             if (c == '{') openBraces++;
             else if (c == '}') closeBraces++;
             else if (c == '[') openBrackets++;
             else if (c == ']') closeBrackets++;
         }
-        
+
         String healed = json;
-        
+
         // Add missing closing braces
         for (int i = 0; i < (openBraces - closeBraces); i++) {
             healed += "}";
         }
-        
+
         // Add missing closing brackets
         for (int i = 0; i < (openBrackets - closeBrackets); i++) {
             healed += "]";
         }
-        
+
         if (!healed.equals(json)) {
             System.out.println("[AiQueryService] 🔨 Healed JSON - Added " + (openBraces - closeBraces) + " braces and " + (openBrackets - closeBrackets) + " brackets");
         }
-        
+
         return healed;
     }
-    
+
     /**
      * Recursively fix nested bool clauses to ensure must/should/filter/must_not are arrays
      */
@@ -536,7 +536,7 @@ public class AiQueryService {
         if (node == null || node.isNull()) {
             return node;
         }
-        
+
         if (node.isArray()) {
             ArrayNode arrayNode = mapper.createArrayNode();
             for (JsonNode item : node) {
@@ -544,23 +544,23 @@ public class AiQueryService {
             }
             return arrayNode;
         }
-        
+
         if (node.isObject()) {
             ObjectNode objectNode = mapper.createObjectNode();
-            
+
             node.fields().forEachRemaining(entry -> {
                 String fieldName = entry.getKey();
                 JsonNode fieldValue = entry.getValue();
-                
+
                 // If this is a bool clause, fix it
                 if ("bool".equals(fieldName) && fieldValue.isObject()) {
                     ObjectNode boolObject = mapper.createObjectNode();
                     fieldValue.fields().forEachRemaining(boolEntry -> {
                         String boolKey = boolEntry.getKey();
                         JsonNode boolValue = boolEntry.getValue();
-                        
-                        if (("must".equals(boolKey) || "should".equals(boolKey) || 
-                             "filter".equals(boolKey) || "must_not".equals(boolKey))) {
+
+                        if (("must".equals(boolKey) || "should".equals(boolKey) ||
+                            "filter".equals(boolKey) || "must_not".equals(boolKey))) {
                             // These fields must be arrays
                             if (boolValue.isArray()) {
                                 ArrayNode fixedArray = mapper.createArrayNode();
@@ -583,12 +583,12 @@ public class AiQueryService {
                     objectNode.set(fieldName, fixNestedBoolClauses(fieldValue, mapper));
                 }
             });
-            
+
             return objectNode;
         }
-        
+
         return node;
     }
-    
+
 
 }

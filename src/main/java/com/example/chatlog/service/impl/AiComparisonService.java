@@ -31,22 +31,22 @@ import java.util.concurrent.CompletableFuture;
  */
 @Service
 public class AiComparisonService {
-    
+
     @Autowired
     private VectorSearchService vectorSearchService;
-    
+
     @Autowired
     private ToolsConfig toolsConfig;
-    
+
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper;
-    
+
     @Autowired
     public AiComparisonService(ChatClient.Builder builder) {
         this.objectMapper = new ObjectMapper();
         this.chatClient = builder.build();
     }
-    
+
     /**
      * Tạo chuỗi thông tin ngày tháng cho system message
      */
@@ -54,10 +54,10 @@ public class AiComparisonService {
         // Chuyển đổi từ giờ Việt Nam sang UTC
         ZonedDateTime vnTime = ZonedDateTime.of(now, ZoneId.of("Asia/Ho_Chi_Minh"));
         ZonedDateTime utcTime = vnTime.withZoneSameInstant(ZoneId.of("UTC"));
-        
+
         System.out.println("[generateDateContext] 📅 Input (VN): " + vnTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         System.out.println("[generateDateContext] 🌍 Converted to UTC: " + utcTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        
+
         String dateContext = String.format("""
                 CURRENT TIME CONTEXT (UTC):
                 - Current exact time: %s (UTC)
@@ -74,7 +74,7 @@ public class AiComparisonService {
                 SPECIFIC DATE RANGES (when exact dates mentioned):
                 - "hôm nay, hôm nay, today" → {"gte": "now/d"}
                 - "hôm qua, hôm qua, yesterday" → {"gte": "now-1d/d"}
-                - Specific date like "ngày 15-09" → {"gte": "2025-09-15T00:00:00Z", "lte": "2025-09-15T23:59:59Z"} (Convert input date to UTC range if needed, or use timezone offset)
+                - Specific date like "ngày 15-09" → {"gte": "2025-09-14T17:00:00Z", "lt": "2025-09-15T17:00:00Z"} (Convert input date to UTC range if needed, or use timezone offset)
                 
                 ADVANTAGES of "now-Xh/d/m" format:
                 - More efficient than absolute timestamps
@@ -85,12 +85,12 @@ public class AiComparisonService {
             utcTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
             utcTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
         );
-        
+
         System.out.println("[generateDateContext] ✅ Date context created (UTC) - Length: " + dateContext.length() + " chars");
-        
+
         return dateContext;
     }
-    
+
     /**
      * Build tool-based prompt for parallel execution
      */
@@ -99,7 +99,7 @@ public class AiComparisonService {
         System.out.println("[buildToolBasedPrompt] 👤 User Query: " + userQuery.substring(0, Math.min(50, userQuery.length())) + "...");
         System.out.println("[buildToolBasedPrompt] 📅 Date Context Length: " + dateContext.length());
         System.out.println("[buildToolBasedPrompt] 📚 Dynamic Examples Length: " + (dynamicExamples != null ? dynamicExamples.length() : 0));
-        
+
         String prompt = String.format("""
             You are HPT.AI - an expert Elasticsearch query assistant for Fortinet Firewall logs.
             
@@ -411,7 +411,6 @@ public class AiComparisonService {
                                "terms": {
                                  "observer.egress.interface.name": ["sdwan", "port1", "port2", "FTTH-WAN1-CMC", "FTTH-WAN2-FPT"]
                                }
-                               
                             
                             2. IF QUERY CONTAINS: "truy cập", "sử dụng" (without specifying "internal")
                                -> Assume "outbound" internet traffic and apply the rules above.
@@ -439,12 +438,12 @@ public class AiComparisonService {
             dynamicExamples,
             userQuery
         );
-        
+
         System.out.println("[buildToolBasedPrompt] ✅ Prompt built - Length: " + prompt.length() + " chars");
-        
+
         return prompt;
     }
-    
+
     /**
      * Xử lý yêu cầu với PARALLEL PROCESSING - OpenAI và OpenRouter chạy đồng thời
      */
@@ -452,38 +451,38 @@ public class AiComparisonService {
         Map<String, Object> result = new HashMap<>();
         LocalDateTime now = LocalDateTime.now();
         String dateContext = generateDateContext(now);
-        
+
         Map<String, Long> timingMetrics = new HashMap<>();
         long overallStartTime = System.currentTimeMillis();
         Map<String, Object> openaiResult = null;
         Map<String, Object> openrouterResult = null;
-        
+
         try {
             System.out.println("[AiComparisonService] ===== BẮT ĐẦU CHẾ ĐỘ SO SÁNH VỚI PARALLEL PROCESSING =====");
             System.out.println("[AiComparisonService] Bắt đầu xử lý song song cho phiên: " + sessionId);
             System.out.println("[AiComparisonService] Tin nhắn người dùng: " + chatRequest.message());
-            
+
             // --- BƯỚC 1: Chuẩn bị TOOL-BASED prompt (shared) ---
             String dynamicExamples = buildDynamicExamples(chatRequest.message());
-            System.out.println("[AiComparisonService] 📚 Dynamic examples loaded: " + 
+            System.out.println("[AiComparisonService] 📚 Dynamic examples loaded: " +
                 (dynamicExamples != null ? dynamicExamples.length() + " chars" : "NULL"));
-            
+
             String userQueryForPrompt = chatRequest.message();
             if (userQueryForPrompt.toLowerCase().contains("admin") ||
                 userQueryForPrompt.toLowerCase().contains("ad") ||
                 userQueryForPrompt.toLowerCase().contains("administrator")) {
                 userQueryForPrompt = userQueryForPrompt.replaceAll("(?i)\\badmin\\b", "Administrator")
-                                                      .replaceAll("(?i)\\bad\\b", "Administrator")
-                                                      .replaceAll("(?i)\\badministrator\\b", "Administrator");
+                    .replaceAll("(?i)\\bad\\b", "Administrator")
+                    .replaceAll("(?i)\\badministrator\\b", "Administrator");
             }
-            
+
             // Build tool-based prompt
             String toolBasedPrompt = buildToolBasedPrompt(
                 userQueryForPrompt,
                 dateContext,
                 dynamicExamples
             );
-            
+
             System.out.println("[AiComparisonService] 🔧 Tool-based prompt created");
             System.out.println("[AiComparisonService] 📊 Prompt length: " + toolBasedPrompt.length() + " chars");
             System.out.println("\n" + "=".repeat(100));
@@ -491,25 +490,25 @@ public class AiComparisonService {
             System.out.println("=".repeat(100));
             // System.out.println(toolBasedPrompt);
             System.out.println("=".repeat(100) + "\n");
-            
+
             // --- BƯỚC 2: PARALLEL EXECUTION - OpenAI và OpenRouter đồng thời ---
             System.out.println("[AiComparisonService] 🚀 Bắt đầu xử lý SONG SONG OpenAI và OpenRouter...");
             System.out.println("[AiComparisonService] 🔧 Cả hai thread sẽ sử dụng tool 'searchElasticsearch'");
-            
+
             // CompletableFuture cho OpenAI với tool enabled
-            CompletableFuture<Map<String, Object>> openaiFuture = CompletableFuture.supplyAsync(() -> 
+            CompletableFuture<Map<String, Object>> openaiFuture = CompletableFuture.supplyAsync(() ->
                 processOpenAI(sessionId, chatRequest, toolBasedPrompt)
             );
-            
+
             // CompletableFuture cho OpenRouter với tool enabled
-            CompletableFuture<Map<String, Object>> openrouterFuture = CompletableFuture.supplyAsync(() -> 
+            CompletableFuture<Map<String, Object>> openrouterFuture = CompletableFuture.supplyAsync(() ->
                 processOpenRouter(sessionId, chatRequest, toolBasedPrompt)
             );
-            
+
             // Đợi cả hai hoàn thành
             System.out.println("[AiComparisonService] ⏳ Đang đợi cả OpenAI và OpenRouter hoàn thành...");
             CompletableFuture.allOf(openaiFuture, openrouterFuture).join();
-            
+
             // Lấy kết quả
             try {
                 openaiResult = openaiFuture.get();
@@ -518,7 +517,7 @@ public class AiComparisonService {
                 openaiResult = new HashMap<>();
                 openaiResult.put("error", e.getMessage());
             }
-            
+
             try {
                 openrouterResult = openrouterFuture.get();
             } catch (Exception e) {
@@ -526,16 +525,16 @@ public class AiComparisonService {
                 openrouterResult = new HashMap<>();
                 openrouterResult.put("error", e.getMessage());
             }
-            
+
             System.out.println("[AiComparisonService] ✅ CẢ HAI đã hoàn thành!");
             System.out.println("[AiComparisonService] 📊 OpenAI result keys: " + (openaiResult != null ? String.join(", ", openaiResult.keySet()) : "NULL"));
             System.out.println("[AiComparisonService] 📊 OpenRouter result keys: " + (openrouterResult != null ? String.join(", ", openrouterResult.keySet()) : "NULL"));
-            
+
             // --- BƯỚC 3: Merge results ---
             long totalProcessingTime = System.currentTimeMillis() - overallStartTime;
-            
+
             result.put("success", true);
-            
+
             // Sử dụng HashMap thay vì Map.of() để tránh NullPointerException với giá trị null
             Map<String, Object> queryGeneration = new HashMap<>();
             if (openaiResult != null) {
@@ -545,7 +544,7 @@ public class AiComparisonService {
                 queryGeneration.put("openrouter", openrouterResult.get("generation"));
             }
             result.put("query_generation_comparison", queryGeneration);
-            
+
             Map<String, Object> elasticsearchComparison = new HashMap<>();
             if (openaiResult != null) {
                 elasticsearchComparison.put("openai", openaiResult.get("elasticsearch"));
@@ -554,7 +553,7 @@ public class AiComparisonService {
                 elasticsearchComparison.put("openrouter", openrouterResult.get("elasticsearch"));
             }
             result.put("elasticsearch_comparison", elasticsearchComparison);
-            
+
             Map<String, Object> responseComparison = new HashMap<>();
             if (openaiResult != null) {
                 responseComparison.put("openai", openaiResult.get("response"));
@@ -563,7 +562,7 @@ public class AiComparisonService {
                 responseComparison.put("openrouter", openrouterResult.get("response"));
             }
             result.put("response_generation_comparison", responseComparison);
-            
+
             // Timing metrics
             timingMetrics.put("total_processing_ms", totalProcessingTime);
             if (openaiResult != null && openaiResult.get("total_time_ms") != null) {
@@ -579,23 +578,23 @@ public class AiComparisonService {
                 timingMetrics.put("openrouter_search_ms", (Long) openrouterResult.get("search_time_ms"));
             }
             timingMetrics.put("parallel_execution", 1L); // 1 = true
-            
+
             result.put("timing_metrics", timingMetrics);
             result.put("timestamp", now.toString());
             result.put("user_question", chatRequest.message());
-            
+
             // Optimization stats
             Map<String, Object> optimizationStats = new HashMap<>();
             optimizationStats.put("parallel_processing", true);
             optimizationStats.put("threads_used", 2);
             optimizationStats.put("time_saved_vs_sequential_ms", calculateTimeSaved(openaiResult, openrouterResult, totalProcessingTime));
             result.put("optimization_stats", optimizationStats);
-            
+
             System.out.println("[AiComparisonService] 🎉 So sánh PARALLEL hoàn thành!");
             System.out.println("[AiComparisonService] ⏱️ Tổng thời gian: " + totalProcessingTime + "ms");
-            System.out.println("[AiComparisonService] 💾 Tiết kiệm: ~" + 
+            System.out.println("[AiComparisonService] 💾 Tiết kiệm: ~" +
                 calculateTimeSaved(openaiResult, openrouterResult, totalProcessingTime) + "ms so với sequential");
-                
+
             // Ghi log chi tiết thành công ra file
             Map<String, Object> successContext = new HashMap<>();
             successContext.put("sessionId", sessionId);
@@ -626,7 +625,7 @@ public class AiComparisonService {
             // Lấy DSL queries từ cả hai AI để log
             String openaiDslQuery = "N/A";
             String openrouterDslQuery = "N/A";
-            
+
             // Lấy OpenAI DSL query
             if (openaiResult != null) {
                 Object esObj = openaiResult.get("elasticsearch");
@@ -637,7 +636,7 @@ public class AiComparisonService {
                     }
                 }
             }
-            
+
             // Lấy OpenRouter DSL query
             if (openrouterResult != null) {
                 Object esObj = openrouterResult.get("elasticsearch");
@@ -648,7 +647,7 @@ public class AiComparisonService {
                     }
                 }
             }
-            
+
             // Lưu DSL queries vào context để log
             successContext.put("openaiDslQuery", openaiDslQuery);
             successContext.put("openrouterDslQuery", openrouterDslQuery);
@@ -673,16 +672,16 @@ public class AiComparisonService {
             }
 
             LogUtils.logDetailedSuccess(
-                "AiComparisonService", 
-                String.format("Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm %dms)", calculateTimeSaved(openaiResult, openrouterResult, totalProcessingTime)), 
+                "AiComparisonService",
+                String.format("Xử lý thành công yêu cầu song song OpenAI và OpenRouter (tiết kiệm %dms)", calculateTimeSaved(openaiResult, openrouterResult, totalProcessingTime)),
                 successContext
             );
-            
+
         } catch (Exception e) {
             long errorProcessingTime = System.currentTimeMillis() - overallStartTime;
             String errorMessage = "[AiComparisonService] ❌ Lỗi: " + e.getMessage();
             System.out.println(errorMessage);
-            
+
             // Thu thập thông tin bối cảnh chi tiết
             Map<String, Object> errorContext = new HashMap<>();
             errorContext.put("sessionId", sessionId);
@@ -690,7 +689,7 @@ public class AiComparisonService {
             errorContext.put("processingTimeMs", errorProcessingTime);
             errorContext.put("timestamp", now.toString());
             errorContext.put("dateContext", dateContext);
-            
+
             // Thêm thông tin về OpenAI và OpenRouter nếu có
             try {
                 if (openaiResult != null) {
@@ -699,7 +698,7 @@ public class AiComparisonService {
             } catch (Exception ex) {
                 errorContext.put("openaiResultError", ex.getMessage());
             }
-            
+
             try {
                 if (openrouterResult != null) {
                     errorContext.put("openrouterResult", openrouterResult);
@@ -707,38 +706,38 @@ public class AiComparisonService {
             } catch (Exception ex) {
                 errorContext.put("openrouterResultError", ex.getMessage());
             }
-            
+
             // Ghi log lỗi chi tiết ra file
             LogUtils.logDetailedError(
-                "AiComparisonService", 
-                "Lỗi xử lý yêu cầu song song OpenAI và OpenRouter", 
-                e, 
+                "AiComparisonService",
+                "Lỗi xử lý yêu cầu song song OpenAI và OpenRouter",
+                e,
                 errorContext
             );
-            
+
             result.put("success", false);
             result.put("error", e.getMessage());
             result.put("timestamp", now.toString());
             result.put("processing_time_ms", errorProcessingTime);
         }
-        
+
         return result;
     }
-    
+
     /**
      * Xử lý OpenAI trong thread riêng với TOOL-BASED approach
      */
     private Map<String, Object> processOpenAI(Long sessionId, ChatRequest chatRequest, String toolBasedPrompt) {
         Map<String, Object> result = new HashMap<>();
         long startTime = System.currentTimeMillis();
-        
+
         try {
             System.out.println("[OpenAI Thread] 🔵 Bắt đầu xử lý với TOOL searchElasticsearch...");
             System.out.println("[OpenAI Thread] 🔧 Tool enabled: searchElasticsearch");
-            
+
             // Call AI with tool enabled (temperature 0.3 for OpenAI)
             ChatOptions chatOptions = ChatOptions.builder().temperature(0.3D).build();
-            
+
             System.out.println("[OpenAI Thread] 🤖 Calling ChatClient với tools...");
             System.out.println("\n" + "=".repeat(80));
             System.out.println("📤 [OpenAI Thread] Sending to AI:");
@@ -749,14 +748,14 @@ public class AiComparisonService {
             System.out.println("🔧 Tools Enabled: searchElasticsearch");
             System.out.println("🆔 Conversation ID: " + sessionId + "_openai");
             System.out.println("=".repeat(80) + "\n");
-            
+
             long aiStartTime = System.currentTimeMillis();
-            
+
             // Retry logic cho rate limit errors
             String finalResponse = null;
             int maxRetries = 3;
             int retryCount = 0;
-            
+
             while (retryCount <= maxRetries && finalResponse == null) {
                 try {
                     finalResponse = chatClient
@@ -800,7 +799,7 @@ public class AiComparisonService {
                         errorMsg = cause.getMessage();
                         cause = cause.getCause();
                     }
-                    
+
                     if (errorMsg != null && errorMsg.contains("Rate limit") && errorMsg.contains("429")) {
                         long waitTimeMs = parseRateLimitWaitTime(errorMsg);
                         if (waitTimeMs > 0 && retryCount < maxRetries) {
@@ -819,24 +818,24 @@ public class AiComparisonService {
                     throw e;
                 }
             }
-            
+
             if (finalResponse == null) {
                 throw new RuntimeException("Failed to get AI response after " + maxRetries + " retries");
             }
-            
+
             long aiEndTime = System.currentTimeMillis();
-            
+
             System.out.println("[OpenAI Thread] ✅ AI response received");
             System.out.println("[OpenAI Thread] 📊 Response length: " + finalResponse.length() + " chars");
-            
+
             // Extract query from response for logging
             String extractedQuery = extractQueryFromResponse(finalResponse);
-            
+
             // Get metadata from tool result
             ToolsConfig.ToolResult toolResult = ToolsConfig.getToolResult();
             String esData = null;
             String esQuery = null;
-            
+
             if (toolResult != null) {
                 esData = toolResult.data;
                 esQuery = toolResult.query != null ? toolResult.query : extractedQuery;
@@ -846,28 +845,28 @@ public class AiComparisonService {
                 System.out.println("[OpenAI Thread] ⚠️ Tool result is NULL!");
                 esQuery = extractedQuery;
             }
-            
+
             // ✅ USE AI'S RESPONSE DIRECTLY - AI already formatted it after tool call
             String formattedResponse = finalResponse;
-            
+
             // Clear ThreadLocal
             ToolsConfig.clearToolResult();
-            
+
             System.out.println("[OpenAI Thread] 📦 Packaging results...");
-            
+
             result.put("generation", Map.of(
                 "response_time_ms", aiEndTime - aiStartTime,
                 "model", ModelProvider.OPENAI.getModelName(),
                 "query", esQuery != null ? esQuery : "Query embedded in tool call"
             ));
-            
+
             // Determine success based on tool execution
             boolean esSuccess = toolResult != null && esData != null && !esData.trim().isEmpty();
-            
+
             Map<String, Object> elasticsearchResult = new HashMap<>();
             // Lưu dữ liệu thực tế từ Elasticsearch để log chi tiết
             // Chỉ lưu dữ liệu thực tế nếu không phải error message
-            if (esData != null && !esData.trim().isEmpty() && 
+            if (esData != null && !esData.trim().isEmpty() &&
                 !esData.startsWith("❌") && !esData.startsWith("⚠️") && !esData.startsWith("ℹ️")) {
                 elasticsearchResult.put("data", esData);
             } else {
@@ -877,9 +876,9 @@ public class AiComparisonService {
             elasticsearchResult.put("query", esQuery != null ? esQuery : "N/A");
             elasticsearchResult.put("tool_called", toolResult != null);
             result.put("elasticsearch", elasticsearchResult);
-            
+
             result.put("search_time_ms", 0L);
-            
+
             result.put("response", Map.of(
                 "elasticsearch_query", esQuery != null ? esQuery : "N/A",
                 "response", formattedResponse,
@@ -887,18 +886,18 @@ public class AiComparisonService {
                 "elasticsearch_data", "Processed by tool",
                 "response_time_ms", aiEndTime - aiStartTime
             ));
-            
+
             long totalTime = System.currentTimeMillis() - startTime;
             result.put("total_time_ms", totalTime);
-            
+
             System.out.println("[OpenAI Thread] ✅ Hoàn thành trong " + totalTime + "ms");
             System.out.println("[OpenAI Thread] 📋 Result keys: " + String.join(", ", result.keySet()));
-            
+
         } catch (Exception e) {
             long errorTime = System.currentTimeMillis() - startTime;
             System.err.println("[OpenAI Thread] ❌ Lỗi: " + e.getMessage());
             e.printStackTrace();
-            
+
             Map<String, Object> errorContext = new HashMap<>();
             errorContext.put("sessionId", sessionId);
             errorContext.put("userMessage", chatRequest.message());
@@ -906,35 +905,35 @@ public class AiComparisonService {
             errorContext.put("provider", "OpenAI");
             errorContext.put("modelName", ModelProvider.OPENAI.getModelName());
             errorContext.put("toolEnabled", true);
-            
+
             LogUtils.logDetailedError(
-                "AiComparisonService.OpenAI", 
-                "Lỗi xử lý yêu cầu OpenAI với tool", 
-                e, 
+                "AiComparisonService.OpenAI",
+                "Lỗi xử lý yêu cầu OpenAI với tool",
+                e,
                 errorContext
             );
-            
+
             result.put("error", e.getMessage());
             result.put("total_time_ms", errorTime);
         }
-        
+
         return result;
     }
-    
+
     /**
      * Xử lý OpenRouter trong thread riêng với TOOL-BASED approach
      */
     private Map<String, Object> processOpenRouter(Long sessionId, ChatRequest chatRequest, String toolBasedPrompt) {
         Map<String, Object> result = new HashMap<>();
         long startTime = System.currentTimeMillis();
-        
+
         try {
             System.out.println("[OpenRouter Thread] 🟠 Bắt đầu xử lý với TOOL searchElasticsearch...");
             System.out.println("[OpenRouter Thread] 🔧 Tool enabled: searchElasticsearch");
-            
+
             // Call AI with tool enabled (temperature 0.7 for OpenRouter)
             ChatOptions chatOptions = ChatOptions.builder().temperature(0.7D).build();
-            
+
             System.out.println("[OpenRouter Thread] 🤖 Calling ChatClient với tools...");
             System.out.println("\n" + "=".repeat(80));
             System.out.println("📤 [OpenRouter Thread] Sending to AI:");
@@ -945,14 +944,14 @@ public class AiComparisonService {
             System.out.println("🔧 Tools Enabled: searchElasticsearch");
             System.out.println("🆔 Conversation ID: " + sessionId + "_openrouter");
             System.out.println("=".repeat(80) + "\n");
-            
+
             long aiStartTime = System.currentTimeMillis();
-            
+
             // Retry logic cho rate limit errors
             String finalResponse = null;
             int maxRetries = 3;
             int retryCount = 0;
-            
+
             while (retryCount <= maxRetries && finalResponse == null) {
                 try {
                     finalResponse = chatClient
@@ -996,7 +995,7 @@ public class AiComparisonService {
                         errorMsg = cause.getMessage();
                         cause = cause.getCause();
                     }
-                    
+
                     if (errorMsg != null && errorMsg.contains("Rate limit") && errorMsg.contains("429")) {
                         long waitTimeMs = parseRateLimitWaitTime(errorMsg);
                         if (waitTimeMs > 0 && retryCount < maxRetries) {
@@ -1015,24 +1014,24 @@ public class AiComparisonService {
                     throw e;
                 }
             }
-            
+
             if (finalResponse == null) {
                 throw new RuntimeException("Failed to get AI response after " + maxRetries + " retries");
             }
-            
+
             long aiEndTime = System.currentTimeMillis();
-            
+
             System.out.println("[OpenRouter Thread] ✅ AI response received");
             System.out.println("[OpenRouter Thread] 📊 Response length: " + finalResponse.length() + " chars");
-            
+
             // Extract query from response for logging
             String extractedQuery = extractQueryFromResponse(finalResponse);
-            
+
             // Get metadata from tool result
             ToolsConfig.ToolResult toolResult = ToolsConfig.getToolResult();
             String esData = null;
             String esQuery = null;
-            
+
             if (toolResult != null) {
                 esData = toolResult.data;
                 esQuery = toolResult.query != null ? toolResult.query : extractedQuery;
@@ -1042,28 +1041,28 @@ public class AiComparisonService {
                 System.out.println("[OpenRouter Thread] ⚠️ Tool result is NULL!");
                 esQuery = extractedQuery;
             }
-            
+
             // ✅ USE AI'S RESPONSE DIRECTLY - AI already formatted it after tool call
             String formattedResponse = finalResponse;
-            
+
             // Clear ThreadLocal
             ToolsConfig.clearToolResult();
-            
+
             System.out.println("[OpenRouter Thread] 📦 Packaging results...");
-            
+
             result.put("generation", Map.of(
                 "response_time_ms", aiEndTime - aiStartTime,
                 "model", ModelProvider.OPENROUTER.getModelName(),
                 "query", esQuery != null ? esQuery : "Query embedded in tool call"
             ));
-            
+
             // Determine success based on tool execution
             boolean esSuccess = toolResult != null && esData != null && !esData.trim().isEmpty();
-            
+
             Map<String, Object> elasticsearchResult = new HashMap<>();
             // Lưu dữ liệu thực tế từ Elasticsearch để log chi tiết
             // Chỉ lưu dữ liệu thực tế nếu không phải error message
-            if (esData != null && !esData.trim().isEmpty() && 
+            if (esData != null && !esData.trim().isEmpty() &&
                 !esData.startsWith("❌") && !esData.startsWith("⚠️") && !esData.startsWith("ℹ️")) {
                 elasticsearchResult.put("data", esData);
             } else {
@@ -1073,9 +1072,9 @@ public class AiComparisonService {
             elasticsearchResult.put("query", esQuery != null ? esQuery : "N/A");
             elasticsearchResult.put("tool_called", toolResult != null);
             result.put("elasticsearch", elasticsearchResult);
-            
+
             result.put("search_time_ms", 0L);
-            
+
             result.put("response", Map.of(
                 "elasticsearch_query", esQuery != null ? esQuery : "N/A",
                 "response", formattedResponse,
@@ -1083,18 +1082,18 @@ public class AiComparisonService {
                 "elasticsearch_data", "Processed by tool",
                 "response_time_ms", aiEndTime - aiStartTime
             ));
-            
+
             long totalTime = System.currentTimeMillis() - startTime;
             result.put("total_time_ms", totalTime);
-            
+
             System.out.println("[OpenRouter Thread] ✅ Hoàn thành trong " + totalTime + "ms");
             System.out.println("[OpenRouter Thread] 📋 Result keys: " + String.join(", ", result.keySet()));
-            
+
         } catch (Exception e) {
             long errorTime = System.currentTimeMillis() - startTime;
             System.err.println("[OpenRouter Thread] ❌ Lỗi: " + e.getMessage());
             e.printStackTrace();
-            
+
             Map<String, Object> errorContext = new HashMap<>();
             errorContext.put("sessionId", sessionId);
             errorContext.put("userMessage", chatRequest.message());
@@ -1102,34 +1101,34 @@ public class AiComparisonService {
             errorContext.put("provider", "OpenRouter");
             errorContext.put("modelName", ModelProvider.OPENROUTER.getModelName());
             errorContext.put("toolEnabled", true);
-            
+
             LogUtils.logDetailedError(
-                "AiComparisonService.OpenRouter", 
-                "Lỗi xử lý yêu cầu OpenRouter với tool", 
-                e, 
+                "AiComparisonService.OpenRouter",
+                "Lỗi xử lý yêu cầu OpenRouter với tool",
+                e,
                 errorContext
             );
-            
+
             result.put("error", e.getMessage());
             result.put("total_time_ms", errorTime);
         }
-        
+
         return result;
     }
-    
+
     /**
      * Clean JSON response from AI
      */
     private String cleanJsonResponse(String raw) {
         System.out.println("[cleanJsonResponse] 🧹 Bắt đầu làm sạch JSON response...");
-        
+
         if (raw == null) {
             System.out.println("[cleanJsonResponse] ⚠️  Input is NULL");
             return "";
         }
-        
+
         System.out.println("[cleanJsonResponse] 📏 Original length: " + raw.length() + " chars");
-        
+
         String clean = raw.trim();
         if (clean.startsWith("```json")) {
             System.out.println("[cleanJsonResponse] 🔄 Loại bỏ ```json");
@@ -1143,13 +1142,13 @@ public class AiComparisonService {
             System.out.println("[cleanJsonResponse] 🔄 Loại bỏ ``` ở cuối");
             clean = clean.substring(0, clean.length() - 3);
         }
-        
+
         String result = clean.trim();
         System.out.println("[cleanJsonResponse] ✅ Hoàn thành - Length: " + result.length() + " chars");
-        
+
         return result;
     }
-    
+
     /**
      * Extract Elasticsearch query from AI response (for logging purposes)
      */
@@ -1158,11 +1157,11 @@ public class AiComparisonService {
             System.out.println("[extractQueryFromResponse] ⚠️  Response is NULL");
             return null;
         }
-        
+
         try {
             System.out.println("[extractQueryFromResponse] 🔍 Bắt đầu trích xuất query từ response...");
             System.out.println("[extractQueryFromResponse] 📏 Response length: " + response.length());
-            
+
             // Try to find JSON block in markdown
             int jsonStart = response.indexOf("```json");
             if (jsonStart >= 0) {
@@ -1174,7 +1173,7 @@ public class AiComparisonService {
                     return query;
                 }
             }
-            
+
             // Try to find any JSON-like structure
             int braceStart = response.indexOf("{");
             if (braceStart >= 0) {
@@ -1194,7 +1193,7 @@ public class AiComparisonService {
                     }
                 }
             }
-            
+
             System.out.println("[extractQueryFromResponse] ⚠️  Không tìm thấy query trong response");
             return null;
         } catch (Exception e) {
@@ -1203,52 +1202,52 @@ public class AiComparisonService {
             return null;
         }
     }
-    
+
     /**
      * Tính thời gian tiết kiệm được nhờ parallel processing
      */
-    private long calculateTimeSaved(Map<String, Object> openaiResult, 
-                                     Map<String, Object> openrouterResult, 
-                                     long actualTime) {
+    private long calculateTimeSaved(Map<String, Object> openaiResult,
+        Map<String, Object> openrouterResult,
+        long actualTime) {
         long openaiTime = 0;
         long openrouterTime = 0;
-        
+
         if (openaiResult != null && openaiResult.get("total_time_ms") != null) {
             openaiTime = ((Number) openaiResult.get("total_time_ms")).longValue();
         }
-        
+
         if (openrouterResult != null && openrouterResult.get("total_time_ms") != null) {
             openrouterTime = ((Number) openrouterResult.get("total_time_ms")).longValue();
         }
-        
+
         long sequentialTime = openaiTime + openrouterTime;
         long timeSaved = sequentialTime - actualTime;
-        
+
         System.out.println("[calculateTimeSaved] ⏱️  OpenAI Time: " + openaiTime + "ms");
         System.out.println("[calculateTimeSaved] ⏱️  OpenRouter Time: " + openrouterTime + "ms");
         System.out.println("[calculateTimeSaved] 📊 Sequential Time: " + sequentialTime + "ms");
         System.out.println("[calculateTimeSaved] ⏱️  Actual Parallel Time: " + actualTime + "ms");
-        System.out.println("[calculateTimeSaved] 💰 Time Saved: " + timeSaved + "ms (~" + 
+        System.out.println("[calculateTimeSaved] 💰 Time Saved: " + timeSaved + "ms (~" +
             (sequentialTime > 0 && timeSaved > 0 ? Math.round((double)timeSaved/sequentialTime*100) : 0) + "%)");
-        
+
         return timeSaved;
     }
-    
+
     /**
      * Build dynamic examples từ vector search
      */
     private String buildDynamicExamples(String userQuery) {
         System.out.println("[buildDynamicExamples] 🔍 Bắt đầu tìm ví dụ từ Vector Search...");
         System.out.println("[buildDynamicExamples] 📝 User Query: " + userQuery);
-        
+
         String examples = vectorSearchService.findRelevantExamples(userQuery);
-        
+
         System.out.println("[buildDynamicExamples] ✅ Hoàn thành tìm ví dụ");
         System.out.println("[buildDynamicExamples] 📊 Examples length: " + (examples != null ? examples.length() : 0) + " chars");
-        
+
         return examples;
     }
-    
+
     /**
      * Parse thời gian đợi từ rate limit error message
      * Format: "Please try again in X.XXXs"

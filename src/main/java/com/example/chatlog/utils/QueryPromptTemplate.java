@@ -8,7 +8,7 @@ import java.util.HashMap;
  * Sử dụng dynamic examples từ knowledge base
  */
 public class QueryPromptTemplate {
-    
+
     /**
      * Template cho prompt sinh truy vấn Elasticsearch với dynamic examples
      */
@@ -257,10 +257,10 @@ public class QueryPromptTemplate {
             - Valid JSON syntax required
             
             """;
-    
+
     /**
      * Tạo prompt cho việc sinh truy vấn Elasticsearch với dynamic examples
-     * 
+     *
      * @param userQuery Câu truy vấn của người dùng
      * @param dateContext Ngữ cảnh thời gian hiện tại
      * @param schemaInfo Thông tin schema
@@ -271,9 +271,9 @@ public class QueryPromptTemplate {
      * @return Prompt đã được tạo với các placeholder đã được thay thế
      */
     public static String createQueryGenerationPrompt(String userQuery, String dateContext,
-                                                    String schemaInfo, String roleNormalizationRules, 
-                                                    String exampleLog, String fortinetActionRules,
-                                                    String dynamicExamples) {
+        String schemaInfo, String roleNormalizationRules,
+        String exampleLog, String fortinetActionRules,
+        String dynamicExamples) {
         Map<String, Object> params = new HashMap<>();
         params.put("userQuery", userQuery);
         params.put("dateContext", dateContext);
@@ -282,13 +282,13 @@ public class QueryPromptTemplate {
         params.put("exampleLog", exampleLog);
         params.put("fortinetActionRules", fortinetActionRules);
         params.put("dynamic_examples", dynamicExamples);
-        
+
         return formatTemplate(QUERY_GENERATION_TEMPLATE, params);
     }
-    
+
     /**
      * Thay thế các placeholder trong template
-     * 
+     *
      * @param template Template chuỗi với các placeholder dạng {name}
      * @param params Map chứa các cặp key-value để thay thế placeholder
      * @return Chuỗi đã được thay thế placeholder
@@ -302,7 +302,7 @@ public class QueryPromptTemplate {
         }
         return result;
     }
-    
+
     /**
      * Template cho prompt so sánh và tái tạo query khi không có kết quả
      */
@@ -349,19 +349,19 @@ public class QueryPromptTemplate {
             Return ONLY the corrected Elasticsearch JSON query, no explanations.
             Example: {"query":{"bool":{"filter":[{"range":{"@timestamp":{"gte":"now-24h"}}}]}},"size":50}
             """;
-    
+
     /**
      * Tạo prompt cho việc so sánh và tái tạo query khi không có kết quả
-     * 
+     *
      * @param allFields Danh sách tất cả fields có sẵn
      * @param previousQuery Query trước đó
      * @param userMessage Tin nhắn người dùng
      * @param dateContext Ngữ cảnh ngày tháng
      * @return Prompt đã được format
      */
-    public static String getComparisonPrompt(String allFields, String previousQuery, 
-                                            String userMessage, String dateContext) {
-        return String.format(COMPARISON_PROMPT_TEMPLATE, 
+    public static String getComparisonPrompt(String allFields, String previousQuery,
+        String userMessage, String dateContext) {
+        return String.format(COMPARISON_PROMPT_TEMPLATE,
             allFields, previousQuery, userMessage, dateContext);
     }
 }

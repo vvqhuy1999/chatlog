@@ -301,7 +301,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-7d"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lte": "2025-10-07T16:59:59.999Z"
                 }
               }
             }
@@ -1183,7 +1184,11 @@
     "scenario": "Network security - Monitor and analyze firewall logs for security threats, compliance, and operational insights",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "_source": [
         "@timestamp",
         "message",
@@ -1199,11 +1204,25 @@
       "query": {
         "bool": {
           "filter": [
-            { "range": { "@timestamp": { "gte": "now-30d" } } }
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-30d"
+                }
+              }
+            }
           ],
           "must": [
-            { "match_phrase": { "fortinet.firewall.cfgpath": "firewall.policy" }},
-            { "match_phrase": { "fortinet.firewall.action": "Edit" }}
+            {
+              "match_phrase": {
+                "fortinet.firewall.cfgpath": "firewall.policy"
+              }
+            },
+            {
+              "match_phrase": {
+                "fortinet.firewall.action": "Edit"
+              }
+            }
           ]
         }
       }
@@ -1899,7 +1918,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-7d"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lt": "2025-10-07T17:00:00.000Z"
                 }
               }
             }
@@ -2256,8 +2276,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now/d+8h",
-                  "lte": "now/d+17h"
+                  "gte": "2025-10-01T01:00:00.000Z",
+                  "lte": "2025-10-01T10:00:00.000Z"
                 }
               }
             }
@@ -2316,7 +2336,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-3d"
+                  "gte": "2025-10-01T15:00:00.000Z",
+                  "lt": "2025-10-03T23:00:00.000Z"
                 }
               }
             }
@@ -2375,7 +2396,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-2d/d"
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-10-01T17:00:00.000Z"
                 }
               }
             }
@@ -2481,7 +2503,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now/M"
+                  "gte": "2025-10-01T01:00:00.000Z",
+                  "lt": "2025-10-01T17:00:00.000Z"
                 }
               }
             }
@@ -2645,7 +2668,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-7d"
+                  "gte": "2025-09-25T17:00:00.000Z",
+                  "lt": "2025-10-01T17:00:00.000Z"
                 }
               }
             }
@@ -2714,7 +2738,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-7d"
+                  "gte": "2025-09-25T17:00:00.000Z",
+                  "lt": "2025-10-01T17:00:00.000Z"
                 }
               }
             }
@@ -5313,7 +5338,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now/d"
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-10-07T17:00:00.000Z"
                 }
               }
             }
@@ -5556,7 +5582,7 @@
               "range": {
                 "@timestamp": {
                   "gte": "2025-09-18T17:00:00.000Z",
-                  "lte": "2025-09-19T16:59:59.999Z"
+                  "lt": "2025-09-19T17:00:00.000Z"
                 }
               }
             }
@@ -5913,7 +5939,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now/d"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lt": "2025-10-01T17:00:00.000Z"
                 }
               }
             }
@@ -6555,7 +6582,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now/d"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lt": "2025-10-01T17:00:00.000Z"
                 }
               }
             }
@@ -6662,7 +6690,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now/w"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lt": "2025-10-01T17:00:00.000Z"
                 }
               }
             }
@@ -6707,7 +6736,6 @@
         }
       ]
     }
-
   },
   {
     "question": "Lấy 100 log mới nhất trong khoảng từ 8h đến 9h sáng ngày 08/10/2025",
@@ -6797,7 +6825,6 @@
           }
         ]
       }
-
     }
   },
   {
@@ -6826,7 +6853,6 @@
         }
       ]
     }
-
   },
   {
     "question": "Hiển thị 20 log trong khoảng 15:00 đến 15:15 ngày 08/10/2025",
@@ -6854,7 +6880,6 @@
         }
       ]
     }
-
   },
   {
     "question": "Tìm các log trong giờ làm việc (8h-17h) của ngày 03/10/2025",
@@ -6882,7 +6907,6 @@
         }
       ]
     }
-
   },
   {
     "question": "Lấy 10 log mới nhất từ 00:00 đến 01:00 sáng ngày 02/10/2025",
@@ -7568,7 +7592,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-7d"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lt": "2025-10-07T17:00:00.000Z"
                 }
               }
             },
@@ -7773,7 +7798,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-7d"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lt": "2025-10-07T17:00:00.000Z"
                 }
               }
             },
@@ -8002,7 +8028,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-7d"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lt": "2025-10-07T17:00:00.000Z"
                 }
               }
             },
@@ -8200,7 +8227,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-7d"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lt": "2025-10-07T17:00:00.000Z"
                 }
               }
             },
@@ -8370,7 +8398,7 @@
               "range": {
                 "@timestamp": {
                   "gte": "2025-10-06T17:00:00.000Z",
-                  "lte": "2025-10-07T16:59:59.999Z"
+                  "lt": "2025-10-07T17:00:00.000Z"
                 }
               }
             },
@@ -8910,7 +8938,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-7d"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lt": "2025-10-07T17:00:00.000Z"
                 }
               }
             },
@@ -9255,7 +9284,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-7d"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lt": "2025-10-07T17:00:00.000Z"
                 }
               }
             },
@@ -9375,7 +9405,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-7d"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lt": "2025-10-07T17:00:00.000Z"
                 }
               }
             },
@@ -9720,7 +9751,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-7d"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lt": "2025-10-07T17:00:00.000Z"
                 }
               }
             }
@@ -11093,7 +11125,7 @@
               "range": {
                 "@timestamp": {
                   "gte": "2025-09-30T17:00:00.000Z",
-                  "lt": "2025-10-31T16:59:59.999Z"
+                  "lt": "2025-11-01T17:00:00.000Z"
                 }
               }
             },
@@ -11205,7 +11237,7 @@
               "range": {
                 "@timestamp": {
                   "gte": "2025-09-10T17:00:00.000Z",
-                  "lte": "2025-09-11T16:59:59.999Z"
+                  "lt": "2025-09-11T17:00:00.000Z"
                 }
               }
             }
@@ -11257,7 +11289,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-1d"
+                  "gte": "2025-09-01T17:00:00.000Z",
+                  "lt": "2025-10-01T17:00:00.000Z"
                 }
               }
             },
@@ -11356,7 +11389,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-10d"
+                  "gte": "2025-09-21T17:00:00.000Z",
+                  "lt": "2025-10-01T17:00:00.000Z"
                 }
               }
             },
@@ -12457,7 +12491,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-3d"
+                  "gte": "2025-09-28T17:00:00.000Z",
+                  "lt": "2025-10-01T17:00:00.000Z"
                 }
               }
             },
@@ -13339,7 +13374,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-7d"
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-10-06T17:00:00.000Z"
                 }
               }
             }
@@ -13438,7 +13474,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-7d"
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-10-06T17:00:00.000Z"
                 }
               }
             }
@@ -16059,11 +16096,23 @@
   {
     "question": "User 'QuynhTX' có tỷ lệ upload/download như thế nào trong 24h qua?",
     "keywords": [
-      "user", "người dùng", 
-      "upload", "download", "tải lên", "tải xuống",
-      "network.bytes", "source.bytes", "destination.bytes",
-      "tỷ lệ", "ratio", "so sánh", "comparison",
-      "aggregation", "tổng hợp", "statistics", "thống kê"
+      "user",
+      "người dùng",
+      "upload",
+      "download",
+      "tải lên",
+      "tải xuống",
+      "network.bytes",
+      "source.bytes",
+      "destination.bytes",
+      "tỷ lệ",
+      "ratio",
+      "so sánh",
+      "comparison",
+      "aggregation",
+      "tổng hợp",
+      "statistics",
+      "thống kê"
     ],
     "scenario": "Network analysis - Analyze user's upload vs download traffic patterns",
     "query": {
@@ -16175,10 +16224,21 @@
   {
     "question": "User nào upload dữ liệu nhiều nhất (nghi ngờ data exfiltration)?",
     "keywords": [
-      "user", "người dùng", "upload", "tải lên",
-      "data exfiltration", "đánh cắp dữ liệu", "nhiều nhất", "top",
-      "source.bytes", "outbound", "network.direction",
-      "aggregation", "tổng hợp", "statistics", "thống kê"
+      "user",
+      "người dùng",
+      "upload",
+      "tải lên",
+      "data exfiltration",
+      "đánh cắp dữ liệu",
+      "nhiều nhất",
+      "top",
+      "source.bytes",
+      "outbound",
+      "network.direction",
+      "aggregation",
+      "tổng hợp",
+      "statistics",
+      "thống kê"
     ],
     "scenario": "Security monitoring - Detect potential data exfiltration by identifying users with unusually high upload traffic",
     "query": {
@@ -16267,10 +16327,22 @@
   {
     "question": "User nào download nhiều dữ liệu nhất (video streaming, file downloads)?",
     "keywords": [
-      "user", "người dùng", "download", "tải xuống",
-      "streaming", "video", "file downloads", "nhiều nhất", "top",
-      "destination.bytes", "inbound", "bandwidth",
-      "aggregation", "tổng hợp", "statistics", "thống kê"
+      "user",
+      "người dùng",
+      "download",
+      "tải xuống",
+      "streaming",
+      "video",
+      "file downloads",
+      "nhiều nhất",
+      "top",
+      "destination.bytes",
+      "inbound",
+      "bandwidth",
+      "aggregation",
+      "tổng hợp",
+      "statistics",
+      "thống kê"
     ],
     "scenario": "Network performance - Identify users consuming most download bandwidth",
     "query": {
@@ -16357,10 +16429,21 @@
   {
     "question": "User nào có tỷ lệ upload/download bất thường?",
     "keywords": [
-      "user", "người dùng", "upload download ratio", "tỷ lệ",
-      "anomaly", "bất thường", "unusual", "suspicious",
-      "source.bytes", "destination.bytes", "comparison",
-      "aggregation", "tổng hợp", "statistics", "thống kê"
+      "user",
+      "người dùng",
+      "upload download ratio",
+      "tỷ lệ",
+      "anomaly",
+      "bất thường",
+      "unusual",
+      "suspicious",
+      "source.bytes",
+      "destination.bytes",
+      "comparison",
+      "aggregation",
+      "tổng hợp",
+      "statistics",
+      "thống kê"
     ],
     "scenario": "Security analysis - Detect users with unusual upload/download ratios that may indicate data exfiltration or botnet activity",
     "query": {
@@ -16418,217 +16501,217 @@
       "size": 0
     }
   },
-    {
-      "question": "Các tổ chức đích (organizations) nào nhận nhiều traffic nhất từ các địa chỉ nguồn không phải địa chỉ IP nội bộ 198.162.10.1/24, và tỷ lệ blocked traffic (deny) từ những IP này ra sao? Query cần hiển thị chi tiết về tổ chức, quốc gia, port đích, và tỷ lệ blocked connections vs. allowed connections để đánh giá mối đe dọa.",
-      "keywords": [
-          "IP nguồn",
-          "source ip",
-          "đa tổ chức",
-          "multiple organizations",
-          "nhiều tổ chức",
-          "tổ chức đích",
-          "destination organization",
-          "không chính thống",
-          "rogue IPs",
-          "destinations",
-          "địa chỉ đích",
-          "action",
-          "hành động",
-          "firewall action",
-          "block",
-          "chặn",
-          "deny",
-          "lưu lượng",
-          "bytes",
-          "denied",
-          "bị từ chối",
-          "cấm",
-          "từ chối",
-          "reject",
-          "ngăn chặn",
-          "prevent",
-          "traffic",
-          "connections",
-          "not",
-          "không",
-          "block",
-          "chặn",
-          "deny",
-          "outlier",
-          "trend",
-          "xu hướng",
-          "analysis",
-          "phân tích",
-          "geographical",
-          "địa lý",
-          "aggregation",
-          "tổng hợp",
-          "destination.ip",
-          "destination.port",
-          "destination.domain",
-          "destination.as.organization.name",
-          "destination.geo.country_name",
-          "fortinet.firewall.action",
-          "query"
-      ],
-      "scenario": "Network security",
+  {
+    "question": "Các tổ chức đích (organizations) nào nhận nhiều traffic nhất từ các địa chỉ nguồn không phải địa chỉ IP nội bộ 198.162.10.1/24, và tỷ lệ blocked traffic (deny) từ những IP này ra sao? Query cần hiển thị chi tiết về tổ chức, quốc gia, port đích, và tỷ lệ blocked connections vs. allowed connections để đánh giá mối đe dọa.",
+    "keywords": [
+      "IP nguồn",
+      "source ip",
+      "đa tổ chức",
+      "multiple organizations",
+      "nhiều tổ chức",
+      "tổ chức đích",
+      "destination organization",
+      "không chính thống",
+      "rogue IPs",
+      "destinations",
+      "địa chỉ đích",
+      "action",
+      "hành động",
+      "firewall action",
+      "block",
+      "chặn",
+      "deny",
+      "lưu lượng",
+      "bytes",
+      "denied",
+      "bị từ chối",
+      "cấm",
+      "từ chối",
+      "reject",
+      "ngăn chặn",
+      "prevent",
+      "traffic",
+      "connections",
+      "not",
+      "không",
+      "block",
+      "chặn",
+      "deny",
+      "outlier",
+      "trend",
+      "xu hướng",
+      "analysis",
+      "phân tích",
+      "geographical",
+      "địa lý",
+      "aggregation",
+      "tổng hợp",
+      "destination.ip",
+      "destination.port",
+      "destination.domain",
+      "destination.as.organization.name",
+      "destination.geo.country_name",
+      "fortinet.firewall.action",
+      "query"
+    ],
+    "scenario": "Network security",
+    "query": {
+      "size": 0,
       "query": {
-          "size": 0,
-          "query": {
-              "bool": {
-                  "filter": [
-                      {
-                          "range": {
-                              "@timestamp": {
-                                  "gte": "now-24h"
-                              }
-                          }
-                      },
-                      {
-                          "terms": {
-                              "fortinet.firewall.action": [
-                                  "accept",
-                                  "deny"
-                              ]
-                          }
-                      }
-                  ],
-                  "must_not": [
-                      {
-                          "term": {
-                              "source.ip.keyword": "198.162.10.1"
-                          }
-                      }
-                  ]
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
               }
+            },
+            {
+              "terms": {
+                "fortinet.firewall.action": [
+                  "accept",
+                  "deny"
+                ]
+              }
+            }
+          ],
+          "must_not": [
+            {
+              "term": {
+                "source.ip.keyword": "198.162.10.1"
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "rogue_ips": {
+          "terms": {
+            "field": "source.ip",
+            "size": 20
           },
           "aggs": {
-              "rogue_ips": {
+            "destinations": {
+              "terms": {
+                "field": "destination.ip",
+                "size": 10
+              },
+              "aggs": {
+                "organizations": {
                   "terms": {
-                      "field": "source.ip",
-                      "size": 20
+                    "field": "destination.as.organization.name",
+                    "size": 15,
+                    "order": {
+                      "total_bytes": "desc"
+                    }
                   },
                   "aggs": {
-                      "destinations": {
+                    "total_bytes": {
+                      "sum": {
+                        "field": "network.bytes"
+                      }
+                    },
+                    "destination_ports": {
+                      "terms": {
+                        "field": "destination.port",
+                        "size": 10
+                      }
+                    },
+                    "destination_domains": {
+                      "terms": {
+                        "field": "destination.domain",
+                        "size": 10
+                      }
+                    },
+                    "connection_stats": {
+                      "filters": {
+                        "filters": {
+                          "allow": {
+                            "bool": {
+                              "filter": [
+                                {
+                                  "term": {
+                                    "fortinet.firewall.action": "accept"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "deny": {
+                            "bool": {
+                              "filter": [
+                                {
+                                  "term": {
+                                    "fortinet.firewall.action": "deny"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      "aggs": {
+                        "bytes_allow": {
+                          "sum": {
+                            "field": "network.bytes"
+                          }
+                        },
+                        "bytes_deny": {
+                          "sum": {
+                            "field": "network.bytes"
+                          }
+                        }
+                      }
+                    },
+                    "country_distribution": {
+                      "terms": {
+                        "field": "destination.geo.country_name",
+                        "size": 10
+                      },
+                      "aggs": {
+                        "country_bytes": {
+                          "sum": {
+                            "field": "network.bytes"
+                          }
+                        },
+                        "countries": {
                           "terms": {
-                              "field": "destination.ip",
-                              "size": 10
+                            "field": "destination.geo.country_name",
+                            "size": 5
                           },
                           "aggs": {
-                              "organizations": {
-                                  "terms": {
-                                      "field": "destination.as.organization.name",
-                                      "size": 15,
-                                      "order": {
-                                          "total_bytes": "desc"
-                                      }
-                                  },
-                                  "aggs": {
-                                      "total_bytes": {
-                                          "sum": {
-                                              "field": "network.bytes"
-                                          }
-                                      },
-                                      "destination_ports": {
-                                          "terms": {
-                                              "field": "destination.port",
-                                              "size": 10
-                                          }
-                                      },
-                                      "destination_domains": {
-                                          "terms": {
-                                              "field": "destination.domain",
-                                              "size": 10
-                                          }
-                                      },
-                                      "connection_stats": {
-                                          "filters": {
-                                              "filters": {
-                                                  "allow": {
-                                                      "bool": {
-                                                          "filter": [
-                                                              {
-                                                                  "term": {
-                                                                      "fortinet.firewall.action": "accept"
-                                                                  }
-                                                              }
-                                                          ]
-                                                      }
-                                                  },
-                                                  "deny": {
-                                                      "bool": {
-                                                          "filter": [
-                                                              {
-                                                                  "term": {
-                                                                      "fortinet.firewall.action": "deny"
-                                                                  }
-                                                              }
-                                                          ]
-                                                      }
-                                                  }
-                                              }
-                                          },
-                                          "aggs": {
-                                              "bytes_allow": {
-                                                  "sum": {
-                                                      "field": "network.bytes"
-                                                  }
-                                              },
-                                              "bytes_deny": {
-                                                  "sum": {
-                                                      "field": "network.bytes"
-                                                  }
-                                              }
-                                          }
-                                      },
-                                      "country_distribution": {
-                                          "terms": {
-                                              "field": "destination.geo.country_name",
-                                              "size": 10
-                                          },
-                                          "aggs": {
-                                              "country_bytes": {
-                                                  "sum": {
-                                                      "field": "network.bytes"
-                                                  }
-                                              },
-                                              "countries": {
-                                                  "terms": {
-                                                      "field": "destination.geo.country_name",
-                                                      "size": 5
-                                                  },
-                                                  "aggs": {
-                                                      "ports": {
-                                                          "terms": {
-                                                              "field": "destination.port"
-                                                          }
-                                                      },
-                                                      "destinations": {
-                                                          "terms": {
-                                                              "field": "destination.ip"
-                                                          }
-                                                      }
-                                                  }
-                                              }
-                                          }
-                                      },
-                                      "allowed_blocked_ratio": {
-                                          "bucket_script": {
-                                              "buckets_path": {
-                                                  "allow_bytes": "connection_stats['allow']>bytes_allow",
-                                                  "deny_bytes": "connection_stats['deny']>bytes_deny"
-                                              },
-                                              "script": "params.deny_bytes > 0 ? params.allow_bytes / params.deny_bytes : 0"
-                                          }
-                                      }
-                                  }
+                            "ports": {
+                              "terms": {
+                                "field": "destination.port"
                               }
+                            },
+                            "destinations": {
+                              "terms": {
+                                "field": "destination.ip"
+                              }
+                            }
                           }
+                        }
                       }
+                    },
+                    "allowed_blocked_ratio": {
+                      "bucket_script": {
+                        "buckets_path": {
+                          "allow_bytes": "connection_stats['allow']>bytes_allow",
+                          "deny_bytes": "connection_stats['deny']>bytes_deny"
+                        },
+                        "script": "params.deny_bytes > 0 ? params.allow_bytes / params.deny_bytes : 0"
+                      }
+                    }
                   }
+                }
               }
+            }
           }
+        }
       }
+    }
   },
   {
     "question": "Top 20 domains nào có lưu lượng outbound cao nhất và nghi ngờ rủi ro cao nhất (based on blocked/denied traffic) cùng với thông tin về risk score và geo-location?",
@@ -16815,24 +16898,54 @@
   },
   {
     "question": "User nào truy cập nhiều websites khác nhau nhất?",
-    "keywords": ["user", "website access", "unique websites", "web traffic", "user behavior", "url.domain", "cardinality"],
+    "keywords": [
+      "user",
+      "website access",
+      "unique websites",
+      "web traffic",
+      "user behavior",
+      "url.domain",
+      "cardinality"
+    ],
     "scenario": "Phân tích số lượng tên miền được truy cập nhiều nhất bởi mỗi user để hiểu rõ hành vi web của họ.",
     "query": {
       "query": {
         "bool": {
           "filter": [
-            { "range": { "@timestamp": { "gte": "now-24h" } } },
-            { "terms": { "network.protocol": ["http", "https"] } },
-            { "exists": { "field": "url.domain" } }
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
+              }
+            },
+            {
+              "terms": {
+                "network.protocol": [
+                  "http",
+                  "https"
+                ]
+              }
+            },
+            {
+              "exists": {
+                "field": "url.domain"
+              }
+            }
           ]
         }
       },
       "aggs": {
         "by_user": {
-          "terms": { "field": "source.user.name", "size": 10 },
+          "terms": {
+            "field": "source.user.name",
+            "size": 10
+          },
           "aggs": {
             "unique_websites": {
-              "cardinality": { "field": "url.domain" }
+              "cardinality": {
+                "field": "url.domain"
+              }
             }
           }
         }
@@ -16841,31 +16954,61 @@
   },
   {
     "question": "User truy cập domain/tổ chức nào nhiều nhất (all traffic)?",
-    "keywords": ["user", "domain access", "website traffic", "most accessed websites", "web behavior", "url.domain", "terms"],
+    "keywords": [
+      "user",
+      "domain access",
+      "website traffic",
+      "most accessed websites",
+      "web behavior",
+      "url.domain",
+      "terms"
+    ],
     "scenario": "Quan tâm đến việc xác định domain, tổ chức được truy cập nhiều nhất và user sử dụng nhiều nhất mỗi tên miền đó bao nhiêu lần.",
     "query": {
       "query": {
         "bool": {
           "filter": [
-            { "range": { "@timestamp": { "gte": "now-24h" } } }
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
+              }
+            }
           ]
         }
       },
       "aggs": {
         "by_user": {
-          "terms": { "field": "source.user.name", "size": 10 },
+          "terms": {
+            "field": "source.user.name",
+            "size": 10
+          },
           "aggs": {
             "by_url_domain": {
-              "terms": { "field": "url.domain", "size": 50 },
+              "terms": {
+                "field": "url.domain",
+                "size": 50
+              },
               "aggs": {
-                "traffic": { "sum": { "field": "network.bytes" } }
+                "traffic": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                }
               }
             },
             "by_dest_domain": {
-              "terms": { "field": "destination.domain", "size": 50 }
+              "terms": {
+                "field": "destination.domain",
+                "size": 50
+              }
             },
             "by_organization": {
-              "terms": { "field": "destination.as.organization.name", "size": 30 }
+              "terms": {
+                "field": "destination.as.organization.name",
+                "size": 30
+              }
             }
           }
         }
@@ -16891,26 +17034,49 @@
         "bool": {
           "filter": [
             {
-              "term": { "source.ip": "192.168.1.100" }
+              "term": {
+                "source.ip": "192.168.1.100"
+              }
             },
             {
-              "range": { "@timestamp": { "gte": "now-24h" } }
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
+              }
             }
           ]
         }
       },
       "aggs": {
         "http_traffic": {
-          "filter": { "exists": { "field": "url.domain" } },
+          "filter": {
+            "exists": {
+              "field": "url.domain"
+            }
+          },
           "aggs": {
             "unique_urls": {
-              "cardinality": { "field": "url.domain" }
+              "cardinality": {
+                "field": "url.domain"
+              }
             },
             "top_websites": {
-              "terms": { "field": "url.domain", "size": 50 },
+              "terms": {
+                "field": "url.domain",
+                "size": 50
+              },
               "aggs": {
-                "total_bytes": { "sum": { "field": "network.bytes" } },
-                "protocols": { "terms": { "field": "network.protocol" } }
+                "total_bytes": {
+                  "sum": {
+                    "field": "network.bytes"
+                  }
+                },
+                "protocols": {
+                  "terms": {
+                    "field": "network.protocol"
+                  }
+                }
               }
             }
           }
@@ -16918,16 +17084,29 @@
         "non_http_traffic": {
           "filter": {
             "bool": {
-              "must_not": { "exists": { "field": "url.domain" } },
-              "must": { "exists": { "field": "destination.domain" } }
+              "must_not": {
+                "exists": {
+                  "field": "url.domain"
+                }
+              },
+              "must": {
+                "exists": {
+                  "field": "destination.domain"
+                }
+              }
             }
           },
           "aggs": {
             "unique_dest_domains": {
-              "cardinality": { "field": "destination.domain" }
+              "cardinality": {
+                "field": "destination.domain"
+              }
             },
             "top_dest_domains": {
-              "terms": { "field": "destination.domain", "size": 30 }
+              "terms": {
+                "field": "destination.domain",
+                "size": 30
+              }
             }
           }
         },
@@ -16937,7 +17116,11 @@
             "size": 20
           },
           "aggs": {
-            "total_bytes": { "sum": { "field": "network.bytes" } }
+            "total_bytes": {
+              "sum": {
+                "field": "network.bytes"
+              }
+            }
           }
         }
       }
@@ -16945,7 +17128,11 @@
   },
   {
     "question": "IP nào truy cập đến các website như thế nào?",
-    "keywords": ["ip website", "source.ip truy cập url", "theo dõi IP"],
+    "keywords": [
+      "ip website",
+      "source.ip truy cập url",
+      "theo dõi IP"
+    ],
     "scenario": "Theo dõi các địa chỉ IP truy cập vào các websites để biết ai đang vào web nào",
     "query": {
       "query": {
@@ -16959,42 +17146,88 @@
         }
       ],
       "size": 10,
-      "_source": ["@timestamp", "source.ip", "url.domain"]
+      "_source": [
+        "@timestamp",
+        "source.ip",
+        "url.domain"
+      ]
     }
   },
   {
     "question": "IP 10.4.110.107 truy cập những website nào?",
-    "keywords": ["theo dõi IP", "IP truy cập web", "website access"],
+    "keywords": [
+      "theo dõi IP",
+      "IP truy cập web",
+      "website access"
+    ],
     "scenario": "Phân tích danh sách các website mà IP 10.4.110.107 đã truy cập",
     "query": {
       "query": {
         "bool": {
           "must": [
-            { "match": { "source.ip": "10.4.110.107" } }
+            {
+              "match": {
+                "source.ip": "10.4.110.107"
+              }
+            }
           ],
           "filter": [
-            { "exists": { "field": "url.domain" } }
+            {
+              "exists": {
+                "field": "url.domain"
+              }
+            }
           ]
         }
       },
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "size": 10,
-      "_source": ["@timestamp", "url.domain", "source.ip"]
+      "_source": [
+        "@timestamp",
+        "url.domain",
+        "source.ip"
+      ]
     }
-
   },
   {
     "question": "Hiển thị các kết nối được chấp nhận trong 24 giờ qua",
-    "keywords": ["accept", "cho phép", "allowed", "permitted", "kết nối thành công", "traffic allowed", "24h", "ngày qua"],
+    "keywords": [
+      "accept",
+      "cho phép",
+      "allowed",
+      "permitted",
+      "kết nối thành công",
+      "traffic allowed",
+      "24h",
+      "ngày qua"
+    ],
     "scenario": "Network security - Monitor allowed traffic and connections",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "accept" }},
-            { "range": { "@timestamp": { "gte": "now-24h" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "accept"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
+              }
+            }
           ]
         }
       }
@@ -17002,16 +17235,40 @@
   },
   {
     "question": "Các kết nối bị chặn trong 1 giờ qua",
-    "keywords": ["deny", "block", "chặn", "từ chối", "bị chặn", "blocked traffic", "rejected", "1h", "giờ qua"],
+    "keywords": [
+      "deny",
+      "block",
+      "chặn",
+      "từ chối",
+      "bị chặn",
+      "blocked traffic",
+      "rejected",
+      "1h",
+      "giờ qua"
+    ],
     "scenario": "Network security - Monitor blocked connections and potential threats",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "deny" }},
-            { "range": { "@timestamp": { "gte": "now-1h" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "deny"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-1h"
+                }
+              }
+            }
           ]
         }
       }
@@ -17019,16 +17276,39 @@
   },
   {
     "question": "Danh sách các truy cập bị chặn hôm nay",
-    "keywords": ["blocked", "bị chặn", "bị ngăn chặn", "security block", "threat blocked", "hôm nay", "today"],
+    "keywords": [
+      "blocked",
+      "bị chặn",
+      "bị ngăn chặn",
+      "security block",
+      "threat blocked",
+      "hôm nay",
+      "today"
+    ],
     "scenario": "Network security - Monitor security blocks",
     "query": {
       "size": 50,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "blocked" }},
-            { "range": { "@timestamp": { "gte": "now/d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "blocked"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-09-30T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17036,16 +17316,38 @@
   },
   {
     "question": "Các gói tin bị drop trong 6 giờ qua",
-    "keywords": ["dropped", "drop", "bỏ qua", "loại bỏ", "packet drop", "6h", "6 giờ"],
+    "keywords": [
+      "dropped",
+      "drop",
+      "bỏ qua",
+      "loại bỏ",
+      "packet drop",
+      "6h",
+      "6 giờ"
+    ],
     "scenario": "Network security - Monitor dropped packets",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "dropped" }},
-            { "range": { "@timestamp": { "gte": "now-6h" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "dropped"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-6h"
+                }
+              }
+            }
           ]
         }
       }
@@ -17053,16 +17355,38 @@
   },
   {
     "question": "Các kết nối đã đóng trong 2 giờ qua",
-    "keywords": ["close", "closed", "đóng", "kết thúc", "connection closed", "session ended", "2h"],
+    "keywords": [
+      "close",
+      "closed",
+      "đóng",
+      "kết thúc",
+      "connection closed",
+      "session ended",
+      "2h"
+    ],
     "scenario": "Network monitoring - Track closed connections",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "close" }},
-            { "range": { "@timestamp": { "gte": "now-2h" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "close"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-2h"
+                }
+              }
+            }
           ]
         }
       }
@@ -17070,16 +17394,38 @@
   },
   {
     "question": "Kết nối bị reset từ phía client trong ngày",
-    "keywords": ["client-rst", "client reset", "reset từ client", "connection reset", "TCP reset", "ngày hôm nay"],
+    "keywords": [
+      "client-rst",
+      "client reset",
+      "reset từ client",
+      "connection reset",
+      "TCP reset",
+      "ngày hôm nay"
+    ],
     "scenario": "Network troubleshooting - Monitor client-side connection resets",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "client-rst" }},
-            { "range": { "@timestamp": { "gte": "now/d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "client-rst"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-09-30T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17087,16 +17433,37 @@
   },
   {
     "question": "Kết nối bị reset từ phía server trong 12 giờ qua",
-    "keywords": ["server-rst", "server reset", "reset từ server", "backend reset", "12h", "12 giờ"],
+    "keywords": [
+      "server-rst",
+      "server reset",
+      "reset từ server",
+      "backend reset",
+      "12h",
+      "12 giờ"
+    ],
     "scenario": "Network troubleshooting - Monitor server-side connection resets",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "server-rst" }},
-            { "range": { "@timestamp": { "gte": "now-12h" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "server-rst"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-12h"
+                }
+              }
+            }
           ]
         }
       }
@@ -17104,16 +17471,37 @@
   },
   {
     "question": "Các kết nối bị timeout trong 24 giờ qua",
-    "keywords": ["timeout", "hết thời gian", "time out", "session timeout", "connection timeout", "24h"],
+    "keywords": [
+      "timeout",
+      "hết thời gian",
+      "time out",
+      "session timeout",
+      "connection timeout",
+      "24h"
+    ],
     "scenario": "Network troubleshooting - Monitor connection timeouts",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "timeout" }},
-            { "range": { "@timestamp": { "gte": "now-24h" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "timeout"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
+              }
+            }
           ]
         }
       }
@@ -17121,16 +17509,38 @@
   },
   {
     "question": "Các kết nối mới được thiết lập hôm nay",
-    "keywords": ["connect", "connection", "kết nối", "new connection", "established", "hôm nay"],
+    "keywords": [
+      "connect",
+      "connection",
+      "kết nối",
+      "new connection",
+      "established",
+      "hôm nay"
+    ],
     "scenario": "Network monitoring - Track new connections",
     "query": {
       "size": 50,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "connect" }},
-            { "range": { "@timestamp": { "gte": "now/d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "connect"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-09-30T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17138,16 +17548,37 @@
   },
   {
     "question": "Các phiên bị ngắt kết nối trong 4 giờ qua",
-    "keywords": ["disconnect", "disconnected", "ngắt kết nối", "session disconnect", "4h", "4 giờ"],
+    "keywords": [
+      "disconnect",
+      "disconnected",
+      "ngắt kết nối",
+      "session disconnect",
+      "4h",
+      "4 giờ"
+    ],
     "scenario": "Network monitoring - Track disconnections",
     "query": {
       "size": 50,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "disconnect" }},
-            { "range": { "@timestamp": { "gte": "now-4h" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "disconnect"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-4h"
+                }
+              }
+            }
           ]
         }
       }
@@ -17155,11 +17586,23 @@
   },
   {
     "question": "Ai đã chỉnh sửa cấu hình firewall trong 7 ngày qua?",
-    "keywords": ["Edit", "chỉnh sửa", "modify", "sửa đổi", "configuration change", "7 ngày", "tuần qua"],
+    "keywords": [
+      "Edit",
+      "chỉnh sửa",
+      "modify",
+      "sửa đổi",
+      "configuration change",
+      "7 ngày",
+      "tuần qua"
+    ],
     "scenario": "Audit - Track configuration edits",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "_source": [
         "@timestamp",
         "source.user.name",
@@ -17175,8 +17618,19 @@
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "Edit" }},
-            { "range": { "@timestamp": { "gte": "now-7d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "Edit"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-10-06T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17184,11 +17638,24 @@
   },
   {
     "question": "Danh sách cấu hình mới được thêm vào trong tháng này",
-    "keywords": ["add", "thêm", "thêm mới", "new", "create", "tạo mới", "tháng này", "this month"],
+    "keywords": [
+      "add",
+      "thêm",
+      "thêm mới",
+      "new",
+      "create",
+      "tạo mới",
+      "tháng này",
+      "this month"
+    ],
     "scenario": "Audit - Track new configurations",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "_source": [
         "@timestamp",
         "source.user.name",
@@ -17204,8 +17671,18 @@
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "Add" }},
-            { "range": { "@timestamp": { "gte": "now/M" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "Add"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now/M"
+                }
+              }
+            }
           ]
         }
       }
@@ -17213,11 +17690,23 @@
   },
   {
     "question": "Cấu hình nào đã bị xóa trong 30 ngày qua?",
-    "keywords": ["delete", "xóa", "remove", "gỡ bỏ", "deleted configuration", "30 ngày", "tháng qua"],
+    "keywords": [
+      "delete",
+      "xóa",
+      "remove",
+      "gỡ bỏ",
+      "deleted configuration",
+      "30 ngày",
+      "tháng qua"
+    ],
     "scenario": "Audit - Track deleted configurations",
     "query": {
       "size": 50,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "_source": [
         "@timestamp",
         "source.user.name",
@@ -17233,8 +17722,18 @@
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "Delete" }},
-            { "range": { "@timestamp": { "gte": "now-30d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "Delete"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-30d"
+                }
+              }
+            }
           ]
         }
       }
@@ -17242,16 +17741,39 @@
   },
   {
     "question": "Các cập nhật hệ thống trong tuần này",
-    "keywords": ["update", "cập nhật", "upgrade", "nâng cấp", "system update", "tuần này", "this week"],
+    "keywords": [
+      "update",
+      "cập nhật",
+      "upgrade",
+      "nâng cấp",
+      "system update",
+      "tuần này",
+      "this week"
+    ],
     "scenario": "System maintenance - Track updates",
     "query": {
       "size": 50,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "update" }},
-            { "range": { "@timestamp": { "gte": "now-7d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "update"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-10-06T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17259,16 +17781,39 @@
   },
   {
     "question": "Các thay đổi vị trí cấu hình trong 14 ngày qua",
-    "keywords": ["move", "di chuyển", "reorder", "sắp xếp lại", "position change", "14 ngày", "2 tuần"],
+    "keywords": [
+      "move",
+      "di chuyển",
+      "reorder",
+      "sắp xếp lại",
+      "position change",
+      "14 ngày",
+      "2 tuần"
+    ],
     "scenario": "Audit - Track configuration moves",
     "query": {
       "size": 50,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "Move" }},
-            { "range": { "@timestamp": { "gte": "now-14d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "Move"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-10-13T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17276,11 +17821,23 @@
   },
   {
     "question": "Ai đã đăng nhập vào firewall hôm nay?",
-    "keywords": ["login", "đăng nhập", "sign in", "authentication", "user login", "hôm nay", "today"],
+    "keywords": [
+      "login",
+      "đăng nhập",
+      "sign in",
+      "authentication",
+      "user login",
+      "hôm nay",
+      "today"
+    ],
     "scenario": "Security audit - Track user logins",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "_source": [
         "@timestamp",
         "source.user.name",
@@ -17296,8 +17853,19 @@
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "login" }},
-            { "range": { "@timestamp": { "gte": "now/d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "login"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-09-30T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17305,17 +17873,44 @@
   },
   {
     "question": "Lịch sử đăng xuất trong 7 ngày qua",
-    "keywords": ["logout", "đăng xuất", "sign out", "logoff", "user logout", "7 ngày", "tuần qua"],
+    "keywords": [
+      "logout",
+      "đăng xuất",
+      "sign out",
+      "logoff",
+      "user logout",
+      "7 ngày",
+      "tuần qua"
+    ],
     "scenario": "Security audit - Track user logouts",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
-      "_source": ["@timestamp", "source.user.name", "fortinet.firewall.ui"],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
+      "_source": [
+        "@timestamp",
+        "source.user.name",
+        "fortinet.firewall.ui"
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "logout" }},
-            { "range": { "@timestamp": { "gte": "now-7d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "logout"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-10-06T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17323,16 +17918,38 @@
   },
   {
     "question": "Các mối đe dọa được phát hiện trong 24 giờ qua",
-    "keywords": ["detected", "phát hiện", "found", "threat detected", "malware detected", "24h", "ngày qua"],
+    "keywords": [
+      "detected",
+      "phát hiện",
+      "found",
+      "threat detected",
+      "malware detected",
+      "24h",
+      "ngày qua"
+    ],
     "scenario": "Security monitoring - Track detected threats",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "detected" }},
-            { "range": { "@timestamp": { "gte": "now-24h" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "detected"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
+              }
+            }
           ]
         }
       }
@@ -17340,16 +17957,37 @@
   },
   {
     "question": "Traffic bypass inspection trong ngày",
-    "keywords": ["bypass", "bỏ qua", "skip inspection", "inspection bypass", "ngày hôm nay"],
+    "keywords": [
+      "bypass",
+      "bỏ qua",
+      "skip inspection",
+      "inspection bypass",
+      "ngày hôm nay"
+    ],
     "scenario": "Security monitoring - Track bypassed inspections",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "bypass" }},
-            { "range": { "@timestamp": { "gte": "now/d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "bypass"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-09-30T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17357,16 +17995,38 @@
   },
   {
     "question": "Truy vấn DNS trong 1 giờ qua",
-    "keywords": ["dns", "DNS query", "domain lookup", "name resolution", "truy vấn DNS", "1h", "giờ qua"],
+    "keywords": [
+      "dns",
+      "DNS query",
+      "domain lookup",
+      "name resolution",
+      "truy vấn DNS",
+      "1h",
+      "giờ qua"
+    ],
     "scenario": "Network monitoring - Track DNS queries",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "dns" }},
-            { "range": { "@timestamp": { "gte": "now-1h" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "dns"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-1h"
+                }
+              }
+            }
           ]
         }
       }
@@ -17374,16 +18034,37 @@
   },
   {
     "question": "Các kết nối IP trong 6 giờ qua",
-    "keywords": ["ip-conn", "ip connection", "kết nối IP", "layer 3", "6h", "6 giờ"],
+    "keywords": [
+      "ip-conn",
+      "ip connection",
+      "kết nối IP",
+      "layer 3",
+      "6h",
+      "6 giờ"
+    ],
     "scenario": "Network monitoring - Track IP connections",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "ip-conn" }},
-            { "range": { "@timestamp": { "gte": "now-6h" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "ip-conn"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-6h"
+                }
+              }
+            }
           ]
         }
       }
@@ -17391,16 +18072,37 @@
   },
   {
     "question": "Traffic passthrough trong 12 giờ qua",
-    "keywords": ["passthrough", "pass through", "thông qua", "forward", "12h", "12 giờ"],
+    "keywords": [
+      "passthrough",
+      "pass through",
+      "thông qua",
+      "forward",
+      "12h",
+      "12 giờ"
+    ],
     "scenario": "Network monitoring - Track passthrough traffic",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "passthrough" }},
-            { "range": { "@timestamp": { "gte": "now-12h" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "passthrough"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-12h"
+                }
+              }
+            }
           ]
         }
       }
@@ -17408,16 +18110,37 @@
   },
   {
     "question": "Các phiên negotiate trong ngày",
-    "keywords": ["negotiate", "negotiation", "thương lượng", "protocol negotiation", "ngày hôm nay"],
+    "keywords": [
+      "negotiate",
+      "negotiation",
+      "thương lượng",
+      "protocol negotiation",
+      "ngày hôm nay"
+    ],
     "scenario": "Network monitoring - Track protocol negotiations",
     "query": {
       "size": 50,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "negotiate" }},
-            { "range": { "@timestamp": { "gte": "now/d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "negotiate"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-09-30T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17425,16 +18148,38 @@
   },
   {
     "question": "Các kết nối được permit hôm nay",
-    "keywords": ["permit", "permitted", "cho phép", "allowed", "granted", "hôm nay"],
+    "keywords": [
+      "permit",
+      "permitted",
+      "cho phép",
+      "allowed",
+      "granted",
+      "hôm nay"
+    ],
     "scenario": "Network security - Monitor permitted connections",
     "query": {
       "size": 50,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "permit" }},
-            { "range": { "@timestamp": { "gte": "now/d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "permit"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-09-30T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17442,16 +18187,37 @@
   },
   {
     "question": "Log thông tin hệ thống trong 24 giờ qua",
-    "keywords": ["info", "information", "thông tin", "system info", "informational", "24h"],
+    "keywords": [
+      "info",
+      "information",
+      "thông tin",
+      "system info",
+      "informational",
+      "24h"
+    ],
     "scenario": "System monitoring - Track informational logs",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "info" }},
-            { "range": { "@timestamp": { "gte": "now-24h" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "info"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-24h"
+                }
+              }
+            }
           ]
         }
       }
@@ -17459,16 +18225,39 @@
   },
   {
     "question": "Các lỗi hệ thống trong tuần này",
-    "keywords": ["error", "lỗi", "failure", "failed", "system error", "tuần này", "this week"],
+    "keywords": [
+      "error",
+      "lỗi",
+      "failure",
+      "failed",
+      "system error",
+      "tuần này",
+      "this week"
+    ],
     "scenario": "System troubleshooting - Track errors",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "error" }},
-            { "range": { "@timestamp": { "gte": "now/w" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "error"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-10-06T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17476,16 +18265,38 @@
   },
   {
     "question": "Thống kê hiệu suất firewall hôm nay",
-    "keywords": ["perf-stats", "performance", "hiệu suất", "stats", "statistics", "hôm nay"],
+    "keywords": [
+      "perf-stats",
+      "performance",
+      "hiệu suất",
+      "stats",
+      "statistics",
+      "hôm nay"
+    ],
     "scenario": "Performance monitoring - Track performance statistics",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "perf-stats" }},
-            { "range": { "@timestamp": { "gte": "now/d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "perf-stats"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-09-30T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17493,16 +18304,37 @@
   },
   {
     "question": "Các lần chuyển đổi transport tự động trong 7 ngày qua",
-    "keywords": ["auto_transport_switch", "transport switch", "chuyển đổi tự động", "automatic switch", "7 ngày"],
+    "keywords": [
+      "auto_transport_switch",
+      "transport switch",
+      "chuyển đổi tự động",
+      "automatic switch",
+      "7 ngày"
+    ],
     "scenario": "Network monitoring - Track automatic transport switches",
     "query": {
       "size": 50,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "auto_transport_switch" }},
-            { "range": { "@timestamp": { "gte": "now-7d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "auto_transport_switch"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-09-30T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17510,16 +18342,36 @@
   },
   {
     "question": "Thay đổi trạng thái interface trong tháng này",
-    "keywords": ["interface-stat-change", "interface status", "trạng thái interface", "port change", "tháng này"],
+    "keywords": [
+      "interface-stat-change",
+      "interface status",
+      "trạng thái interface",
+      "port change",
+      "tháng này"
+    ],
     "scenario": "Network monitoring - Track interface status changes",
     "query": {
       "size": 50,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "interface-stat-change" }},
-            { "range": { "@timestamp": { "gte": "now-30d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "interface-stat-change"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-30d"
+                }
+              }
+            }
           ]
         }
       }
@@ -17527,16 +18379,36 @@
   },
   {
     "question": "Lịch sử roll log trong 30 ngày qua",
-    "keywords": ["roll-log", "log rotation", "xoay vòng log", "log rollover", "30 ngày"],
+    "keywords": [
+      "roll-log",
+      "log rotation",
+      "xoay vòng log",
+      "log rollover",
+      "30 ngày"
+    ],
     "scenario": "System maintenance - Track log rotations",
     "query": {
       "size": 50,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "roll-log" }},
-            { "range": { "@timestamp": { "gte": "now-30d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "roll-log"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-30d"
+                }
+              }
+            }
           ]
         }
       }
@@ -17544,16 +18416,36 @@
   },
   {
     "question": "Các hoạt động trim disk trong tháng này",
-    "keywords": ["trim-disk", "disk trim", "dọn dẹp đĩa", "disk cleanup", "tháng này"],
+    "keywords": [
+      "trim-disk",
+      "disk trim",
+      "dọn dẹp đĩa",
+      "disk cleanup",
+      "tháng này"
+    ],
     "scenario": "System maintenance - Track disk trim operations",
     "query": {
       "size": 50,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "trim-disk" }},
-            { "range": { "@timestamp": { "gte": "now/M" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "trim-disk"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now/M"
+                }
+              }
+            }
           ]
         }
       }
@@ -17561,16 +18453,37 @@
   },
   {
     "question": "Các lần reseeding hệ thống trong 14 ngày qua",
-    "keywords": ["reseeding", "reseed", "khởi tạo lại", "reinitialize", "14 ngày"],
+    "keywords": [
+      "reseeding",
+      "reseed",
+      "khởi tạo lại",
+      "reinitialize",
+      "14 ngày"
+    ],
     "scenario": "System maintenance - Track reseeding operations",
     "query": {
       "size": 50,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "reseeding" }},
-            { "range": { "@timestamp": { "gte": "now-14d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "reseeding"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-10-13T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17578,16 +18491,37 @@
   },
   {
     "question": "Lịch sử download trong tuần này",
-    "keywords": ["download", "tải xuống", "file download", "configuration download", "tuần này"],
+    "keywords": [
+      "download",
+      "tải xuống",
+      "file download",
+      "configuration download",
+      "tuần này"
+    ],
     "scenario": "System monitoring - Track downloads",
     "query": {
       "size": 50,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "download" }},
-            { "range": { "@timestamp": { "gte": "now-7d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "download"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-10-06T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       }
@@ -17595,12 +18529,23 @@
   },
   {
     "question": "Top 10 hành động phổ biến nhất trong 24 giờ qua",
-    "keywords": ["top actions", "most common", "phổ biến nhất", "thống kê", "statistics", "24h"],
+    "keywords": [
+      "top actions",
+      "most common",
+      "phổ biến nhất",
+      "thống kê",
+      "statistics",
+      "24h"
+    ],
     "scenario": "Analytics - Track most common actions",
     "query": {
       "size": 0,
       "query": {
-        "range": { "@timestamp": { "gte": "now-24h" }}
+        "range": {
+          "@timestamp": {
+            "gte": "now-24h"
+          }
+        }
       },
       "aggs": {
         "top_actions": {
@@ -17614,15 +18559,32 @@
   },
   {
     "question": "Top IP bị chặn nhiều nhất hôm nay",
-    "keywords": ["top blocked IP", "most denied", "bị chặn nhiều nhất", "deny by IP", "hôm nay"],
+    "keywords": [
+      "top blocked IP",
+      "most denied",
+      "bị chặn nhiều nhất",
+      "deny by IP",
+      "hôm nay"
+    ],
     "scenario": "Security analytics - Identify most blocked IPs",
     "query": {
       "size": 0,
       "query": {
         "bool": {
           "filter": [
-            { "term": { "fortinet.firewall.action": "deny" }},
-            { "range": { "@timestamp": { "gte": "now/d" }}}
+            {
+              "term": {
+                "fortinet.firewall.action": "deny"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2025-09-29T17:00:00.000Z",
+                  "lt": "2025-09-30T17:00:00.000Z"
+                }
+              }
+            }
           ]
         }
       },
@@ -17653,7 +18615,11 @@
     "scenario": "Audit - Track all configuration changes with device and interface info",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "_source": [
         "@timestamp",
         "source.user.name",
@@ -17669,8 +18635,22 @@
       "query": {
         "bool": {
           "filter": [
-            { "range": { "@timestamp": { "gte": "now-30d" } } },
-            { "terms": { "fortinet.firewall.action": ["Edit", "Add", "Delete"] } }
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-30d"
+                }
+              }
+            },
+            {
+              "terms": {
+                "fortinet.firewall.action": [
+                  "Edit",
+                  "Add",
+                  "Delete"
+                ]
+              }
+            }
           ]
         }
       }
@@ -17689,7 +18669,11 @@
     "scenario": "Audit - Track firewall policy changes only",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "_source": [
         "@timestamp",
         "source.user.name",
@@ -17705,11 +18689,29 @@
       "query": {
         "bool": {
           "must": [
-            { "match_phrase": { "fortinet.firewall.cfgpath": "firewall.policy" }}
+            {
+              "match_phrase": {
+                "fortinet.firewall.cfgpath": "firewall.policy"
+              }
+            }
           ],
           "filter": [
-            { "range": { "@timestamp": { "gte": "now-30d" } } },
-            { "terms": { "fortinet.firewall.action": ["Edit", "Add", "Delete"] } }
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-30d"
+                }
+              }
+            },
+            {
+              "terms": {
+                "fortinet.firewall.action": [
+                  "Edit",
+                  "Add",
+                  "Delete"
+                ]
+              }
+            }
           ]
         }
       }
@@ -17733,8 +18735,22 @@
       "query": {
         "bool": {
           "filter": [
-            { "range": { "@timestamp": { "gte": "now-30d" } } },
-            { "terms": { "fortinet.firewall.action": ["Edit", "Add", "Delete"] } }
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-30d"
+                }
+              }
+            },
+            {
+              "terms": {
+                "fortinet.firewall.action": [
+                  "Edit",
+                  "Add",
+                  "Delete"
+                ]
+              }
+            }
           ]
         }
       },
@@ -17754,8 +18770,16 @@
             "recent_changes": {
               "top_hits": {
                 "size": 5,
-                "sort": [{ "@timestamp": "desc" }],
-                "_source": ["@timestamp", "message", "fortinet.firewall.cfgpath"]
+                "sort": [
+                  {
+                    "@timestamp": "desc"
+                  }
+                ],
+                "_source": [
+                  "@timestamp",
+                  "message",
+                  "fortinet.firewall.cfgpath"
+                ]
               }
             }
           }
@@ -17780,8 +18804,22 @@
       "query": {
         "bool": {
           "filter": [
-            { "range": { "@timestamp": { "gte": "now-30d" } } },
-            { "terms": { "fortinet.firewall.action": ["Edit", "Add", "Delete"] } }
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-30d"
+                }
+              }
+            },
+            {
+              "terms": {
+                "fortinet.firewall.action": [
+                  "Edit",
+                  "Add",
+                  "Delete"
+                ]
+              }
+            }
           ]
         }
       },
@@ -17817,7 +18855,11 @@
     "scenario": "Audit - Track specific user's configuration changes",
     "query": {
       "size": 100,
-      "sort": [{ "@timestamp": "desc" }],
+      "sort": [
+        {
+          "@timestamp": "desc"
+        }
+      ],
       "_source": [
         "@timestamp",
         "source.user.name",
@@ -17833,11 +18875,29 @@
       "query": {
         "bool": {
           "must": [
-            { "match_phrase": { "source.user.name": "tanln" }}
+            {
+              "match_phrase": {
+                "source.user.name": "tanln"
+              }
+            }
           ],
           "filter": [
-            { "range": { "@timestamp": { "gte": "now-30d" } } },
-            { "terms": { "fortinet.firewall.action": ["Edit", "Add", "Delete"] } }
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "now-30d"
+                }
+              }
+            },
+            {
+              "terms": {
+                "fortinet.firewall.action": [
+                  "Edit",
+                  "Add",
+                  "Delete"
+                ]
+              }
+            }
           ]
         }
       }
@@ -17888,8 +18948,8 @@
             {
               "range": {
                 "@timestamp": {
-                  "gte": "now-1d/d",
-                  "lt": "now/d"
+                  "gte": "2025-09-30T17:00:00.000Z",
+                  "lt": "2025-10-01T17:00:00.000Z"
                 }
               }
             },
