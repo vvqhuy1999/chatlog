@@ -59,15 +59,19 @@ public class AiComparisonService {
         ZonedDateTime vnTimeNow = ZonedDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         ZonedDateTime utcTimeNow = vnTimeNow.withZoneSameInstant(ZoneId.of("UTC"));
         
-        // 24 giờ trước
-        ZonedDateTime utc24hAgo = utcTimeNow.minusHours(24);
+        // "Hôm nay" = từ 00:00:00 VN hôm nay đến thời điểm hiện tại
+        ZonedDateTime todayStartVN = vnTimeNow.toLocalDate().atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh"));
+        ZonedDateTime todayStartUTC = todayStartVN.withZoneSameInstant(ZoneId.of("UTC"));
+        // lt = thời điểm hiện tại (UTC)
 
         DateTimeFormatter displayFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         DateTimeFormatter isoFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        DateTimeFormatter vnFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'+07:00'");
 
         System.out.println("[generateDateContext] 📅 REALTIME Vietnam: " + vnTimeNow.format(displayFormat));
         System.out.println("[generateDateContext] 🌍 REALTIME UTC: " + utcTimeNow.format(displayFormat));
-        System.out.println("[generateDateContext] ⏪ 24h ago UTC: " + utc24hAgo.format(displayFormat));
+        System.out.println("[generateDateContext] 🌅 Today start VN (00:00): " + todayStartVN.format(displayFormat));
+        System.out.println("[generateDateContext] 🌅 Today start UTC: " + todayStartUTC.format(displayFormat));
 
         String dateContext = String.format("""
                 ═══════════════════════════════════════════════════════════════
@@ -81,9 +85,13 @@ public class AiComparisonService {
                 - UTC time NOW: %s
                 - Today's date in Vietnam: %s
                 
-                ⚠️ CRITICAL: When user mentions "hôm nay" (today), use LAST 24 HOURS:
+                ⚠️ CRITICAL: When user mentions "hôm nay" (today), it means from 00:00 VN today until NOW:
                 
-                ✅ CORRECT TIMESTAMPS FOR "HÔM NAY":
+                📐 TIMEZONE CONVERSION:
+                - Vietnam: {"gte": "%s", "lt": "%s"}
+                - UTC:     {"gte": "%s", "lt": "%s"}
+                
+                ✅ CORRECT UTC TIMESTAMPS FOR "HÔM NAY" (use this):
                 {"gte": "%s", "lt": "%s"}
                 
                 📌 COPY-PASTE READY:
@@ -99,9 +107,17 @@ public class AiComparisonService {
             vnTimeNow.format(displayFormat),
             utcTimeNow.format(displayFormat),
             vnTimeNow.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-            utc24hAgo.format(isoFormat),
+            // Vietnam timestamps
+            todayStartVN.format(vnFormat),
+            vnTimeNow.format(vnFormat),
+            // UTC timestamps
+            todayStartUTC.format(isoFormat),
             utcTimeNow.format(isoFormat),
-            utc24hAgo.format(isoFormat),
+            // Correct UTC for "hôm nay"
+            todayStartUTC.format(isoFormat),
+            utcTimeNow.format(isoFormat),
+            // Copy-paste ready
+            todayStartUTC.format(isoFormat),
             utcTimeNow.format(isoFormat)
         );
 
@@ -353,7 +369,7 @@ public class AiComparisonService {
             
             ```
             Kết quả tìm kiếm:
-            - Tổng số: 5 users
+            - Tổng số: 10 users
             - User 1: ToiLV
               * Sessions: 77,090
               * Bytes: 140,932,384,937
