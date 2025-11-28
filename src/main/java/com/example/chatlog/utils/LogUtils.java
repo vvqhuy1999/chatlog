@@ -7,7 +7,6 @@ import java.io.PrintWriter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.locks.ReentrantLock;
@@ -20,57 +19,6 @@ public class LogUtils {
     private static final String LOG_DIRECTORY = "logs";
     private static final int MAX_LOG_FILES = 10;
     private static final ReentrantLock lock = new ReentrantLock();
-    
-    /**
-     * Ghi log lỗi ra file với thông tin thời gian
-     * 
-     * @param serviceName Tên service gặp lỗi
-     * @param errorMessage Thông báo lỗi
-     * @param exception Exception gây ra lỗi (có thể null)
-     */
-    public static void logError(String serviceName, String errorMessage, Throwable exception) {
-        LocalDateTime now = LocalDateTime.now();
-        String logFileName = getLogFileName(now);
-        String timestamp = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"));
-        
-        StringBuilder logEntry = new StringBuilder();
-        logEntry.append("[").append(timestamp).append("] ");
-        logEntry.append("[ERROR] ");
-        logEntry.append("[").append(serviceName).append("] ");
-        logEntry.append("❌ ").append(errorMessage);
-        logEntry.append("\n");
-        logEntry.append("════════════════════════════ ERROR DETAILS ════════════════════════════");
-        
-        if (exception != null) {
-            logEntry.append("\n▶ Exception Type: ").append(exception.getClass().getName());
-            logEntry.append("\n▶ Error Message: ").append(exception.getMessage());
-            logEntry.append("\n▶ Root Cause: ").append(getRootCauseMessage(exception));
-            logEntry.append("\n\n▶ Stack Trace:");
-            
-            // Thêm stack trace chi tiết
-            for (StackTraceElement element : exception.getStackTrace()) {
-                logEntry.append("\n    at ").append(element.toString());
-            }
-            
-            // Thêm thông tin về cause nếu có
-            Throwable cause = exception.getCause();
-            if (cause != null) {
-                logEntry.append("\n\n▶ Caused by: ").append(cause.getClass().getName()).append(": ").append(cause.getMessage());
-                for (StackTraceElement element : cause.getStackTrace()) {
-                    logEntry.append("\n    at ").append(element.toString());
-                }
-            }
-        } else {
-            logEntry.append("\n▶ No exception details available");
-        }
-        
-        logEntry.append("\n════════════════════════════ END ERROR DETAILS ════════════════════════════");
-        
-        writeToFile(logFileName, logEntry.toString());
-        
-        // In ra console để debug
-        System.err.println(logEntry.toString());
-    }
     
     /**
      * Lấy thông điệp từ nguyên nhân gốc của exception
@@ -167,26 +115,6 @@ public class LogUtils {
         
         // In ra console để debug
         System.err.println(logEntry.toString());
-    }
-    
-    /**
-     * Ghi log thông tin ra file với thông tin thời gian
-     * 
-     * @param serviceName Tên service
-     * @param message Thông báo
-     */
-    public static void logInfo(String serviceName, String message) {
-        LocalDateTime now = LocalDateTime.now();
-        String logFileName = getLogFileName(now);
-        String timestamp = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"));
-        
-        StringBuilder logEntry = new StringBuilder();
-        logEntry.append("[").append(timestamp).append("] ");
-        logEntry.append("[INFO] ");
-        logEntry.append("[").append(serviceName).append("] ");
-        logEntry.append(message);
-        
-        writeToFile(logFileName, logEntry.toString());
     }
     
     /**

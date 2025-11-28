@@ -37,7 +37,7 @@ spring:
       register-mbeans: false
 
   jpa:
-    show-sql: true
+    show-sql: false
     open-in-view: false
     hibernate:
       ddl-auto: none
@@ -83,8 +83,8 @@ spring:
 
     retry:
       max-attempts: 3
-      initial-interval: 1000
-      max-interval: 5000
+      initial-interval: 2000
+      max-interval: 10000
       multiplier: 2.0
 
   cache:
@@ -114,7 +114,7 @@ management:
 logging:
   level:
     com.example.chatlog: INFO
-    com.example.chatlog.service.impl.VectorSearchService: DEBUG
+    com.example.chatlog.service.impl.VectorSearchService: INFO
     org.springframework.ai: WARN
     org.hibernate.SQL: ERROR
-    com.zaxxer.hikari: DEBUG
+    com.zaxxer.hikari: WARN

@@ -15,16 +15,7 @@ public enum ModelProvider {
     this.modelName = modelName;
   }
 
-  public String getDisplayName() {
-    return displayName;
-  }
-
   public String getModelName() {
     return modelName;
-  }
-
-  @Override
-  public String toString() {
-    return displayName + " (" + modelName + ")";
   }
 }

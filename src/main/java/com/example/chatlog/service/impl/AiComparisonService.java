@@ -25,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
+
 /**
  * Service xử lý chế độ so sánh giữa OpenAI và OpenRouter với PARALLEL PROCESSING
  * OpenAI và OpenRouter chạy đồng thời để giảm thời gian xử lý
@@ -38,6 +39,7 @@ public class AiComparisonService {
     @Autowired
     private ToolsConfig toolsConfig;
 
+
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper;
 
@@ -50,43 +52,55 @@ public class AiComparisonService {
     /**
      * Tạo chuỗi thông tin ngày tháng cho system message
      */
-    private String generateDateContext(LocalDateTime now) {
-        // Chuyển đổi từ giờ Việt Nam sang UTC
-        ZonedDateTime vnTime = ZonedDateTime.of(now, ZoneId.of("Asia/Ho_Chi_Minh"));
-        ZonedDateTime utcTime = vnTime.withZoneSameInstant(ZoneId.of("UTC"));
+    private String generateDateContext() {
+        ZonedDateTime vnTimeNow = ZonedDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        ZonedDateTime utcTimeNow = vnTimeNow.withZoneSameInstant(ZoneId.of("UTC"));
+        
+        // 24 giờ trước
+        ZonedDateTime utc24hAgo = utcTimeNow.minusHours(24);
 
-        System.out.println("[generateDateContext] 📅 Input (VN): " + vnTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        System.out.println("[generateDateContext] 🌍 Converted to UTC: " + utcTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        DateTimeFormatter displayFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        DateTimeFormatter isoFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+
+        System.out.println("[generateDateContext] 📅 REALTIME Vietnam: " + vnTimeNow.format(displayFormat));
+        System.out.println("[generateDateContext] 🌍 REALTIME UTC: " + utcTimeNow.format(displayFormat));
+        System.out.println("[generateDateContext] ⏪ 24h ago UTC: " + utc24hAgo.format(displayFormat));
 
         String dateContext = String.format("""
-                CURRENT TIME CONTEXT (UTC):
-                - Current exact time: %s (UTC)
-                - Current date: %s
-                - Note: System logs are in UTC. Vietnam time is +7 hours ahead of UTC.
+                ═══════════════════════════════════════════════════════════════
+                🚨 MANDATORY TIMEZONE RULE (PRIORITY #0)
+                ═══════════════════════════════════════════════════════════════
                 
-                PREFERRED TIME QUERY METHOD - Use Elasticsearch relative time expressions:
-                - "5 phút qua, 5 phút trước, 5 minutes ago", "last 5 minutes" → {"gte": "now-5m"}
-                - "1 giờ qua, 1 giờ trước, 1 hour ago", "last 1 hour" → {"gte": "now-1h"}
-                - "24 giờ qua, 24 giờ trước, 24 hours ago", "last 24 hours" → {"gte": "now-24h"}
-                - "1 tuần qua, 1 tuần trước, 1 week ago", "7 ngày qua, 7 ngày trước, 7 days ago", "last week" → {"gte": "now-7d"}
-                - "1 tháng qua, 1 tháng trước, 1 month ago", "last month" → {"gte": "now-30d"}
+                User is in VIETNAM (UTC+7). All Elasticsearch logs are in UTC.
                 
-                SPECIFIC DATE RANGES (when exact dates mentioned):
-                - "hôm nay, hôm nay, today" → {"gte": "now/d"}
-                - "hôm qua, hôm qua, yesterday" → {"gte": "now-1d/d"}
-                - Specific date like "ngày 15-09" → {"gte": "2025-09-14T17:00:00Z", "lt": "2025-09-15T17:00:00Z"} (Convert input date to UTC range if needed, or use timezone offset)
+                🕐 REALTIME NOW:
+                - Vietnam time NOW: %s (UTC+7)
+                - UTC time NOW: %s
+                - Today's date in Vietnam: %s
                 
-                ADVANTAGES of "now-Xh/d/m" format:
-                - More efficient than absolute timestamps
-                - Automatically handles timezone
-                - Elasticsearch native time calculations
-                - Always relative to query execution time
+                ⚠️ CRITICAL: When user mentions "hôm nay" (today), use LAST 24 HOURS:
+                
+                ✅ CORRECT TIMESTAMPS FOR "HÔM NAY":
+                {"gte": "%s", "lt": "%s"}
+                
+                📌 COPY-PASTE READY:
+                "range": {"@timestamp": {"gte": "%s", "lt": "%s"}}
+                
+                ═══════════════════════════════════════════════════════════════
+                
+                OTHER TIME EXPRESSIONS:
+                - "1 giờ qua" → {"gte": "now-1h"}
+                - "6 giờ qua" → {"gte": "now-6h"}  
+                - "7 ngày qua" → {"gte": "now-7d"}
                 """,
-            utcTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
-            utcTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            vnTimeNow.format(displayFormat),
+            utcTimeNow.format(displayFormat),
+            vnTimeNow.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+            utc24hAgo.format(isoFormat),
+            utcTimeNow.format(isoFormat),
+            utc24hAgo.format(isoFormat),
+            utcTimeNow.format(isoFormat)
         );
-
-        System.out.println("[generateDateContext] ✅ Date context created (UTC) - Length: " + dateContext.length() + " chars");
 
         return dateContext;
     }
@@ -450,7 +464,7 @@ public class AiComparisonService {
     public Map<String, Object> handleRequestWithComparison(Long sessionId, ChatRequest chatRequest) {
         Map<String, Object> result = new HashMap<>();
         LocalDateTime now = LocalDateTime.now();
-        String dateContext = generateDateContext(now);
+        String dateContext = generateDateContext();
 
         Map<String, Long> timingMetrics = new HashMap<>();
         long overallStartTime = System.currentTimeMillis();
@@ -495,12 +509,12 @@ public class AiComparisonService {
             System.out.println("[AiComparisonService] 🚀 Bắt đầu xử lý SONG SONG OpenAI và OpenRouter...");
             System.out.println("[AiComparisonService] 🔧 Cả hai thread sẽ sử dụng tool 'searchElasticsearch'");
 
-            // CompletableFuture cho OpenAI với tool enabled
+            // CompletableFuture cho OpenAI với tool enabled (sử dụng custom executor)
             CompletableFuture<Map<String, Object>> openaiFuture = CompletableFuture.supplyAsync(() ->
                 processOpenAI(sessionId, chatRequest, toolBasedPrompt)
             );
 
-            // CompletableFuture cho OpenRouter với tool enabled
+            // CompletableFuture cho OpenRouter với tool enabled (sử dụng custom executor)
             CompletableFuture<Map<String, Object>> openrouterFuture = CompletableFuture.supplyAsync(() ->
                 processOpenRouter(sessionId, chatRequest, toolBasedPrompt)
             );

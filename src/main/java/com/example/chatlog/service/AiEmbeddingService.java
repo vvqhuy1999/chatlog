@@ -4,7 +4,6 @@ import com.example.chatlog.entity.ai.AiEmbedding;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public interface AiEmbeddingService {
 
