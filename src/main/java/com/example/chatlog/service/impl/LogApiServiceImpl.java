@@ -5,22 +5,27 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.handler.ssl.SslContextBuilder;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import org.springframework.cache.annotation.Cacheable;
 
 @Service
 public class LogApiServiceImpl implements LogApiService {
 
     // WebClient để giao tiếp với Elasticsearch thông qua HTTP/HTTPS
     private final WebClient webClient;
+    
+    // Timeout settings - tối ưu cho performance
+    private static final Duration RESPONSE_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration CONNECTION_TIMEOUT = Duration.ofSeconds(10);
 
     /**
      * Constructor khởi tạo LogApiServiceImpl với cấu hình kết nối Elasticsearch
@@ -34,18 +39,20 @@ public class LogApiServiceImpl implements LogApiService {
         @Value("${elastic.api.url}") String baseUrl,
         @Value("${elastic.api.key}") String apiKey) {
 
-        // Cấu hình HTTP client với SSL trust-all (chỉ dùng cho môi trường nội bộ)
-        HttpClient httpClient = HttpClient.create().secure(ssl -> {
-            try {
-                ssl.sslContext(
-                    SslContextBuilder.forClient()
-                        .trustManager(InsecureTrustManagerFactory.INSTANCE) // Tin tương tất cả certificates
-                        .build()
-                );
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
+        // Cấu hình HTTP client với SSL trust-all và timeout
+        HttpClient httpClient = HttpClient.create()
+            .responseTimeout(RESPONSE_TIMEOUT)  // Timeout cho response
+            .secure(ssl -> {
+                try {
+                    ssl.sslContext(
+                        SslContextBuilder.forClient()
+                            .trustManager(InsecureTrustManagerFactory.INSTANCE) // Tin tương tất cả certificates
+                            .build()
+                    );
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
 
         // Xây dựng WebClient với cấu hình SSL và các header mặc định
         this.webClient = builder
@@ -54,6 +61,7 @@ public class LogApiServiceImpl implements LogApiService {
             .defaultHeader("Authorization", "ApiKey " + apiKey) // Xác thực bằng API key
             .defaultHeader("Content-Type", "application/json") // Định dạng JSON
             .defaultHeader("kbn-xsrf", "true") // Header bảo mật cho Kibana
+            .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024)) // 10MB buffer
             .build();
     }
 
@@ -66,14 +74,22 @@ public class LogApiServiceImpl implements LogApiService {
      * @return Kết quả tìm kiếm dạng JSON string từ Elasticsearch
      */
     @Override
-    public String search(String index,String body) {
-        // Gửi HTTP POST request đến Elasticsearch _search endpoint
-        return webClient.post()
-            .uri("/" + index + "/_search") // Đường dẫn tìm kiếm của Elasticsearch
-            .bodyValue(body) // JSON query body
-            .retrieve() // Thực hiện request
-            .bodyToMono(String.class) // Chuyển đổi response thành String
-            .block(); // Chờ kết quả (blocking call)
+    public String search(String index, String body) {
+        long startTime = System.currentTimeMillis();
+        
+        // Gửi HTTP POST request đến Elasticsearch _search endpoint với timeout
+        String result = webClient.post()
+            .uri("/" + index + "/_search")
+            .bodyValue(body)
+            .retrieve()
+            .bodyToMono(String.class)
+            .timeout(RESPONSE_TIMEOUT)  // Thêm timeout để tránh treo
+            .block();
+        
+        long duration = System.currentTimeMillis() - startTime;
+        System.out.println("[ES Search] ⚡ Query completed in " + duration + "ms");
+        
+        return result;
     }
 
 
@@ -82,17 +98,22 @@ public class LogApiServiceImpl implements LogApiService {
     /**
      * Lấy danh sách tất cả các field có trong index
      * Sử dụng _field_caps API của Elasticsearch để lấy thông tin
+     * Cached để tránh gọi lại nhiều lần (schema ít thay đổi)
      *
      * @param index Tên index cần lấy thông tin field (ví dụ: "logs-fortinet_fortigate.log-default*")
      * @return Danh sách các field dạng String
      */
     @Override
-    public String getAllField(String index){
+    @Cacheable(value = "schema_mappings", key = "#index")
+    public String getAllField(String index) {
+        long startTime = System.currentTimeMillis();
+        
         String json = webClient
             .post()
-            .uri("/"+index+"/_field_caps?fields=*")
+            .uri("/" + index + "/_field_caps?fields=*")
             .retrieve()
             .bodyToMono(String.class)
+            .timeout(RESPONSE_TIMEOUT)
             .block();
 
         try {
@@ -108,11 +129,12 @@ public class LogApiServiceImpl implements LogApiService {
                 }
             }
 
-//            System.out.println("Danh sách field:");
-            // fieldNames.forEach(System.out::println);
+            long duration = System.currentTimeMillis() - startTime;
+            System.out.println("[ES FieldCaps] ⚡ Got " + fieldNames.size() + " fields in " + duration + "ms");
+            
             return fieldNames.toString();
         } catch (Exception e) {
-            System.out.println("[LogApiServiceImpl] : " +e.getMessage());
+            System.out.println("[LogApiServiceImpl] Error: " + e.getMessage());
         }
         return "";
     }

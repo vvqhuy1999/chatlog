@@ -24,7 +24,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-
+import java.util.concurrent.ExecutorService;
 
 /**
  * Service xử lý chế độ so sánh giữa OpenAI và OpenRouter với PARALLEL PROCESSING
@@ -39,6 +39,9 @@ public class AiComparisonService {
     @Autowired
     private ToolsConfig toolsConfig;
 
+    @Autowired
+    @org.springframework.beans.factory.annotation.Qualifier("aiExecutor")
+    private ExecutorService aiExecutor;
 
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper;
@@ -511,12 +514,14 @@ public class AiComparisonService {
 
             // CompletableFuture cho OpenAI với tool enabled (sử dụng custom executor)
             CompletableFuture<Map<String, Object>> openaiFuture = CompletableFuture.supplyAsync(() ->
-                processOpenAI(sessionId, chatRequest, toolBasedPrompt)
+                processOpenAI(sessionId, chatRequest, toolBasedPrompt),
+                aiExecutor
             );
 
             // CompletableFuture cho OpenRouter với tool enabled (sử dụng custom executor)
             CompletableFuture<Map<String, Object>> openrouterFuture = CompletableFuture.supplyAsync(() ->
-                processOpenRouter(sessionId, chatRequest, toolBasedPrompt)
+                processOpenRouter(sessionId, chatRequest, toolBasedPrompt),
+                aiExecutor
             );
 
             // Đợi cả hai hoàn thành

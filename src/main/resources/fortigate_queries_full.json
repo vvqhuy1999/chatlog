@@ -797,7 +797,7 @@
         "top_violating_sources": {
           "terms": {
             "field": "source.ip",
-            "size": 10,
+            "size": 20,
             "order": {
               "total_denied_bytes": "desc"
             }
@@ -1128,7 +1128,7 @@
         "cross_policy_violators": {
           "terms": {
             "field": "source.ip",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "policies_violated": {
@@ -2757,7 +2757,7 @@
         "by_user": {
           "terms": {
             "field": "source.user.name",
-            "size": 10
+            "size": 20
           }
         }
       },
@@ -2876,7 +2876,7 @@
         "top_apps": {
           "terms": {
             "field": "network.protocol",
-            "size": 10
+            "size": 20
           }
         }
       },
@@ -3143,7 +3143,7 @@
         "by_user": {
           "terms": {
             "field": "source.user.name",
-            "size": 10,
+            "size": 20,
             "order": {
               "unique_domains": "desc"
             }
@@ -3490,7 +3490,7 @@
         "by_interface": {
           "terms": {
             "field": "observer.ingress.interface.name",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "total_bytes": {
@@ -3613,7 +3613,7 @@
         "top_ports": {
           "terms": {
             "field": "destination.port",
-            "size": 10
+            "size": 20
           }
         }
       },
@@ -3733,7 +3733,7 @@
         "by_interface_role": {
           "terms": {
             "field": "fortinet.firewall.srcintfrole",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "total_bytes": {
@@ -3793,7 +3793,7 @@
         "top_macs": {
           "terms": {
             "field": "source.mac",
-            "size": 10
+            "size": 20
           }
         }
       },
@@ -3912,7 +3912,7 @@
         "by_direction": {
           "terms": {
             "field": "network.direction",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "total_bytes": {
@@ -3975,7 +3975,7 @@
         "top_egress": {
           "terms": {
             "field": "observer.egress.interface.name",
-            "size": 10
+            "size": 20
           }
         }
       },
@@ -4040,7 +4040,7 @@
           "network.bytes": "desc"
         }
       ],
-      "size": 10
+      "size": 20
     }
   },
   {
@@ -4098,7 +4098,7 @@
         "top_users": {
           "terms": {
             "field": "source.user.name",
-            "size": 10,
+            "size": 20,
             "order": {
               "total_packets": "desc"
             }
@@ -4393,7 +4393,7 @@
         "top_connections": {
           "terms": {
             "field": "source.ip",
-            "size": 10,
+            "size": 20,
             "order": {
               "bytes_per_packet": "desc"
             }
@@ -4558,7 +4558,7 @@
         "by_user": {
           "terms": {
             "field": "source.user.name",
-            "size": 10,
+            "size": 20,
             "order": {
               "avg_duration": "desc"
             }
@@ -4899,7 +4899,7 @@
         "top_device_types": {
           "terms": {
             "field": "fortinet.firewall.devtype",
-            "size": 10,
+            "size": 20,
             "order": {
               "total_bytes": "desc"
             }
@@ -5146,7 +5146,7 @@
         "top_failed_hosts": {
           "terms": {
             "field": "host.name",
-            "size": 10
+            "size": 20
           }
         }
       },
@@ -5480,7 +5480,7 @@
         "user_names": {
           "terms": {
             "field": "source.user.name",
-            "size": 10
+            "size": 20
           }
         }
       },
@@ -5729,7 +5729,7 @@
         "top_countries": {
           "terms": {
             "field": "destination.geo.country_name",
-            "size": 10
+            "size": 20
           }
         }
       },
@@ -5951,7 +5951,7 @@
         "top_blocked": {
           "terms": {
             "field": "source.ip",
-            "size": 10
+            "size": 20
           }
         }
       },
@@ -6315,7 +6315,7 @@
         "nat_types": {
           "terms": {
             "field": "fortinet.firewall.trandisp",
-            "size": 10
+            "size": 20
           }
         }
       },
@@ -6929,7 +6929,7 @@
           }
         }
       },
-      "size": 10,
+      "size": 20,
       "sort": [
         {
           "@timestamp": "desc"
@@ -7164,7 +7164,7 @@
             "top_organizations": {
               "terms": {
                 "field": "destination.as.organization.name",
-                "size": 10,
+                "size": 20,
                 "order": {
                   "org_bytes": "desc"
                 }
@@ -7348,7 +7348,7 @@
         "by_interface": {
           "terms": {
             "field": "observer.egress.interface.name",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "total_bytes": {
@@ -7364,7 +7364,7 @@
             "top_users": {
               "terms": {
                 "field": "source.user.name",
-                "size": 10,
+                "size": 20,
                 "order": {
                   "user_bytes": "desc"
                 }
@@ -7489,7 +7489,7 @@
         "by_interface": {
           "terms": {
             "field": "observer.ingress.interface.name",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "total_bytes": {
@@ -7500,7 +7500,7 @@
             "by_destination": {
               "terms": {
                 "field": "destination.ip",
-                "size": 10,
+                "size": 20,
                 "order": {
                   "dest_bytes": "desc"
                 }
@@ -7516,7 +7516,7 @@
             "by_source_country": {
               "terms": {
                 "field": "source.geo.country_name",
-                "size": 10
+                "size": 20
               },
               "aggs": {
                 "country_bytes": {
@@ -7699,7 +7699,7 @@
                 "top_organizations": {
                   "terms": {
                     "field": "destination.as.organization.name",
-                    "size": 10,
+                    "size": 20,
                     "order": {
                       "org_bytes": "desc"
                     }
@@ -7870,13 +7870,13 @@
         "by_user": {
           "terms": {
             "field": "source.user.name",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "by_interface": {
               "terms": {
                 "field": "observer.egress.interface.name",
-                "size": 10
+                "size": 20
               },
               "aggs": {
                 "interface_bytes": {
@@ -7887,7 +7887,7 @@
                 "user_domains": {
                   "terms": {
                     "field": "url.domain",
-                    "size": 15
+                    "size": 20
                   },
                   "aggs": {
                     "domain_bytes": {
@@ -7925,7 +7925,7 @@
             "by_interface": {
               "terms": {
                 "field": "observer.egress.interface.name",
-                "size": 10
+                "size": 20
               },
               "aggs": {
                 "interface_bytes": {
@@ -8277,7 +8277,7 @@
             "by_interface": {
               "terms": {
                 "field": "observer.egress.interface.name",
-                "size": 10
+                "size": 20
               },
               "aggs": {
                 "interface_bytes": {
@@ -8321,7 +8321,7 @@
             "by_interface": {
               "terms": {
                 "field": "observer.egress.interface.name",
-                "size": 10
+                "size": 20
               },
               "aggs": {
                 "interface_bytes": {
@@ -8683,7 +8683,7 @@
               "118.70.81.176",
               "101.99.13.33"
             ],
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "total_bytes": {
@@ -8699,13 +8699,13 @@
             "top_source_countries": {
               "terms": {
                 "field": "source.geo.country_name",
-                "size": 10
+                "size": 20
               }
             },
             "top_ports": {
               "terms": {
                 "field": "destination.port",
-                "size": 10
+                "size": 20
               }
             }
           }
@@ -8814,7 +8814,7 @@
         "by_direction": {
           "terms": {
             "field": "network.direction",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "total_bytes": {
@@ -8996,7 +8996,7 @@
             "by_interface": {
               "terms": {
                 "field": "observer.egress.interface.name",
-                "size": 10
+                "size": 20
               },
               "aggs": {
                 "interface_bytes": {
@@ -9009,7 +9009,7 @@
             "by_nat_ip": {
               "terms": {
                 "field": "source.nat.ip",
-                "size": 10
+                "size": 20
               },
               "aggs": {
                 "nat_bytes": {
@@ -9027,7 +9027,7 @@
             "top_websites": {
               "terms": {
                 "field": "url.domain",
-                "size": 10,
+                "size": 20,
                 "order": {
                   "site_bytes": "desc"
                 }
@@ -9064,7 +9064,7 @@
             "by_interface": {
               "terms": {
                 "field": "observer.egress.interface.name",
-                "size": 10
+                "size": 20
               },
               "aggs": {
                 "interface_bytes": {
@@ -9077,7 +9077,7 @@
             "by_nat_ip": {
               "terms": {
                 "field": "source.nat.ip",
-                "size": 10
+                "size": 20
               },
               "aggs": {
                 "nat_ip_bytes": {
@@ -9092,7 +9092,7 @@
         "traffic_by_interface": {
           "terms": {
             "field": "observer.egress.interface.name",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "interface_total_bytes": {
@@ -9103,7 +9103,7 @@
             "top_users_per_interface": {
               "terms": {
                 "field": "source.user.name",
-                "size": 10,
+                "size": 20,
                 "order": {
                   "user_bytes": "desc"
                 }
@@ -9121,7 +9121,7 @@
         "traffic_by_nat_ip": {
           "terms": {
             "field": "source.nat.ip",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "nat_ip_total_bytes": {
@@ -9132,7 +9132,7 @@
             "top_users_per_ip": {
               "terms": {
                 "field": "source.user.name",
-                "size": 10,
+                "size": 20,
                 "order": {
                   "user_bytes": "desc"
                 }
@@ -9472,7 +9472,7 @@
             "top_users": {
               "terms": {
                 "field": "source.user.name",
-                "size": 10
+                "size": 20
               }
             },
             "top_protocols": {
@@ -9598,7 +9598,7 @@
             "top_organizations": {
               "terms": {
                 "field": "destination.as.organization.name",
-                "size": 10,
+                "size": 20,
                 "order": {
                   "org_bytes": "desc"
                 }
@@ -9803,13 +9803,13 @@
             "top_domains": {
               "terms": {
                 "field": "url.domain",
-                "size": 10
+                "size": 20
               }
             },
             "top_users": {
               "terms": {
                 "field": "source.user.name",
-                "size": 10,
+                "size": 20,
                 "order": {
                   "user_bytes": "desc"
                 }
@@ -10229,7 +10229,7 @@
             "affected_users": {
               "terms": {
                 "field": "source.user.name",
-                "size": 10
+                "size": 20
               }
             },
             "countries": {
@@ -10327,7 +10327,7 @@
             "dangerous_orgs": {
               "terms": {
                 "field": "destination.as.organization.name",
-                "size": 10
+                "size": 20
               },
               "aggs": {
                 "threat_count": {
@@ -10497,7 +10497,7 @@
                 "attack_types": {
                   "terms": {
                     "field": "fortinet.firewall.attack",
-                    "size": 10
+                    "size": 20
                   }
                 }
               }
@@ -10512,7 +10512,7 @@
                 "virus_types": {
                   "terms": {
                     "field": "fortinet.firewall.virus",
-                    "size": 10
+                    "size": 20
                   }
                 }
               }
@@ -10609,7 +10609,7 @@
             "top_risky_users": {
               "terms": {
                 "field": "source.user.name",
-                "size": 10
+                "size": 20
               }
             },
             "risk_bucket_sort": {
@@ -10791,7 +10791,7 @@
             "affected_users": {
               "terms": {
                 "field": "source.user.name",
-                "size": 10
+                "size": 20
               }
             },
             "countries": {
@@ -10857,7 +10857,7 @@
         "all_orgs": {
           "terms": {
             "field": "destination.as.organization.name",
-            "size": 1000
+            "size": 100
           },
           "aggs": {
             "malware_weight": {
@@ -10940,7 +10940,7 @@
             "affected_users": {
               "terms": {
                 "field": "source.user.name",
-                "size": 10
+                "size": 20
               }
             }
           }
@@ -12714,7 +12714,7 @@
           "@timestamp": "desc"
         }
       ],
-      "size": 1000
+      "size": 100
     }
   },
   {
@@ -12836,7 +12836,7 @@
             "geographic_locations": {
               "terms": {
                 "field": "source.geo.country_name",
-                "size": 10
+                "size": 20
               }
             },
             "failed_attempts": {
@@ -12999,7 +12999,7 @@
         "email_traffic_analysis": {
           "terms": {
             "field": "destination.port",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "email_servers": {
@@ -13219,7 +13219,7 @@
             "transfer_protocols": {
               "terms": {
                 "field": "destination.port",
-                "size": 10
+                "size": 20
               }
             },
             "transfer_timeline": {
@@ -13252,7 +13252,7 @@
         "protocol_analysis": {
           "terms": {
             "field": "destination.port",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "avg_transfer_size": {
@@ -13397,7 +13397,7 @@
           "@timestamp": "asc"
         }
       ],
-      "size": 1000
+      "size": 100
     }
   },
   {
@@ -14338,7 +14338,7 @@
             "source_country": {
               "terms": {
                 "field": "source.geo.country_name",
-                "size": 10
+                "size": 20
               }
             }
           }
@@ -14514,7 +14514,7 @@
             "target_ports": {
               "terms": {
                 "field": "destination.port",
-                "size": 10
+                "size": 20
               }
             },
             "protocols_used": {
@@ -14560,7 +14560,7 @@
             "service_ports": {
               "terms": {
                 "field": "destination.port",
-                "size": 10
+                "size": 20
               }
             },
             "ddos_indicator": {
@@ -14577,7 +14577,7 @@
         "attack_patterns": {
           "terms": {
             "field": "network.protocol",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "traffic_volume": {
@@ -14756,7 +14756,7 @@
             "protocol_breakdown": {
               "terms": {
                 "field": "network.protocol",
-                "size": 10
+                "size": 20
               }
             },
             "service_ports": {
@@ -15407,7 +15407,7 @@
             "protocols_used": {
               "terms": {
                 "field": "network.protocol",
-                "size": 10
+                "size": 20
               }
             },
             "destination_ports": {
@@ -15551,7 +15551,7 @@
             "contacted_dns_servers": {
               "terms": {
                 "field": "destination.ip",
-                "size": 10
+                "size": 20
               },
               "aggs": {
                 "total_traffic_bytes": {
@@ -15682,7 +15682,7 @@
                 "connection_ports": {
                   "terms": {
                     "field": "destination.port",
-                    "size": 10
+                    "size": 20
                   }
                 },
                 "connection_timeline": {
@@ -15725,7 +15725,7 @@
         "service_analysis": {
           "terms": {
             "field": "destination.port",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "service_usage": {
@@ -15861,7 +15861,7 @@
             "protocols_used": {
               "terms": {
                 "field": "network.protocol",
-                "size": 10
+                "size": 20
               }
             },
             "ports_accessed": {
@@ -16047,7 +16047,7 @@
             "protocol_breakdown": {
               "terms": {
                 "field": "network.protocol",
-                "size": 10
+                "size": 20
               }
             },
             "port_analysis": {
@@ -16065,13 +16065,13 @@
             "source_interface": {
               "terms": {
                 "field": "fortinet.firewall.src_int",
-                "size": 10
+                "size": 20
               }
             },
             "dest_interface": {
               "terms": {
                 "field": "fortinet.firewall.dst_int",
-                "size": 10
+                "size": 20
               }
             }
           }
@@ -16079,13 +16079,13 @@
         "interface_roles": {
           "terms": {
             "field": "fortinet.firewall.srcintfrole",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "dest_roles": {
               "terms": {
                 "field": "fortinet.firewall.dstintfrole",
-                "size": 10
+                "size": 20
               }
             }
           }
@@ -16185,7 +16185,7 @@
         "by_organization": {
           "terms": {
             "field": "destination.as.organization.name",
-            "size": 10,
+            "size": 20,
             "order": {
               "total_bytes": "desc"
             }
@@ -16404,7 +16404,7 @@
             "download_sources": {
               "terms": {
                 "field": "destination.as.organization.name",
-                "size": 10
+                "size": 20
               },
               "aggs": {
                 "downloaded_from_source": {
@@ -16595,7 +16595,7 @@
             "destinations": {
               "terms": {
                 "field": "destination.ip",
-                "size": 10
+                "size": 20
               },
               "aggs": {
                 "organizations": {
@@ -16615,13 +16615,13 @@
                     "destination_ports": {
                       "terms": {
                         "field": "destination.port",
-                        "size": 10
+                        "size": 20
                       }
                     },
                     "destination_domains": {
                       "terms": {
                         "field": "destination.domain",
-                        "size": 10
+                        "size": 20
                       }
                     },
                     "connection_stats": {
@@ -16667,7 +16667,7 @@
                     "country_distribution": {
                       "terms": {
                         "field": "destination.geo.country_name",
-                        "size": 10
+                        "size": 20
                       },
                       "aggs": {
                         "country_bytes": {
@@ -16861,7 +16861,7 @@
             "port_distribution": {
               "terms": {
                 "field": "destination.port",
-                "size": 10
+                "size": 20
               },
               "aggs": {
                 "protocol": {
@@ -16877,7 +16877,7 @@
         "organization_stats": {
           "terms": {
             "field": "destination.as.organization.name",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "org_bytes": {
@@ -16888,7 +16888,7 @@
             "org_domains": {
               "terms": {
                 "field": "destination.domain",
-                "size": 10
+                "size": 20
               }
             }
           }
@@ -16939,7 +16939,7 @@
         "by_user": {
           "terms": {
             "field": "source.user.name",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "unique_websites": {
@@ -16982,7 +16982,7 @@
         "by_user": {
           "terms": {
             "field": "source.user.name",
-            "size": 10
+            "size": 20
           },
           "aggs": {
             "by_url_domain": {
@@ -17145,7 +17145,7 @@
           "@timestamp": "desc"
         }
       ],
-      "size": 10,
+      "size": 20,
       "_source": [
         "@timestamp",
         "source.ip",
@@ -17185,7 +17185,7 @@
           "@timestamp": "desc"
         }
       ],
-      "size": 10,
+      "size": 20,
       "_source": [
         "@timestamp",
         "url.domain",
@@ -18551,7 +18551,7 @@
         "top_actions": {
           "terms": {
             "field": "fortinet.firewall.action",
-            "size": 10
+            "size": 20
           }
         }
       }
@@ -18833,7 +18833,7 @@
             "by_cfgpath": {
               "terms": {
                 "field": "fortinet.firewall.cfgpath",
-                "size": 10
+                "size": 20
               }
             }
           }
@@ -18971,7 +18971,7 @@
         "top_users": {
           "terms": {
             "field": "source.user.name",
-            "size": 10,
+            "size": 20,
             "order": {
               "total_bytes": "desc"
             }

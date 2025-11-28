@@ -26,33 +26,25 @@ public class VectorSearchService {
      * VECTOR SEARCH: Tìm kiếm semantic similarity thuần túy
      */
     public String findRelevantExamples(String userQuery) {
-        System.out.println("\n" + "=".repeat(100));
-        System.out.println("🔍 VECTOR SEMANTIC SEARCH");
-        System.out.println("=".repeat(100));
+        long startTime = System.currentTimeMillis();
         
-        // Check database stats first
-        long totalEmbeddings = aiEmbeddingService.countAllNotDeleted();
-        System.out.println("\n📊 DATABASE STATS:");
-        System.out.println("   Total embeddings in database: " + totalEmbeddings);
-        
-        if (totalEmbeddings == 0) {
-            System.out.println("   ⚠️ WARNING: No embeddings found in database!");
-            System.out.println("   Please run the embedding import process first.");
-        }
-        
-        System.out.println("\n📝 QUERY: \"" + userQuery + "\"");
+        System.out.println("\n" + "═".repeat(80));
+        System.out.println("🔍 [VectorSearch] START");
+        System.out.println("   📝 Query: \"" + (userQuery.length() > 80 ? userQuery.substring(0, 80) + "..." : userQuery) + "\"");
         
         // BƯỚC 1: Tạo Query Embedding cho semantic search
-        float[] queryEmbedding = null;
         String queryEmbeddingString = null;
+        int embeddingDimensions = 0;
         
         if (embeddingModel != null) {
             try {
-                System.out.println("\n🔄 STEP 1: Creating Query Embedding for Semantic Search");
-                queryEmbedding = embeddingModel.embed(userQuery);
+                long embeddingStart = System.currentTimeMillis();
+                float[] queryEmbedding = embeddingModel.embed(userQuery);
+                embeddingDimensions = queryEmbedding.length;
                 
-                // Convert to PostgreSQL vector format
-                StringBuilder sb = new StringBuilder("[");
+                // Convert to PostgreSQL vector format - optimized với StringBuilder capacity
+                StringBuilder sb = new StringBuilder(queryEmbedding.length * 12);
+                sb.append("[");
                 for (int i = 0; i < queryEmbedding.length; i++) {
                     if (i > 0) sb.append(",");
                     sb.append(queryEmbedding[i]);
@@ -60,60 +52,41 @@ public class VectorSearchService {
                 sb.append("]");
                 queryEmbeddingString = sb.toString();
                 
-                System.out.println("   ✅ Query Embedding Created: " + queryEmbedding.length + " dimensions");
+                long embeddingTime = System.currentTimeMillis() - embeddingStart;
+                System.out.println("   ✅ [Step 1] Embedding created: " + embeddingDimensions + " dims in " + embeddingTime + "ms");
             } catch (Exception e) {
-                System.out.println("   ❌ Error: " + e.getMessage());
+                System.out.println("   ❌ [Step 1] ERROR creating embedding: " + e.getMessage());
                 e.printStackTrace();
             }
+        } else {
+            System.out.println("   ❌ [Step 1] ERROR: EmbeddingModel is NULL!");
         }
         
         // BƯỚC 2: Vector Search
-        System.out.println("\n🎯 STEP 2: Vector Semantic Search");
-        
         List<AiEmbedding> similarEmbeddings;
         String resultMode = "VECTOR";
-        int topK = 8; // Lấy 10 kết quả tốt nhất
+        int topK = 8; // Mặc định 8 kết quả
         
         if (queryEmbeddingString != null) {
-            // Lấy 10 kết quả tốt nhất từ vector similarity search
-            System.out.println("   ✅ Strategy: Pure vector search for top 10 most relevant examples");
-
-            similarEmbeddings = aiEmbeddingService.findSimilarEmbeddings(
-                queryEmbeddingString, topK
-            );
-            
-            System.out.println("   📊 Vector results: " + similarEmbeddings.size());
-            System.out.println("   🧪 Final result: " + similarEmbeddings.size() + " examples");
+            long dbStart = System.currentTimeMillis();
+            similarEmbeddings = aiEmbeddingService.findSimilarEmbeddings(queryEmbeddingString, topK);
+            long dbTime = System.currentTimeMillis() - dbStart;
+            System.out.println("   ✅ [Step 2] DB search: " + similarEmbeddings.size() + " results in " + dbTime + "ms");
         } else {
             similarEmbeddings = List.of();
-            System.out.println("   ❌ No embedding model available");
             resultMode = "NONE";
+            System.out.println("   ⚠️ [Step 2] SKIPPED - No embedding available");
         }
         
-        System.out.println("   ✅ Found: " + similarEmbeddings.size() + " similar embeddings");
-        
         if (similarEmbeddings.isEmpty()) {
-            System.out.println("   ⚠️ No similar documents found!");
+            System.out.println("   ⚠️ [VectorSearch] No results found!");
+            System.out.println("═".repeat(80) + "\n");
             return "⚠️ Không tìm thấy ví dụ tương đồng.";
         }
         
-        // BƯỚC 3: Convert và hiển thị kết quả
-        System.out.println("\n📊 STEP 3: Results Analysis");
-        System.out.println("-".repeat(100));
-        
-        for (int i = 0; i < similarEmbeddings.size(); i++) {
-            AiEmbedding embedding = similarEmbeddings.get(i);
-            String question = (String) embedding.getMetadata().get("question");
-            String scenario = (String) embedding.getMetadata().get("scenario");
-            
-            System.out.println("\n[RANK #" + (i+1) + "] " + question);
-            if (scenario != null) {
-                System.out.println("   📁 Scenario: " + scenario);
-            }
-            System.out.println("   🎯 Matched by: Vector Similarity Score");
-        }
-        
-        System.out.println("\n" + "-".repeat(100));
+        long totalTime = System.currentTimeMillis() - startTime;
+        System.out.println("   ✅ [VectorSearch] DONE - " + similarEmbeddings.size() + " examples in " + totalTime + "ms");
+        System.out.println("═".repeat(80) + "\n");
         
         // Format kết quả cho LLM
         StringBuilder examples = new StringBuilder();
@@ -152,9 +125,6 @@ public class VectorSearchService {
             }
         }
 
-        System.out.println("\n✅ Total: " + similarEmbeddings.size() + " examples found using VECTOR SEARCH");
-        System.out.println("=".repeat(100) + "\n");
-        
         return examples.toString();
     }
 

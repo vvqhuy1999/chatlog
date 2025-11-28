@@ -37,7 +37,7 @@ spring:
       register-mbeans: false
 
   jpa:
-    show-sql: false
+    show-sql: true
     open-in-view: false
     hibernate:
       ddl-auto: none
@@ -114,7 +114,7 @@ management:
 logging:
   level:
     com.example.chatlog: INFO
-    com.example.chatlog.service.impl.VectorSearchService: INFO
+    com.example.chatlog.service.impl.VectorSearchService: DEBUG
     org.springframework.ai: WARN
     org.hibernate.SQL: ERROR
-    com.zaxxer.hikari: WARN
+    com.zaxxer.hikari: DEBUG
