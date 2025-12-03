@@ -25,6 +25,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Service xử lý chế độ so sánh giữa OpenAI và OpenRouter với PARALLEL PROCESSING
@@ -540,13 +542,56 @@ public class AiComparisonService {
                 aiExecutor
             );
 
-            // Đợi cả hai hoàn thành
-            System.out.println("[AiComparisonService] ⏳ Đang đợi cả OpenAI và OpenRouter hoàn thành...");
-            CompletableFuture.allOf(openaiFuture, openrouterFuture).join();
-
-            // Lấy kết quả
+            // Đợi cả hai hoàn thành với TIMEOUT (120 seconds max)
+            long timeoutSeconds = 120;
+            System.out.println("[AiComparisonService] ⏳ Đang đợi cả OpenAI và OpenRouter hoàn thành (timeout: " + timeoutSeconds + "s)...");
+            
+            // Log status mỗi 10 giây trong khi chờ
+            CompletableFuture<Void> statusLogger = CompletableFuture.runAsync(() -> {
+                int waited = 0;
+                while (!openaiFuture.isDone() || !openrouterFuture.isDone()) {
+                    try {
+                        Thread.sleep(10000); // 10 seconds
+                        waited += 10;
+                        System.out.println("[AiComparisonService] ⏳ Đã chờ " + waited + "s - OpenAI: " + 
+                            (openaiFuture.isDone() ? "✅ Done" : "⏳ Running") + 
+                            ", OpenRouter: " + (openrouterFuture.isDone() ? "✅ Done" : "⏳ Running"));
+                        if (waited >= timeoutSeconds) break;
+                    } catch (InterruptedException e) {
+                        break;
+                    }
+                }
+            }, aiExecutor);
+            
             try {
-                openaiResult = openaiFuture.get();
+                CompletableFuture.allOf(openaiFuture, openrouterFuture)
+                    .get(timeoutSeconds, TimeUnit.SECONDS);
+                statusLogger.cancel(true); // Cancel status logger khi hoàn thành
+            } catch (TimeoutException te) {
+                statusLogger.cancel(true);
+                System.out.println("[AiComparisonService] ⚠️  Timeout! Một hoặc cả hai AI chưa hoàn thành sau " + timeoutSeconds + "s");
+                // Cancel các future chưa hoàn thành
+                if (!openaiFuture.isDone()) {
+                    openaiFuture.cancel(true);
+                    System.out.println("[AiComparisonService] ❌ OpenAI future cancelled due to timeout");
+                }
+                if (!openrouterFuture.isDone()) {
+                    openrouterFuture.cancel(true);
+                    System.out.println("[AiComparisonService] ❌ OpenRouter future cancelled due to timeout");
+                }
+            } catch (Exception e) {
+                System.out.println("[AiComparisonService] ⚠️  Error waiting for futures: " + e.getMessage());
+            }
+
+            // Lấy kết quả (ngay cả khi timeout, vẫn lấy được kết quả của future đã hoàn thành)
+            try {
+                if (openaiFuture.isDone() && !openaiFuture.isCancelled()) {
+                    openaiResult = openaiFuture.get(1, TimeUnit.SECONDS);
+                } else {
+                    System.out.println("[AiComparisonService] ⚠️  OpenAI future not completed or cancelled");
+                    openaiResult = new HashMap<>();
+                    openaiResult.put("error", "Timeout or cancelled");
+                }
             } catch (Exception e) {
                 System.out.println("[AiComparisonService] ⚠️  OpenAI future error: " + e.getMessage());
                 openaiResult = new HashMap<>();
@@ -554,14 +599,20 @@ public class AiComparisonService {
             }
 
             try {
-                openrouterResult = openrouterFuture.get();
+                if (openrouterFuture.isDone() && !openrouterFuture.isCancelled()) {
+                    openrouterResult = openrouterFuture.get(1, TimeUnit.SECONDS);
+                } else {
+                    System.out.println("[AiComparisonService] ⚠️  OpenRouter future not completed or cancelled");
+                    openrouterResult = new HashMap<>();
+                    openrouterResult.put("error", "Timeout or cancelled");
+                }
             } catch (Exception e) {
                 System.out.println("[AiComparisonService] ⚠️  OpenRouter future error: " + e.getMessage());
                 openrouterResult = new HashMap<>();
                 openrouterResult.put("error", e.getMessage());
             }
 
-            System.out.println("[AiComparisonService] ✅ CẢ HAI đã hoàn thành!");
+            System.out.println("[AiComparisonService] ✅ Xử lý hoàn thành!");
             System.out.println("[AiComparisonService] 📊 OpenAI result keys: " + (openaiResult != null ? String.join(", ", openaiResult.keySet()) : "NULL"));
             System.out.println("[AiComparisonService] 📊 OpenRouter result keys: " + (openrouterResult != null ? String.join(", ", openrouterResult.keySet()) : "NULL"));
 

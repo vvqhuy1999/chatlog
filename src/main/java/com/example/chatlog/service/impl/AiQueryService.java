@@ -524,27 +524,97 @@ public class AiQueryService {
     }
 
     /**
-     * Attempt to heal basic JSON string issues
+     * Attempt to heal and extract valid JSON from string
+     * Handles: markdown code blocks, text before/after JSON, multiple JSON objects
      */
     private String healJsonString(String json) {
         if (json == null || json.isEmpty()) {
             return json;
         }
 
-        // Count braces to find imbalances
+        String cleaned = json.trim();
+        
+        // Step 1: Remove markdown code blocks
+        if (cleaned.contains("```json")) {
+            int start = cleaned.indexOf("```json") + 7;
+            int end = cleaned.indexOf("```", start);
+            if (end > start) {
+                cleaned = cleaned.substring(start, end).trim();
+                System.out.println("[AiQueryService] 🔨 Extracted JSON from ```json block");
+            }
+        } else if (cleaned.contains("```")) {
+            int start = cleaned.indexOf("```") + 3;
+            int end = cleaned.indexOf("```", start);
+            if (end > start) {
+                cleaned = cleaned.substring(start, end).trim();
+                System.out.println("[AiQueryService] 🔨 Extracted JSON from ``` block");
+            }
+        }
+        
+        // Step 2: Find the first valid JSON object
+        int firstBrace = cleaned.indexOf('{');
+        if (firstBrace > 0) {
+            System.out.println("[AiQueryService] 🔨 Found text before JSON, extracting from position " + firstBrace);
+            cleaned = cleaned.substring(firstBrace);
+        }
+        
+        // Step 3: Extract only the first complete JSON object
+        if (cleaned.startsWith("{")) {
+            int depth = 0;
+            int endPos = -1;
+            boolean inString = false;
+            char prevChar = 0;
+            
+            for (int i = 0; i < cleaned.length(); i++) {
+                char c = cleaned.charAt(i);
+                
+                // Handle string boundaries (ignore braces inside strings)
+                if (c == '"' && prevChar != '\\') {
+                    inString = !inString;
+                }
+                
+                if (!inString) {
+                    if (c == '{') depth++;
+                    else if (c == '}') {
+                        depth--;
+                        if (depth == 0) {
+                            endPos = i + 1;
+                            break;
+                        }
+                    }
+                }
+                prevChar = c;
+            }
+            
+            if (endPos > 0 && endPos < cleaned.length()) {
+                String afterJson = cleaned.substring(endPos).trim();
+                if (!afterJson.isEmpty() && (afterJson.startsWith(",") || afterJson.startsWith("{"))) {
+                    System.out.println("[AiQueryService] 🔨 Found extra content after JSON, truncating");
+                }
+                cleaned = cleaned.substring(0, endPos);
+            }
+        }
+
+        // Step 4: Count braces to find imbalances
         int openBraces = 0;
         int closeBraces = 0;
         int openBrackets = 0;
         int closeBrackets = 0;
 
-        for (char c : json.toCharArray()) {
-            if (c == '{') openBraces++;
-            else if (c == '}') closeBraces++;
-            else if (c == '[') openBrackets++;
-            else if (c == ']') closeBrackets++;
+        boolean inStr = false;
+        char prev = 0;
+        for (char c : cleaned.toCharArray()) {
+            if (c == '"' && prev != '\\') inStr = !inStr;
+            if (!inStr) {
+                if (c == '{') openBraces++;
+                else if (c == '}') closeBraces++;
+                else if (c == '[') openBrackets++;
+                else if (c == ']') closeBrackets++;
+            }
+            prev = c;
         }
 
-        String healed = json;
+        String healed = cleaned;
 
         // Add missing closing braces
         for (int i = 0; i < (openBraces - closeBraces); i++) {
@@ -557,7 +627,7 @@ public class AiQueryService {
         }
 
         if (!healed.equals(json)) {
-            System.out.println("[AiQueryService] 🔨 Healed JSON - Added " + (openBraces - closeBraces) + " braces and " + (openBrackets - closeBrackets) + " brackets");
+            System.out.println("[AiQueryService] 🔨 Healed JSON - Original length: " + json.length() + ", Fixed length: " + healed.length());
         }
 
         return healed;

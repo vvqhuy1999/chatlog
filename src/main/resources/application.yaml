@@ -113,8 +113,16 @@ management:
 # Logging optimization
 logging:
   level:
-    com.example.chatlog: INFO
+    root: WARN
+    com.example.chatlog: DEBUG
+    com.example.chatlog.controller: DEBUG
+    com.example.chatlog.service: DEBUG
+    com.example.chatlog.service.impl: DEBUG
+    com.example.chatlog.service.impl.AiComparisonService: DEBUG
     com.example.chatlog.service.impl.VectorSearchService: DEBUG
+    org.springframework.boot: INFO
     org.springframework.ai: WARN
     org.hibernate.SQL: ERROR
-    com.zaxxer.hikari: DEBUG
+    com.zaxxer.hikari: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
