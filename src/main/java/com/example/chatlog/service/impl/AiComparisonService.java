@@ -55,7 +55,16 @@ public class AiComparisonService {
     }
 
     /**
-     * Tạo chuỗi thông tin ngày tháng cho system message
+     * Tạo chuỗi thông tin ngày/giờ chi tiết để đưa vào phần SYSTEM PROMPT cho AI.
+     * <p>
+     * - Lấy thời gian hiện tại theo múi giờ Việt Nam (UTC+7) và UTC.
+     * - Tính mốc bắt đầu của "hôm nay" theo giờ VN (00:00) rồi convert sang UTC.
+     * - Format sẵn các đoạn JSON range {@code {"gte": "...", "lt": "..."}} để AI copy dùng luôn cho Elasticsearch.
+     * <p>
+     * Kết quả là một block text lớn (nhiều dòng) giải thích rõ:
+     * - User đang ở VN, logs ở Elasticsearch là UTC.
+     * - "Hôm nay" nghĩa là từ 00:00 VN đến thời điểm hiện tại.
+     * - Cung cấp luôn range theo cả VN và UTC để AI không bị sai timezone.
      */
     private String generateDateContext() {
         ZonedDateTime vnTimeNow = ZonedDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
@@ -127,7 +136,18 @@ public class AiComparisonService {
     }
 
     /**
-     * Build tool-based prompt for parallel execution
+     * Xây dựng SYSTEM PROMPT đầy đủ cho chế độ TOOL-BASED (dùng với searchElasticsearch).
+     * <p>
+     * Nhiệm vụ:
+     * - Giải thích cho AI workflow 4 bước: phân tích câu hỏi → sinh query → gọi tool → phân tích kết quả & trả lời.
+     * - Đưa vào các RULE quan trọng: convert bytes, grouping, ưu tiên field, phân tích đặc biệt cho cfgattr, v.v.
+     * - Thêm ví dụ "GOOD" / "BAD" để AI học phong cách trả lời mong muốn.
+     * - Embed thêm:
+     *   + dateContext: ngữ cảnh thời gian đã tính sẵn (timezone, "hôm nay", v.v.).
+     *   + SchemaHint: thông tin schema Elasticsearch, mapping field, role normalization, action rules.
+     *   + dynamicExamples: các ví dụ tương tự lấy từ vector search (knowledge base).
+     * <p>
+     * Đây là prompt lõi quyết định cách AI sinh query và trả lời khi chạy ở comparison mode.
      */
     private String buildToolBasedPrompt(String userQuery, String dateContext, String dynamicExamples) {
         System.out.println("[buildToolBasedPrompt] 🔨 Bắt đầu xây dựng tool-based prompt...");
@@ -158,7 +178,7 @@ public class AiComparisonService {
             STEP 3: 📊 ANALYZE data and PROVIDE COMPLETE ANSWER
             - Tool returns one of: SUCCESS (with data), NO DATA, or ERROR
             - For SUCCESS: Parse and analyze the data
-            - For NO DATA: Explain and suggest adjustments  
+            - For NO DATA: Explain and suggest adjustments
             - For ERROR: Identify issue and provide guidance
             
             STEP 4: 📋 PROVIDE NATURAL, CONVERSATIONAL ANSWER
@@ -480,7 +500,21 @@ public class AiComparisonService {
     }
 
     /**
-     * Xử lý yêu cầu với PARALLEL PROCESSING - OpenAI và OpenRouter chạy đồng thời
+     * Hàm entry-point cho chế độ so sánh (comparison mode) với PARALLEL PROCESSING.
+     * <p>
+     * Khi controller gọi vào đây:
+     * - B1: Tạo {@code dateContext} (ngữ cảnh thời gian) và lấy dynamic examples từ Vector Search.
+     * - B2: Build tool-based prompt chung cho cả OpenAI và OpenRouter.
+     * - B3: Chạy song song 2 thread:
+     *   + {@link #processOpenAI(Long, ChatRequest, String)}
+     *   + {@link #processOpenRouter(Long, ChatRequest, String)}
+     * - B4: Chờ 2 thread với timeout, gom kết quả, build object trả về gồm:
+     *   + query_generation_comparison: so sánh query mà từng model sinh ra.
+     *   + elasticsearch_comparison: so sánh dữ liệu lấy được từ ES (thành công/thất bại).
+     *   + response_generation_comparison: so sánh câu trả lời cuối cùng (natural language).
+     *   + timing_metrics & optimization_stats: thời gian, tiết kiệm được bao nhiêu so với chạy tuần tự.
+     * <p>
+     * Nếu một provider bị lỗi/timeout, hàm vẫn cố gắng trả về kết quả của provider còn lại.
      */
     public Map<String, Object> handleRequestWithComparison(Long sessionId, ChatRequest chatRequest) {
         Map<String, Object> result = new HashMap<>();
@@ -811,7 +845,19 @@ public class AiComparisonService {
     }
 
     /**
-     * Xử lý OpenAI trong thread riêng với TOOL-BASED approach
+     * Xử lý yêu cầu cho OpenAI trong một thread riêng, với TOOL-BASED approach (có bật tool searchElasticsearch).
+     * <p>
+     * Flow chi tiết:
+     * - Nhận {@code toolBasedPrompt} đã build sẵn + userMessage.
+     * - Gọi {@link ChatClient} với:
+     *   + system(prompt), user(message), options (temperature 0.3), tools(toolsConfig), conversationId riêng.
+     * - Có cơ chế retry khi bị rate limit (HTTP 429) với thời gian chờ dựa trên thông báo lỗi.
+     * - Sau khi AI trả về:
+     *   + Lấy response text (đã bao gồm phân tích + query + phần gọi tool).
+     *   + Lấy ToolResult từ {@link ToolsConfig#getToolResult()} để đọc data & query thực đã dùng.
+     *   + Đóng gói kết quả thành 3 phần: generation, elasticsearch, response + timing.
+     * <p>
+     * Kết quả của hàm này được dùng trong {@link #handleRequestWithComparison(Long, ChatRequest)} để so sánh với OpenRouter.
      */
     private Map<String, Object> processOpenAI(Long sessionId, ChatRequest chatRequest, String toolBasedPrompt) {
         Map<String, Object> result = new HashMap<>();
@@ -1007,7 +1053,16 @@ public class AiComparisonService {
     }
 
     /**
-     * Xử lý OpenRouter trong thread riêng với TOOL-BASED approach
+     * Tương tự {@link #processOpenAI(Long, ChatRequest, String)} nhưng dành cho OpenRouter.
+     * <p>
+     * Điểm khác biệt chính:
+     * - Dùng model của OpenRouter (qua cấu hình {@link ModelProvider#OPENROUTER}).
+     * - Temperature cao hơn (0.7) để câu trả lời đa dạng hơn.
+     * <p>
+     * Cũng bật tool {@code searchElasticsearch}, dùng cùng system prompt, và đóng gói kết quả theo cùng format:
+     * - generation: thời gian suy luận + model + query.
+     * - elasticsearch: dữ liệu từ ES + trạng thái success.
+     * - response: nội dung trả lời cuối cùng của AI.
      */
     private Map<String, Object> processOpenRouter(Long sessionId, ChatRequest chatRequest, String toolBasedPrompt) {
         Map<String, Object> result = new HashMap<>();
@@ -1203,40 +1258,17 @@ public class AiComparisonService {
     }
 
     /**
-     * Clean JSON response from AI
-     */
-    private String cleanJsonResponse(String raw) {
-        System.out.println("[cleanJsonResponse] 🧹 Bắt đầu làm sạch JSON response...");
-
-        if (raw == null) {
-            System.out.println("[cleanJsonResponse] ⚠️  Input is NULL");
-            return "";
-        }
-
-        System.out.println("[cleanJsonResponse] 📏 Original length: " + raw.length() + " chars");
-
-        String clean = raw.trim();
-        if (clean.startsWith("```json")) {
-            System.out.println("[cleanJsonResponse] 🔄 Loại bỏ ```json");
-            clean = clean.substring(7);
-        }
-        if (clean.startsWith("```")) {
-            System.out.println("[cleanJsonResponse] 🔄 Loại bỏ ```");
-            clean = clean.substring(3);
-        }
-        if (clean.endsWith("```")) {
-            System.out.println("[cleanJsonResponse] 🔄 Loại bỏ ``` ở cuối");
-            clean = clean.substring(0, clean.length() - 3);
-        }
-
-        String result = clean.trim();
-        System.out.println("[cleanJsonResponse] ✅ Hoàn thành - Length: " + result.length() + " chars");
-
-        return result;
-    }
-
-    /**
-     * Extract Elasticsearch query from AI response (for logging purposes)
+     * Trích xuất phần Elasticsearch DSL query từ nội dung trả lời của AI
+     * <p>
+     * Mục đích:
+     * - Dùng để LOG lại query mà AI đã sinh ra (debug / audit).
+     * - Dùng làm fallback khi ToolsConfig không lưu lại query trong ToolResult.
+     * <p>
+     * Cách hoạt động:
+     * 1. Ưu tiên tìm block ```json ... ``` trong câu trả lời của AI và lấy nội dung JSON bên trong.
+     * 2. Nếu không có ```json, tìm ký tự '{' đầu tiên và cố gắng cắt ra một JSON object hoàn chỉnh
+     *    bằng cách đếm ngoặc { } (depth tăng/giảm).
+     * 3. Nếu không tìm được JSON hợp lệ, trả về null và log cảnh báo.
      */
     private String extractQueryFromResponse(String response) {
         if (response == null) {
@@ -1290,7 +1322,16 @@ public class AiComparisonService {
     }
 
     /**
-     * Tính thời gian tiết kiệm được nhờ parallel processing
+     * Tính toán thời gian tiết kiệm được khi chạy song song (parallel) so với chạy tuần tự.
+     * <p>
+     * - Đầu vào:
+     *   + {@code openaiResult.total_time_ms}: tổng thời gian OpenAI thread chạy.
+     *   + {@code openrouterResult.total_time_ms}: tổng thời gian OpenRouter thread chạy.
+     *   + {@code actualTime}: thời gian thực tế đo được cho cả hàm comparison (song song).
+     * - Cách tính:
+     *   + sequentialTime = openaiTime + openrouterTime (giả sử chạy lần lượt).
+     *   + timeSaved = sequentialTime - actualTime.
+     * - Đồng thời log ra console để dễ debug/monitor hiệu quả của parallel processing.
      */
     private long calculateTimeSaved(Map<String, Object> openaiResult,
         Map<String, Object> openrouterResult,
@@ -1320,7 +1361,13 @@ public class AiComparisonService {
     }
 
     /**
-     * Build dynamic examples từ vector search
+     * Lấy các ví dụ (prompt examples) liên quan từ Vector Search để đưa vào SYSTEM PROMPT.
+     * <p>
+     * - Gửi userQuery vào {@link VectorSearchService#findRelevantExamples(String)}.
+     * - Kết quả là đoạn text chứa nhiều ví dụ tương tự (câu hỏi + query + phân tích).
+     * - Những ví dụ này giúp AI:
+     *   + Bắt chước đúng style phân tích/log/report mà ta mong muốn.
+     *   + Hạn chế "bịa" query, vì đã có pattern sẵn từ knowledge base.
      */
     private String buildDynamicExamples(String userQuery) {
         System.out.println("[buildDynamicExamples] 🔍 Bắt đầu tìm ví dụ từ Vector Search...");
@@ -1335,8 +1382,13 @@ public class AiComparisonService {
     }
 
     /**
-     * Parse thời gian đợi từ rate limit error message
-     * Format: "Please try again in X.XXXs"
+     * Parse thời gian đợi (wait time) từ thông báo lỗi rate limit của OpenAI/OpenRouter.
+     * <p>
+     * - Tìm chuỗi dạng: {@code "Please try again in X.XXXs"} trong error message.
+     * - Nếu parse được, convert giây → milli-giây để dùng cho {@code Thread.sleep()}.
+     * - Nếu không parse được, trả về giá trị mặc định (2 giây) để tránh chờ quá lâu.
+     * <p>
+     * Hàm này được dùng trong cơ chế retry khi gặp HTTP 429 (rate_limit_exceeded).
      */
     private long parseRateLimitWaitTime(String errorMessage) {
         try {

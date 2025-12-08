@@ -1,15 +1,14 @@
 package com.example.chatlog.service.impl;
 
-import com.example.chatlog.dto.ChatRequest;
 import com.example.chatlog.entity.chat.ChatMessages;
 import com.example.chatlog.entity.chat.ChatSessions;
 import com.example.chatlog.repository.ChatMessagesRepository;
 import com.example.chatlog.repository.ChatSessionsRepository;
-import com.example.chatlog.service.AiService;
+
 import com.example.chatlog.service.ChatMessagesService;
 import java.util.List;
 
-import org.springframework.ai.chat.client.ChatClient;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

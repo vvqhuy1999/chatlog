@@ -81,6 +81,7 @@ public class AiEmbeddingServiceImpl implements AiEmbeddingService {
     }
 
     @Override
+    @Transactional(value = "secondaryTransactionManager", readOnly = true)
     public List<AiEmbedding> findSimilarEmbeddings(String queryEmbedding, int limit) {
         // Log the SQL query
         String sqlQuery = String.format(
